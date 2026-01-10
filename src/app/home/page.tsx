@@ -15,7 +15,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
@@ -23,7 +22,6 @@ import {
   User,
   RefreshCw,
   X,
-  History,
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -203,32 +201,22 @@ export default function HomePage() {
         </div>
 
         {/* FAQ Section */}
-        <div className="text-black">
-          <Tabs defaultValue="beginner" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 bg-transparent p-0">
-              <TabsTrigger value="beginner" className="rounded-full data-[state=active]:bg-white/20 data-[state=active]:text-white data-[state=inactive]:text-white/70">Beginner's questions</TabsTrigger>
-              <TabsTrigger value="trading" className="rounded-full data-[state=active]:bg-white/20 data-[state=active]:text-white data-[state=inactive]:text-white/70">Trading problems</TabsTrigger>
-            </TabsList>
-            <TabsContent value="beginner">
-              <Accordion type="single" collapsible className="w-full space-y-2">
-                {faqs.map((faq, index) => (
-                  <AccordionItem key={index} value={`item-${index}`} className="border-none">
-                     <GlassCard className="rounded-xl">
-                        <AccordionTrigger className="p-4 text-left font-semibold text-white/90 hover:no-underline">
-                          {faq.question}
-                        </AccordionTrigger>
-                        <AccordionContent className="px-4 pb-4 text-white/70">
-                          {faq.answer}
-                        </AccordionContent>
-                      </GlassCard>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            </TabsContent>
-            <TabsContent value="trading">
-              <p className="text-center text-white/70 p-8">No trading problems to display.</p>
-            </TabsContent>
-          </Tabs>
+        <div className="space-y-4">
+           <h2 className="text-center text-lg font-semibold text-white">Beginner's questions</h2>
+            <Accordion type="single" collapsible className="w-full space-y-2">
+              {faqs.map((faq, index) => (
+                <AccordionItem key={index} value={`item-${index}`} className="border-none">
+                    <GlassCard className="rounded-xl">
+                      <AccordionTrigger className="p-4 text-left font-semibold text-white/90 hover:no-underline">
+                        {faq.question}
+                      </AccordionTrigger>
+                      <AccordionContent className="px-4 pb-4 text-white/70">
+                        {faq.answer}
+                      </AccordionContent>
+                    </GlassCard>
+                </AccordionItem>
+              ))}
+            </Accordion>
         </div>
       </main>
     </div>
