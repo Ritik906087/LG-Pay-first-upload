@@ -13,15 +13,17 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Loader2, KeyRound, Phone } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import Link from 'next/link';
+import Image from "next/image";
 
 const formSchema = z.object({
   phone: z
     .string()
     .min(1, { message: "Please enter your phone number." })
-    .min(10, { message: "Phone number must be at least 10 digits." }),
+    .min(10, { message: "Phone number must be at least 10 digits." })
+    .max(10, { message: "Phone number must be 10 digits." }),
   password: z
     .string()
     .min(1, { message: "Please enter your password." })
@@ -30,6 +32,8 @@ const formSchema = z.object({
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -57,12 +61,20 @@ export function LoginForm() {
             <FormItem>
               <FormLabel>Phone Number</FormLabel>
               <div className="relative flex items-center">
-                 <Phone className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                 <div className="absolute left-3.5 top-1/2 flex -translate-y-1/2 items-center gap-2 text-sm text-muted-foreground">
+                  <Image
+                    src="https://upload.wikimedia.org/wikipedia/en/4/41/Flag_of_India.svg"
+                    width={20}
+                    height={14}
+                    alt="India Flag"
+                  />
+                  <span>+91</span>
+                </div>
                 <FormControl>
                   <Input
                     type="tel"
-                    placeholder="Enter your phone number"
-                    className="pl-10"
+                    placeholder="Please enter your phone number"
+                    className="pl-[88px]"
                     {...field}
                   />
                 </FormControl>
@@ -76,27 +88,36 @@ export function LoginForm() {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
+              <div className="flex items-center justify-between">
+                <FormLabel>Password</FormLabel>
+                <Link href="/forgot-password" className="text-sm font-semibold text-accent hover:underline">
+                  Forgot Password?
+                </Link>
+              </div>
               <div className="relative">
-                <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <FormControl>
                   <Input
-                    type="password"
-                    placeholder="Enter password"
-                    className="pl-10"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Please enter your login password"
+                    className="pl-4"
                     {...field}
                   />
                 </FormControl>
+                 <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1.5 top-1/2 h-auto -translate-y-1/2 p-1 text-muted-foreground hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </Button>
               </div>
               <FormMessage />
             </FormItem>
           )}
         />
-        <div className="text-right text-sm -mt-3">
-          <Link href="/forgot-password" className="font-semibold text-accent hover:underline">
-            Forgot Password?
-          </Link>
-        </div>
+        
         <Button
           type="submit"
           className="w-full font-semibold btn-gradient rounded-full"
