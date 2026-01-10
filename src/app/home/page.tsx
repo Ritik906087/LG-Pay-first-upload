@@ -101,7 +101,15 @@ export default function HomePage() {
     <div className="flex flex-col pb-24 text-white">
       {/* Header */}
       <header className="flex items-center justify-between p-4">
-        <h1 className="text-xl font-bold text-gradient">LG Pay</h1>
+        <div className="flex items-center gap-2">
+            <Image
+                src="https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/InShot_20260110_205628399.png?alt=media&token=5d466aa9-095b-495f-92e8-95f3b59b4367"
+                width={32}
+                height={32}
+                alt="LG Pay Logo"
+            />
+            <h1 className="text-xl font-bold text-gradient">LG Pay</h1>
+        </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/10">
             <RefreshCw className="h-5 w-5 text-white/80" />
@@ -135,13 +143,13 @@ export default function HomePage() {
           <CarouselContent>
             {carouselImages.map((src, index) => (
               <CarouselItem key={index}>
-                <GlassCard className="rounded-2xl">
+                <GlassCard className="overflow-hidden rounded-2xl">
                   <Image
                       src={src}
                       alt={`Carousel image ${index + 1}`}
                       width={600}
                       height={200}
-                      className="w-full object-cover aspect-[2/1] rounded-2xl"
+                      className="w-full object-cover aspect-[2/1]"
                     />
                 </GlassCard>
               </CarouselItem>
