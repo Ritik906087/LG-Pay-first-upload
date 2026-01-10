@@ -2,9 +2,6 @@
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,14 +16,19 @@ import {
   User,
   RefreshCw,
   X,
-  Wallet,
-  Landmark,
   ArrowRight,
-  CircleDollarSign,
   History,
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
+
+const GlassCard = ({ children, className }: { children: React.ReactNode, className?: string }) => (
+  <Card className={cn("border-none bg-white/10 shadow-2xl shadow-primary/10 backdrop-blur-lg", className)}>
+    {children}
+  </Card>
+);
+
 
 export default function HomePage() {
   const quickActions = [
@@ -37,16 +39,16 @@ export default function HomePage() {
   ];
 
   return (
-    <div className="flex flex-col bg-background pb-24">
+    <div className="flex flex-col pb-24 text-white">
       {/* Header */}
       <header className="flex items-center justify-between p-4">
         <h1 className="text-xl font-bold text-gradient">LG Pay</h1>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <RefreshCw className="h-5 w-5 text-muted-foreground" />
+          <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/10">
+            <RefreshCw className="h-5 w-5 text-white/80" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
-            <X className="h-5 w-5 text-muted-foreground" />
+          <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/10">
+            <X className="h-5 w-5 text-white/80" />
           </Button>
         </div>
       </header>
@@ -54,32 +56,30 @@ export default function HomePage() {
       {/* Main Content */}
       <main className="flex-grow space-y-6 p-4 pt-2">
         {/* My Total Assets */}
-        <Card className="bg-card">
-          <CardHeader>
-            <CardTitle className="text-sm font-normal text-muted-foreground">
+        <GlassCard>
+          <CardContent className="p-4">
+            <p className="text-sm font-normal text-white/70">
               My total assets
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-foreground">2.00 LG</p>
+            </p>
+            <p className="text-3xl font-bold text-white">2.00 LG</p>
           </CardContent>
-        </Card>
+        </GlassCard>
 
         {/* Platform Notice */}
         <Carousel className="w-full">
           <CarouselContent>
             {Array.from({ length: 3 }).map((_, index) => (
               <CarouselItem key={index}>
-                <Card className="overflow-hidden bg-card">
+                <GlassCard className="overflow-hidden">
                   <div className="flex items-center justify-between p-4">
                     <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-white/70">
                         Platform Notice
                       </p>
-                      <h3 className="text-lg font-bold">Key Information</h3>
+                      <h3 className="text-lg font-bold text-white">Key Information</h3>
                       <Link
                         href="#"
-                        className="flex items-center text-sm font-semibold text-yellow-500"
+                        className="flex items-center text-sm font-semibold text-yellow-300"
                       >
                         View Details <ArrowRight className="ml-1 h-4 w-4" />
                       </Link>
@@ -93,7 +93,7 @@ export default function HomePage() {
                       className="object-contain"
                     />
                   </div>
-                </Card>
+                </GlassCard>
               </CarouselItem>
             ))}
           </CarouselContent>
@@ -108,11 +108,11 @@ export default function HomePage() {
             >
               <Button
                 variant="ghost"
-                className="h-14 w-14 rounded-full bg-card"
+                className="h-14 w-14 rounded-full bg-white/10 hover:bg-white/20"
               >
-                <action.icon className="h-6 w-6 text-muted-foreground" />
+                <action.icon className="h-6 w-6 text-white/80" />
               </Button>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-xs text-white/80">
                 {action.label}
               </span>
             </div>
@@ -121,30 +121,30 @@ export default function HomePage() {
 
         {/* Buy/Sell Actions */}
         <div className="grid grid-cols-2 gap-4">
-          <Card className="bg-yellow-400/20 border-yellow-500/50">
+          <Card className="border-none bg-gradient-to-br from-yellow-300/80 to-yellow-500/80 shadow-lg">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-bold text-yellow-800">Buy LG</h3>
-                  <p className="text-xs text-yellow-700">
+                  <h3 className="font-bold text-yellow-900">Buy LG</h3>
+                  <p className="text-xs text-yellow-800">
                     Flexible purchasing
                   </p>
                 </div>
-                <div className="rounded-md bg-yellow-500/80 p-2">
-                  <ArrowDownToLine className="h-5 w-5 text-white" />
+                <div className="rounded-md bg-white/30 p-2">
+                  <ArrowDownToLine className="h-5 w-5 text-yellow-900" />
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card className="bg-green-400/20 border-green-500/50">
+          <Card className="border-none bg-gradient-to-br from-green-300/80 to-green-500/80 shadow-lg">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-bold text-green-800">Sell LG</h3>
-                  <p className="text-xs text-green-700">Efficient and fast</p>
+                  <h3 className="font-bold text-green-900">Sell LG</h3>
+                  <p className="text-xs text-green-800">Efficient and fast</p>
                 </div>
-                <div className="rounded-md bg-green-500/80 p-2">
-                  <ArrowUpFromLine className="h-5 w-5 text-white" />
+                <div className="rounded-md bg-white/30 p-2">
+                  <ArrowUpFromLine className="h-5 w-5 text-green-900" />
                 </div>
               </div>
             </CardContent>
@@ -152,7 +152,7 @@ export default function HomePage() {
         </div>
 
         {/* Orders in Progress */}
-        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 text-sm text-white/70">
           <History className="h-5 w-5" />
           <span>You have 0 orders in progress</span>
         </div>
