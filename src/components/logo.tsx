@@ -1,7 +1,6 @@
 import { cn } from "@/lib/utils";
-import type { SVGProps } from "react";
 
-export function Logo({ className, ...props }: SVGProps<SVGSVGElement>) {
+export function Logo({ className }: { className?: string }) {
   return (
     <div
       className={cn(
@@ -9,14 +8,8 @@ export function Logo({ className, ...props }: SVGProps<SVGSVGElement>) {
         className
       )}
     >
-      <span
-        style={{
-          background: "linear-gradient(to right, hsl(var(--primary)), hsl(var(--accent)))",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent",
-        }}
-      >
-        LG Pay
+      <span className="bg-gradient-to-r from-accent via-[#ff6fd8] to-primary bg-clip-text text-transparent">
+        LG PAY
       </span>
     </div>
   );

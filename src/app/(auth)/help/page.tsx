@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 
 export default function HelpPage() {
   return (
-    <Card className="w-full max-w-md animate-fade-in-up rounded-2xl border-none shadow-2xl shadow-purple-200/50 dark:shadow-purple-900/50">
+    <Card className="w-full max-w-md animate-fade-in-up rounded-2xl border-none bg-white/90 shadow-2xl shadow-primary/20">
       <CardHeader>
         <CardTitle className="text-2xl">Help Center</CardTitle>
         <CardDescription>
@@ -24,7 +24,7 @@ export default function HelpPage() {
             You can reset your password by navigating to the{' '}
             <Link
               href="/forgot-password"
-              className="font-medium text-primary hover:underline"
+              className="font-semibold text-accent hover:underline"
             >
               Forgot Password
             </Link>{' '}
@@ -37,7 +37,7 @@ export default function HelpPage() {
             To create an account, go to the{' '}
             <Link
               href="/register"
-              className="font-medium text-primary hover:underline"
+              className="font-semibold text-accent hover:underline"
             >
               Sign Up
             </Link>{' '}
@@ -45,7 +45,7 @@ export default function HelpPage() {
             your number and set up your account.
           </p>
         </div>
-        <Button asChild className="w-full">
+        <Button asChild className="w-full font-semibold">
           <Link href="/login">Back to Sign In</Link>
         </Button>
       </CardContent>

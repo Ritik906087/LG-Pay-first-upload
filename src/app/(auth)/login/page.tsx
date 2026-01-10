@@ -2,7 +2,6 @@ import {
   Card,
   CardHeader,
   CardTitle,
-  CardDescription,
   CardContent,
   CardFooter,
 } from '@/components/ui/card';
@@ -12,25 +11,26 @@ import { Button } from '@/components/ui/button';
 
 export default function LoginPage() {
   return (
-    <Card className="w-full max-w-md animate-fade-in-up rounded-2xl border-none shadow-2xl shadow-purple-200/50 dark:shadow-purple-900/50">
+    <Card className="w-full max-w-md animate-fade-in-up rounded-2xl border-none bg-white/90 shadow-2xl shadow-primary/20">
       <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-        <CardDescription>Sign in to access your LG Pay account</CardDescription>
+        <CardTitle className="text-3xl font-bold text-gradient">
+          Account Login
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <LoginForm />
       </CardContent>
-      <CardFooter className="flex-col items-center gap-2">
-        <Button variant="link" size="sm" asChild>
-          <Link href="/forgot-password">Forgot password?</Link>
+      <CardFooter className="flex-col items-center gap-4">
+        <Button asChild className="help" variant="secondary">
+          <Link href="/help">Help Center</Link>
         </Button>
-        <div className="text-sm text-muted-foreground">
-          {"Don't have an account? "}
+        <div className="text-sm text-center">
+          No Account?{' '}
           <Link
             href="/register"
-            className="font-medium text-primary underline-offset-4 hover:underline"
+            className="font-semibold text-accent underline-offset-4 hover:underline"
           >
-            Sign up
+            Register Now »
           </Link>
         </div>
       </CardFooter>

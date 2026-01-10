@@ -11,7 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function TermsPage() {
   return (
-    <Card className="w-full max-w-md animate-fade-in-up rounded-2xl border-none shadow-2xl shadow-purple-200/50 dark:shadow-purple-900/50">
+    <Card className="w-full max-w-md animate-fade-in-up rounded-2xl border-none bg-white/90 shadow-2xl shadow-primary/20">
       <CardHeader>
         <CardTitle className="text-2xl">User Agreement</CardTitle>
         <CardDescription>
@@ -19,7 +19,7 @@ export default function TermsPage() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <ScrollArea className="h-64 w-full rounded-md border p-4 text-sm">
+        <ScrollArea className="h-64 w-full rounded-md border bg-white p-4 text-sm">
           <p className="mb-4">
             <strong>Last Updated: {new Date().toLocaleDateString()}</strong>
           </p>
@@ -59,8 +59,8 @@ export default function TermsPage() {
             use cookies in agreement with the LG Pay's Privacy Policy.
           </p>
         </ScrollArea>
-        <Button asChild className="w-full">
-          <Link href="/register">Back to Registration</Link>
+        <Button asChild className="w-full font-semibold">
+          <Link href="/register">Accept and Continue</Link>
         </Button>
       </CardContent>
     </Card>
