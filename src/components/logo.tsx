@@ -4,11 +4,11 @@ export function Logo({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "font-headline text-3xl font-bold tracking-tight",
+        "font-headline font-bold tracking-tight",
         className
       )}
     >
-      <span className="bg-gradient-to-r from-accent via-[#ff6fd8] to-primary bg-clip-text text-transparent">
+      <span className="text-gradient">
         LG PAY
       </span>
     </div>

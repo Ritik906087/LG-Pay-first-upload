@@ -11,9 +11,9 @@ import { Button } from '@/components/ui/button';
 
 export default function LoginPage() {
   return (
-    <Card className="w-full max-w-md animate-fade-in-up rounded-2xl border-none bg-white/90 shadow-2xl shadow-primary/20">
+    <Card className="w-full max-w-md animate-fade-in-up rounded-2xl border-none bg-white/90 shadow-2xl shadow-primary/20 backdrop-blur-sm">
       <CardHeader className="text-center">
-        <CardTitle className="text-3xl font-bold text-gradient">
+        <CardTitle className="text-2xl font-bold">
           Account Login
         </CardTitle>
       </CardHeader>

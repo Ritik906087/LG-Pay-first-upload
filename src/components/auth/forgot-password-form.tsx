@@ -13,11 +13,10 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Hash, KeyRound } from "lucide-react";
+import { KeyRound, Phone, ShieldCheck, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import Image from 'next/image';
 
 const phoneSchema = z.object({
   phone: z
@@ -87,17 +86,17 @@ export function ForgotPasswordForm() {
   }
 
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative overflow-hidden h-[330px]">
       <div
         className={cn(
-          "w-full transform transition-transform duration-500",
-          step === "phone" ? "translate-x-0" : "-translate-x-full"
+          "w-full transition-all duration-500 absolute top-0",
+          step === "phone" ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-full"
         )}
       >
         <Form {...phoneForm}>
           <form
             onSubmit={phoneForm.handleSubmit(onPhoneSubmit)}
-            className="space-y-4"
+            className="space-y-6"
           >
             <FormField
               control={phoneForm.control}
@@ -106,12 +105,12 @@ export function ForgotPasswordForm() {
                 <FormItem>
                   <FormLabel>Phone Number</FormLabel>
                    <div className="relative flex items-center">
-                     <Image src="https://upload.wikimedia.org/wikipedia/en/4/41/Flag_of_India.svg" width={24} height={16} alt="Indian Flag" className="absolute left-3" />
+                     <Phone className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <FormControl>
                       <Input
                         type="tel"
-                        placeholder="+91 Enter phone number"
-                        className="pl-12"
+                        placeholder="Enter your phone number"
+                        className="pl-10"
                         {...field}
                       />
                     </FormControl>
@@ -121,6 +120,7 @@ export function ForgotPasswordForm() {
               )}
             />
             <Button type="submit" className="w-full btn-gradient rounded-full font-semibold" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isLoading ? "Sending..." : "Send Reset Code"}
             </Button>
           </form>
@@ -129,8 +129,8 @@ export function ForgotPasswordForm() {
 
       <div
         className={cn(
-          "absolute top-0 w-full transform transition-transform duration-500",
-          step === "reset" ? "translate-x-0" : "translate-x-full"
+          "w-full transition-all duration-500 absolute top-0",
+          step === "reset" ? "opacity-100 translate-x-0" : "opacity-0 translate-x-full"
         )}
       >
         <Form {...resetForm}>
@@ -148,9 +148,11 @@ export function ForgotPasswordForm() {
                 <FormItem>
                   <FormLabel>Verification Code</FormLabel>
                   <div className="relative">
+                    <ShieldCheck className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <FormControl>
                       <Input
                         placeholder="OTP code"
+                        className="pl-10"
                         {...field}
                       />
                     </FormControl>
@@ -166,7 +168,7 @@ export function ForgotPasswordForm() {
                 <FormItem>
                   <FormLabel>New Password</FormLabel>
                   <div className="relative">
-                    <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <FormControl>
                       <Input
                         type="password"
@@ -187,7 +189,7 @@ export function ForgotPasswordForm() {
                 <FormItem>
                   <FormLabel>Confirm New Password</FormLabel>
                   <div className="relative">
-                    <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <FormControl>
                       <Input
                         type="password"
@@ -202,6 +204,7 @@ export function ForgotPasswordForm() {
               )}
             />
             <Button type="submit" className="w-full btn-gradient rounded-full font-semibold" disabled={isLoading}>
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {isLoading ? "Resetting..." : "Reset Password"}
             </Button>
           </form>

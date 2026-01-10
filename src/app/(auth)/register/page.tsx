@@ -8,26 +8,27 @@ import {
 import { RegisterForm } from '@/components/auth/register-form';
 import Link from 'next/link';
 import Image from 'next/image';
+import { Gift, Crown, Award } from 'lucide-react';
 
 export default function RegisterPage() {
   return (
-    <Card className="w-full max-w-md animate-fade-in-up rounded-2xl border-none bg-white/90 shadow-2xl shadow-primary/20">
+    <Card className="w-full max-w-md animate-fade-in-up rounded-2xl border-none bg-white/90 shadow-2xl shadow-primary/20 backdrop-blur-sm">
       <CardHeader className="items-center text-center">
-        <CardTitle className="text-3xl font-bold text-gradient">
+        <CardTitle className="text-2xl font-bold">
           Register
         </CardTitle>
-        <div className="mt-4 text-center">
-          <Image
-            src="https://cdn-icons-png.flaticon.com/512/1077/1077035.png"
-            alt="Reward"
-            width={90}
-            height={90}
-            className="mx-auto"
-          />
-          <div className="mt-2 text-sm">
-            <p>🎁 New User Reward</p>
-            <p>💰 Trading Bonus</p>
-            <p>👑 Member Exclusive Tasks</p>
+        <div className="mt-4 flex w-full justify-around text-center text-xs text-muted-foreground">
+          <div className="flex flex-col items-center gap-1">
+            <Gift className="h-5 w-5" />
+            <span>New User Reward</span>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <Award className="h-5 w-5" />
+            <span>Trading Bonus</span>
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <Crown className="h-5 w-5" />
+            <span>Member Tasks</span>
           </div>
         </div>
       </CardHeader>

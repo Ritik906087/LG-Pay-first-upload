@@ -14,11 +14,10 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, KeyRound } from "lucide-react";
+import { Loader2, KeyRound, Phone, ShieldCheck, Mail } from "lucide-react";
 import { useState } from "react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
-import Image from "next/image";
 
 const registerSchema = z
   .object({
@@ -95,18 +94,12 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>Phone Number</FormLabel>
               <div className="relative flex items-center">
-                <Image
-                  src="https://upload.wikimedia.org/wikipedia/en/4/41/Flag_of_India.svg"
-                  width={24}
-                  height={16}
-                  alt="Indian Flag"
-                  className="absolute left-3"
-                />
+                <Phone className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <FormControl>
                   <Input
                     type="tel"
-                    placeholder="+91 Enter phone number"
-                    className="pl-12"
+                    placeholder="Enter phone number"
+                    className="pl-10"
                     {...field}
                   />
                 </FormControl>
@@ -123,10 +116,11 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>Verification Code</FormLabel>
               <div className="relative flex items-center gap-2">
+                 <ShieldCheck className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <FormControl>
-                  <Input placeholder="OTP code" {...field} />
+                  <Input placeholder="OTP code" {...field} className="pl-10" />
                 </FormControl>
-                <Button type="button" className="btn-gradient shrink-0 rounded-full text-xs h-auto px-3 py-1.5" onClick={handleSendOtp}>
+                <Button type="button" variant="secondary" className="shrink-0 rounded-full text-xs h-auto px-4 py-2" onClick={handleSendOtp}>
                   Send
                 </Button>
               </div>
@@ -142,7 +136,7 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>Password</FormLabel>
               <div className="relative">
-                <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <FormControl>
                   <Input
                     type="password"
@@ -163,7 +157,7 @@ export function RegisterForm() {
             <FormItem>
               <FormLabel>Confirm Password</FormLabel>
               <div className="relative">
-                <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <FormControl>
                   <Input
                     type="password"
@@ -182,10 +176,13 @@ export function RegisterForm() {
           name="invitationCode"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Invitation Code</FormLabel>
-              <FormControl>
-                <Input placeholder="Optional" {...field} />
-              </FormControl>
+              <FormLabel>Invitation Code (Optional)</FormLabel>
+               <div className="relative">
+                <Mail className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <FormControl>
+                  <Input placeholder="Enter invitation code" {...field} className="pl-10"/>
+                </FormControl>
+              </div>
               <FormMessage />
             </FormItem>
           )}
@@ -203,7 +200,7 @@ export function RegisterForm() {
               </FormControl>
               <div className="space-y-1 leading-none text-sm">
                 <FormLabel className="font-normal">
-                  I agree to the{" "}
+                  I have read and agree to the{" "}
                   <Link
                     href="/terms"
                     className="font-semibold text-accent underline-offset-4 hover:underline"

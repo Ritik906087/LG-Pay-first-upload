@@ -13,9 +13,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Loader2, KeyRound } from "lucide-react";
+import { Loader2, KeyRound, Phone } from "lucide-react";
 import { useState } from "react";
-import Image from "next/image";
 import Link from 'next/link';
 
 const formSchema = z.object({
@@ -50,7 +49,7 @@ export function LoginForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="phone"
@@ -58,12 +57,12 @@ export function LoginForm() {
             <FormItem>
               <FormLabel>Phone Number</FormLabel>
               <div className="relative flex items-center">
-                 <Image src="https://upload.wikimedia.org/wikipedia/en/4/41/Flag_of_India.svg" width={24} height={16} alt="Indian Flag" className="absolute left-3" />
+                 <Phone className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <FormControl>
                   <Input
                     type="tel"
-                    placeholder="+91 Enter phone number"
-                    className="pl-12"
+                    placeholder="Enter your phone number"
+                    className="pl-10"
                     {...field}
                   />
                 </FormControl>
@@ -79,7 +78,7 @@ export function LoginForm() {
             <FormItem>
               <FormLabel>Password</FormLabel>
               <div className="relative">
-                <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <FormControl>
                   <Input
                     type="password"
@@ -93,7 +92,7 @@ export function LoginForm() {
             </FormItem>
           )}
         />
-        <div className="text-right text-sm">
+        <div className="text-right text-sm -mt-3">
           <Link href="/forgot-password" className="font-semibold text-accent hover:underline">
             Forgot Password?
           </Link>
