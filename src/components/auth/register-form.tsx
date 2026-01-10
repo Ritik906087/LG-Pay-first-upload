@@ -24,8 +24,10 @@ const registerSchema = z
   .object({
     phone: z
       .string()
-      .min(10, { message: "Phone number must be 10 digits." })
-      .max(10, { message: "Phone number must be 10 digits." }),
+      .length(10, { message: "Phone number must be 10 digits." })
+      .regex(/^[6-9]\d{9}$/, {
+        message: "Please enter a valid Indian mobile number.",
+      }),
     otp: z.string().length(6, { message: "OTP must be 6 digits." }),
     password: z
       .string()
@@ -112,6 +114,7 @@ export function RegisterForm() {
                     type="tel"
                     placeholder="Please enter your phone number"
                     className="pl-[88px]"
+                    maxLength={10}
                     {...field}
                   />
                 </FormControl>

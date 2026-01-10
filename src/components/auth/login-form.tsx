@@ -21,9 +21,10 @@ import Image from "next/image";
 const formSchema = z.object({
   phone: z
     .string()
-    .min(1, { message: "Please enter your phone number." })
-    .min(10, { message: "Phone number must be at least 10 digits." })
-    .max(10, { message: "Phone number must be 10 digits." }),
+    .length(10, { message: "Phone number must be 10 digits." })
+    .regex(/^[6-9]\d{9}$/, {
+      message: "Please enter a valid Indian mobile number.",
+    }),
   password: z
     .string()
     .min(1, { message: "Please enter your password." })
@@ -75,6 +76,7 @@ export function LoginForm() {
                     type="tel"
                     placeholder="Please enter your phone number"
                     className="pl-[88px]"
+                    maxLength={10}
                     {...field}
                   />
                 </FormControl>
