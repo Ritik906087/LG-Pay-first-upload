@@ -17,7 +17,7 @@ export default function RegisterPage() {
           Register
         </CardTitle>
         <Image
-          src="https://cdn-icons-png.flaticon.com/512/1077/1077035.png"
+          src="https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/file_000000002968720686f855daed13e880.png?alt=media&token=c4dece97-7dee-41c4-bac7-6c1f9f186fb6"
           width={64}
           height={64}
           alt="Gift"
