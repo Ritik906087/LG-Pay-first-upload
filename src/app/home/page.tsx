@@ -16,12 +16,12 @@ import {
   User,
   RefreshCw,
   X,
-  ArrowRight,
   History,
 } from 'lucide-react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import Autoplay from "embla-carousel-autoplay";
+import React from 'react';
 
 const GlassCard = ({ children, className }: { children: React.ReactNode, className?: string }) => (
   <Card className={cn("border-none bg-white/10 shadow-2xl shadow-primary/10 backdrop-blur-lg", className)}>
@@ -31,11 +31,22 @@ const GlassCard = ({ children, className }: { children: React.ReactNode, classNa
 
 
 export default function HomePage() {
+   const plugin = React.useRef(
+    Autoplay({ delay: 2000, stopOnInteraction: true })
+  );
+
   const quickActions = [
     { icon: ArrowDownToLine, label: 'Buy rules' },
     { icon: ArrowUpFromLine, label: 'Sell rules' },
     { icon: Headphones, label: 'Help Center' },
     { icon: User, label: 'User' },
+  ];
+
+  const carouselImages = [
+      "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/file_000000002654720b92e47bf4b904ef1c.png?alt=media&token=76a4ec53-db8c-41f7-afd5-02f453e9983d",
+      "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/IMG_20260110_221844_146.jpg?alt=media&token=9230032d-6628-4187-88a4-881d9ed10411",
+      "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/IMG_20260110_221845_327.jpg?alt=media&token=b03926fd-1ebe-4ed2-b8ec-031e4f00770c",
+      "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/IMG_20260110_221847_606.jpg?alt=media&token=a56dbce6-9cc2-4d97-b623-97f3d726b66b"
   ];
 
   return (
@@ -65,34 +76,24 @@ export default function HomePage() {
           </CardContent>
         </GlassCard>
 
-        {/* Platform Notice */}
-        <Carousel className="w-full">
+        {/* Image Carousel */}
+        <Carousel 
+            className="w-full"
+            plugins={[plugin.current]}
+            onMouseEnter={plugin.current.stop}
+            onMouseLeave={plugin.current.reset}
+        >
           <CarouselContent>
-            {Array.from({ length: 3 }).map((_, index) => (
+            {carouselImages.map((src, index) => (
               <CarouselItem key={index}>
                 <GlassCard className="overflow-hidden">
-                  <div className="flex items-center justify-between p-4">
-                    <div className="space-y-1">
-                      <p className="text-xs text-white/70">
-                        Platform Notice
-                      </p>
-                      <h3 className="text-lg font-bold text-white">Key Information</h3>
-                      <Link
-                        href="#"
-                        className="flex items-center text-sm font-semibold text-yellow-300"
-                      >
-                        View Details <ArrowRight className="ml-1 h-4 w-4" />
-                      </Link>
-                    </div>
-                    <Image
-                      src="https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/wallet.png?alt=media&token=7e8e6e58-6a4a-4368-bd69-6523918f6562"
-                      alt="Wallet with coins"
-                      width={100}
-                      height={60}
-                      data-ai-hint="wallet coins"
-                      className="object-contain"
+                  <Image
+                      src={src}
+                      alt={`Carousel image ${index + 1}`}
+                      width={600}
+                      height={200}
+                      className="w-full object-cover aspect-[2/1] rounded-2xl"
                     />
-                  </div>
                 </GlassCard>
               </CarouselItem>
             ))}
