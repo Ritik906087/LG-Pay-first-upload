@@ -75,7 +75,7 @@ export function LoginForm() {
                   <Input
                     type="tel"
                     placeholder="Please enter your phone number"
-                    className="pl-[88px]"
+                    className="pl-[88px] text-sm"
                     maxLength={10}
                     {...field}
                   />
@@ -101,7 +101,7 @@ export function LoginForm() {
                   <Input
                     type={showPassword ? "text" : "password"}
                     placeholder="Please enter your login password"
-                    className="pl-4"
+                    className="pl-4 text-sm"
                     {...field}
                   />
                 </FormControl>
@@ -109,7 +109,7 @@ export function LoginForm() {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="absolute right-1.5 top-1/2 h-auto -translate-y-1/2 p-1 text-muted-foreground hover:bg-transparent"
+                  className="absolute right-1.5 top-1/2 h-auto -translate-y-1/2 p-1 text-accent/80 hover:bg-transparent hover:text-accent"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}

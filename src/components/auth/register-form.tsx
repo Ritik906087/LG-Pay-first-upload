@@ -113,7 +113,7 @@ export function RegisterForm() {
                   <Input
                     type="tel"
                     placeholder="Please enter your phone number"
-                    className="pl-[88px]"
+                    className="pl-[88px] text-sm"
                     maxLength={10}
                     {...field}
                   />
@@ -132,7 +132,7 @@ export function RegisterForm() {
               <FormLabel>Verification Code</FormLabel>
               <div className="relative flex items-center">
                 <FormControl>
-                  <Input placeholder="Enter Verification Code" {...field} />
+                  <Input placeholder="Enter Verification Code" {...field} className="text-sm" />
                 </FormControl>
                 <Button type="button" variant="secondary" className="absolute right-1.5 h-auto rounded-md bg-accent/20 px-3 py-1 text-xs text-accent hover:bg-accent/30" onClick={handleSendOtp}>
                   Send
@@ -155,16 +155,17 @@ export function RegisterForm() {
                     type={showPassword ? "text" : "password"}
                     placeholder="Please enter your login password"
                     {...field}
+                    className="text-sm"
                   />
                 </FormControl>
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="absolute right-1.5 top-1/2 h-auto -translate-y-1/2 p-1 text-muted-foreground hover:bg-transparent"
+                  className="absolute right-1.5 top-1/2 h-auto -translate-y-1/2 p-1 text-accent/80 hover:bg-transparent hover:text-accent"
                   onClick={() => setShowPassword(!showPassword)}
                 >
-                  {showPassword ? <EyeOff /> : <Eye />}
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </Button>
               </div>
               <FormMessage />
@@ -183,16 +184,17 @@ export function RegisterForm() {
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="Please enter the confirmation password"
                     {...field}
+                    className="text-sm"
                   />
                 </FormControl>
                  <Button
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="absolute right-1.5 top-1/2 h-auto -translate-y-1/2 p-1 text-muted-foreground hover:bg-transparent"
+                  className="absolute right-1.5 top-1/2 h-auto -translate-y-1/2 p-1 text-accent/80 hover:bg-transparent hover:text-accent"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
-                  {showConfirmPassword ? <EyeOff /> : <Eye />}
+                  {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </Button>
               </div>
               <FormMessage />
@@ -207,7 +209,7 @@ export function RegisterForm() {
               <FormLabel>Invitation Code (Optional)</FormLabel>
                <div className="relative">
                 <FormControl>
-                  <Input placeholder="Please enter the invitation code" {...field}/>
+                  <Input placeholder="Please enter the invitation code" {...field} className="text-sm"/>
                 </FormControl>
               </div>
               <FormMessage />
