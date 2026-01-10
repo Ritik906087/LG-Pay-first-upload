@@ -17,6 +17,7 @@ import {
   RefreshCw,
   X,
   History,
+  ClipboardX,
 } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -38,7 +39,7 @@ const quickActions = [
 
 export default function HomePage() {
    const plugin = React.useRef(
-    Autoplay({ delay: 2000, stopOnInteraction: false })
+    Autoplay({ delay: 2000, stopOnInteraction: false, playOnInit: true, stopOnMouseEnter: true })
   );
 
   const carouselImages = [
@@ -86,7 +87,7 @@ export default function HomePage() {
           <CarouselContent>
             {carouselImages.map((src, index) => (
               <CarouselItem key={index}>
-                <GlassCard className="overflow-visible rounded-2xl">
+                <GlassCard className="rounded-2xl">
                   <Image
                       src={src}
                       alt={`Carousel image ${index + 1}`}
@@ -158,8 +159,8 @@ export default function HomePage() {
           <span>You have 0 orders in progress</span>
         </div>
         
-        <div className="flex justify-center pt-4">
-            <Image src="https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/clipboard.png?alt=media&token=e918e69d-21e1-4c6e-b72e-33513a8f5791" width={100} height={120} alt="Clipboard" className="opacity-30" data-ai-hint="clipboard empty"/>
+        <div className="flex justify-center pt-8">
+            <ClipboardX className="h-24 w-24 text-white/20" />
         </div>
       </main>
     </div>
