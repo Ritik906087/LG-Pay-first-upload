@@ -29,18 +29,17 @@ const GlassCard = ({ children, className }: { children: React.ReactNode, classNa
   </Card>
 );
 
+const quickActions = [
+  { icon: ArrowUpFromLine, label: 'Transfer' },
+  { icon: User, label: 'My QR' },
+  { icon: Headphones, label: 'Support' },
+  { icon: ArrowDownToLine, label: 'Receive' },
+];
 
 export default function HomePage() {
    const plugin = React.useRef(
-    Autoplay({ delay: 2000, stopOnInteraction: true })
+    Autoplay({ delay: 2000, stopOnInteraction: false })
   );
-
-  const quickActions = [
-    { icon: ArrowDownToLine, label: 'Buy rules' },
-    { icon: ArrowUpFromLine, label: 'Sell rules' },
-    { icon: Headphones, label: 'Help Center' },
-    { icon: User, label: 'User' },
-  ];
 
   const carouselImages = [
       "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/file_000000002654720b92e47bf4b904ef1c.png?alt=media&token=76a4ec53-db8c-41f7-afd5-02f453e9983d",
@@ -79,14 +78,15 @@ export default function HomePage() {
         {/* Image Carousel */}
         <Carousel 
             className="w-full"
+            opts={{ loop: true }}
             plugins={[plugin.current]}
             onMouseEnter={plugin.current.stop}
-            onMouseLeave={plugin.current.reset}
+            onMouseLeave={plugin.current.play}
         >
           <CarouselContent>
             {carouselImages.map((src, index) => (
               <CarouselItem key={index}>
-                <GlassCard className="overflow-hidden">
+                <GlassCard className="overflow-visible rounded-2xl">
                   <Image
                       src={src}
                       alt={`Carousel image ${index + 1}`}
