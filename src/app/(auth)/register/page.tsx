@@ -11,6 +11,7 @@ import { RegisterForm } from '@/components/auth/register-form';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useLanguage } from '@/context/language-context';
+import { Button } from '@/components/ui/button';
 
 export default function RegisterPage() {
   const { translations } = useLanguage();
@@ -33,12 +34,14 @@ export default function RegisterPage() {
       </CardContent>
       <CardFooter className="justify-center">
         <div className="text-sm text-center">
-          <Link
-            href="/login"
-            className="font-semibold text-accent underline-offset-4 hover:underline"
-          >
-            {translations.backToLogin}
-          </Link>
+          <Button asChild variant="link" className="p-0 h-auto text-accent">
+            <Link
+              href="/login"
+              className="font-semibold underline-offset-4 hover:underline"
+            >
+              {translations.backToLogin}
+            </Link>
+          </Button>
         </div>
       </CardFooter>
     </Card>

@@ -31,12 +31,14 @@ export default function LoginPage() {
         </Button>
         <div className="text-sm text-center">
           {translations.noAccount}{' '}
-          <Link
-            href="/register"
-            className="font-semibold text-accent underline-offset-4 hover:underline"
-          >
-            {translations.registerNow}
-          </Link>
+          <Button asChild variant="link" className="p-0 h-auto text-accent">
+            <Link
+              href="/register"
+              className="font-semibold underline-offset-4 hover:underline"
+            >
+              {translations.registerNow}
+            </Link>
+          </Button>
         </div>
       </CardFooter>
     </Card>
