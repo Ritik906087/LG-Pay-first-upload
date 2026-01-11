@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Copy, RefreshCw, X, MessageSquare } from 'lucide-react';
+import { Copy, RefreshCw, X, MessageSquare, History } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
