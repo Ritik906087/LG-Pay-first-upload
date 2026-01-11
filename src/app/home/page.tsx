@@ -30,6 +30,7 @@ import Autoplay from "embla-carousel-autoplay";
 import React from 'react';
 import { useUser, useFirestore, useDoc } from '@/firebase';
 import { doc } from 'firebase/firestore';
+import Link from 'next/link';
 
 
 const GlassCard = ({ children, className }: { children: React.ReactNode, className?: string }) => (
@@ -192,21 +193,23 @@ export default function HomePage() {
 
         {/* Buy/Sell Actions */}
         <div className="grid grid-cols-2 gap-4">
-          <Card className="border-none bg-yellow-100 shadow-lg">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-yellow-900">Buy LG</h3>
-                  <p className="text-xs text-yellow-800">
-                    Flexible purchasing
-                  </p>
+          <Link href="/buy" className="block">
+            <Card className="border-none bg-yellow-100 shadow-lg h-full">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-yellow-900">Buy LG</h3>
+                    <p className="text-xs text-yellow-800">
+                      Flexible purchasing
+                    </p>
+                  </div>
+                  <div className="rounded-md bg-black/5 p-2">
+                    <ArrowDownToLine className="h-5 w-5 text-yellow-900" />
+                  </div>
                 </div>
-                <div className="rounded-md bg-black/5 p-2">
-                  <ArrowDownToLine className="h-5 w-5 text-yellow-900" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Link>
           <Card className="border-none bg-green-100 shadow-lg">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
