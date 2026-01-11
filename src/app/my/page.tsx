@@ -36,6 +36,8 @@ import { useToast } from '@/hooks/use-toast';
 import { doc } from 'firebase/firestore';
 import React from 'react';
 import { Logo } from '@/components/logo';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
 
 const GlassCard = ({
   children,
@@ -135,9 +137,12 @@ export default function MyPage() {
           <GlassCard>
             <CardContent className="flex items-center justify-between p-4">
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-400">
-                  <span className="text-2xl font-bold text-yellow-900">{userProfile?.displayName?.charAt(0) || 'A'}</span>
-                </div>
+                 <Avatar className="h-12 w-12 border-2 border-yellow-400">
+                  <AvatarImage src={userProfile?.photoURL} alt={userProfile?.displayName} />
+                  <AvatarFallback className="bg-yellow-400 text-yellow-900 font-bold">
+                    {userProfile?.displayName?.charAt(0) || 'A'}
+                  </AvatarFallback>
+                </Avatar>
                 <div>
                   <h2 className="text-lg font-bold">{userProfile?.displayName || '...'}</h2>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">

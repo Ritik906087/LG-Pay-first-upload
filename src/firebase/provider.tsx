@@ -11,11 +11,14 @@ import {
 import type { FirebaseApp } from 'firebase/app';
 import type { Auth } from 'firebase/auth';
 import type { Firestore } from 'firebase/firestore';
+import type { FirebaseStorage } from 'firebase/storage';
+
 
 type FirebaseContextValue = {
   app: FirebaseApp;
   auth: Auth;
   firestore: Firestore;
+  storage: FirebaseStorage;
 };
 
 const FirebaseContext = createContext<FirebaseContextValue | undefined>(
@@ -27,18 +30,20 @@ type FirebaseProviderProps = {
   app: FirebaseApp;
   auth: Auth;
   firestore: Firestore;
+  storage: FirebaseStorage;
 };
 
 export function FirebaseProvider(props: FirebaseProviderProps) {
-  const { app, auth, firestore, children } = props;
+  const { app, auth, firestore, storage, children } = props;
 
   const value = useMemo(
     () => ({
       app,
       auth,
       firestore,
+      storage,
     }),
-    [app, auth, firestore]
+    [app, auth, firestore, storage]
   );
 
   return (
@@ -74,6 +79,12 @@ export function useFirestore() {
   const { firestore } = useFirebase();
 
   return firestore;
+}
+
+export function useStorage() {
+  const { storage } = useFirebase();
+
+  return storage;
 }
 
 /**
