@@ -78,6 +78,9 @@ const PurchaseCard = ({ option }: { option: PurchaseOption }) => (
 );
 
 export default function BuyPage() {
+  const sortedSmall = React.useMemo(() => [...purchaseOptions].sort((a, b) => a.amount - b.amount), []);
+  const sortedLarge = React.useMemo(() => [...purchaseOptions].sort((a, b) => b.amount - a.amount), []);
+
   return (
     <div className="text-foreground pb-4">
       {/* Header */}
@@ -103,12 +106,9 @@ export default function BuyPage() {
 
       <main className="p-4">
         <Tabs defaultValue="otp-upi" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 bg-transparent p-0 h-auto">
-            <TabsTrigger value="quick" className="text-base data-[state=active]:font-bold data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none bg-transparent text-muted-foreground p-3">Quick</TabsTrigger>
-            <TabsTrigger value="upi" className="text-base data-[state=active]:font-bold data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none bg-transparent text-muted-foreground p-3">UPI</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 bg-transparent p-0 h-auto">
             <TabsTrigger value="otp-upi" className="text-base data-[state=active]:font-bold data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none bg-transparent text-muted-foreground p-3 relative">OTP-UPI <span className="absolute top-1 right-1 text-xs text-red-500 font-bold">+5%</span></TabsTrigger>
             <TabsTrigger value="bank" className="text-base data-[state=active]:font-bold data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none bg-transparent text-muted-foreground p-3 relative">BANK <span className="absolute top-1 right-1 text-xs text-red-500 font-bold">+6%</span></TabsTrigger>
-            <TabsTrigger value="usdt" className="text-base data-[state=active]:font-bold data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none bg-transparent text-muted-foreground p-3">USDT</TabsTrigger>
           </TabsList>
           
           <div className="mt-4 p-2 bg-orange-100 text-orange-700 text-xs rounded-md flex items-center gap-2">
@@ -124,6 +124,16 @@ export default function BuyPage() {
             </TabsList>
             <TabsContent value="default" className="mt-4">
                 {purchaseOptions.map((option, index) => (
+                    <PurchaseCard key={index} option={option} />
+                ))}
+            </TabsContent>
+            <TabsContent value="large" className="mt-4">
+                {sortedLarge.map((option, index) => (
+                    <PurchaseCard key={index} option={option} />
+                ))}
+            </TabsContent>
+            <TabsContent value="small" className="mt-4">
+                {sortedSmall.map((option, index) => (
                     <PurchaseCard key={index} option={option} />
                 ))}
             </TabsContent>
