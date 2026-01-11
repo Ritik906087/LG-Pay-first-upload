@@ -59,7 +59,7 @@ const actionItems = [
     { icon: Star, label: "Collection" },
     { icon: Lock, label: "Payment Password" },
     { icon: MessageSquareWarning, label: "My Appeal" },
-    { icon: ScrollText, label: "Transaction" },
+    { icon: ScrollText, label: "Transaction", href: "/order" },
     { icon: BookUser, label: "User Guidelines" },
     { icon: Book, label: "Buying Tutorial" },
     { icon: FileText, label: "Selling Tutorial" },
@@ -174,12 +174,20 @@ export default function MyPage() {
         {/* Actions Grid */}
         <GlassCard>
             <CardContent className="grid grid-cols-3 gap-y-6 gap-x-2 p-4 text-center">
-                {actionItems.map(item => (
-                    <div key={item.label} className="flex flex-col items-center gap-2">
-                        <item.icon className="h-6 w-6 text-muted-foreground" />
-                        <span className="text-xs text-muted-foreground">{item.label}</span>
-                    </div>
-                ))}
+                {actionItems.map(item => {
+                    const content = (
+                      <div key={item.label} className="flex flex-col items-center gap-2">
+                          <item.icon className="h-6 w-6 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground">{item.label}</span>
+                      </div>
+                    );
+                    
+                    if (item.href) {
+                      return <Link href={item.href} key={item.label}>{content}</Link>
+                    }
+
+                    return content;
+                })}
             </CardContent>
         </GlassCard>
 

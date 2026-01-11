@@ -4,7 +4,6 @@ import React from 'react';
 import {
   Card,
   CardContent,
-  CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,120 +13,78 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Copy, MessageSquare, ChevronLeft, ClipboardList } from 'lucide-react';
+import { Copy, ChevronLeft, ClipboardList } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
-type Order = {
+type Transaction = {
   id: string;
-  type: 'Buy' | 'Sell';
-  status: 'Purchase Failed' | 'Canceled' | 'Completed';
+  type: 'Buy Rebate' | 'Sell';
   amount: string;
-  details: { label: string; value: string }[];
-  showSupport?: boolean;
+  time: string;
+  orderNumber: string;
 };
 
-const purchaseOrders: Order[] = [
-  {
-    id: '1',
-    type: 'Buy',
-    status: 'Purchase Failed',
-    amount: '300.00',
-    details: [
-      { label: 'Bank card number', value: '3746429555' },
-      { label: 'Time', value: '2025-12-27 23:04:42' },
-      { label: 'Order Number', value: 'MR2025122723044206613' },
-    ],
-    showSupport: true,
-  },
-  {
-    id: '2',
-    type: 'Buy',
-    status: 'Canceled',
-    amount: '100.00',
-    details: [
-      { label: 'UTR', value: '976234072571' },
-      { label: 'Time', value: '2025-11-15 00:19:14' },
-      { label: 'Order Number', value: 'MR2025111500191308705' },
-    ],
-  },
+const transactions: Transaction[] = [
+  { id: '1', type: 'Buy Rebate', amount: '10.00', time: '2026-01-11 09:41:37', orderNumber: 'MR2026011109324909988' },
+  { id: '2', type: 'Buy Rebate', amount: '15.00', time: '2026-01-11 09:14:39', orderNumber: 'MR2026011109082200039' },
+  { id: '3', type: 'Buy Rebate', amount: '9.00', time: '2026-01-10 10:57:16', orderNumber: 'MR2026011010523601857' },
+  { id: '4', type: 'Buy Rebate', amount: '7.00', time: '2026-01-10 10:31:12', orderNumber: 'MR2026011010255308579' },
+  { id: '5', type: 'Buy Rebate', amount: '10.00', time: '2026-01-10 10:21:36', orderNumber: 'MR2026011010140303660' },
+  { id: '6', type: 'Buy Rebate', amount: '8.00', time: '2026-01-09 11:19:57', orderNumber: 'MR2026010911142201814' },
+  { id: '7', type: 'Buy Rebate', amount: '12.00', time: '2026-01-09 11:08:06', orderNumber: 'MR2026010911021608389' },
+  { id: '8', type: 'Buy Rebate', amount: '10.00', time: '2026-01-09 11:00:47', orderNumber: 'MR2026010910540706783' },
+  { id: '9', type: 'Sell', amount: '100.00', time: '2026-01-08 15:30:00', orderNumber: 'MS2026010815300012345' },
 ];
 
-const salesOrders: Order[] = [];
-
-const OrderCard = ({ order }: { order: Order }) => {
-  const getStatusClass = (status: Order['status']) => {
-    switch (status) {
-      case 'Purchase Failed':
-        return 'text-red-500';
-      case 'Canceled':
-        return 'text-gray-500';
-      case 'Completed':
-        return 'text-green-500';
-      default:
-        return 'text-muted-foreground';
-    }
-  };
-
+const TransactionCard = ({ transaction }: { transaction: Transaction }) => {
+  const isBuy = transaction.type.includes('Buy');
   return (
     <Card className="mb-4 bg-white text-foreground shadow-sm">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between pb-3 border-b">
-          <span className="rounded bg-yellow-100 px-3 py-1 text-sm font-bold text-yellow-900">
-            {order.type}
-          </span>
-          <span className={cn('text-sm font-semibold', getStatusClass(order.status))}>
-            {order.status}
-          </span>
-        </div>
-        <div className="pt-4 space-y-3 text-sm">
-           <div className="flex justify-between items-baseline">
+      <CardContent className="p-4 space-y-3">
+        <span className={cn(
+          "rounded px-2 py-0.5 text-xs font-bold",
+          isBuy ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+        )}>
+          {transaction.type}
+        </span>
+        <div className="space-y-2 text-sm">
+           <div className="flex justify-between items-center">
             <span className="text-muted-foreground">Amount</span>
-            <div className="text-right">
-                <span className="text-xl font-bold">₹{order.amount}</span>
+            <span className="font-semibold text-destructive">₹{transaction.amount}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground">Time</span>
+            <span className="font-mono text-muted-foreground">{transaction.time}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground">Order Number</span>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-muted-foreground">{transaction.orderNumber}</span>
+              <Copy className="h-3 w-3 text-gray-400 cursor-pointer" />
             </div>
           </div>
-          {order.details.map((detail, index) => (
-            <div key={index} className="flex justify-between items-center">
-              <span className="text-muted-foreground">{detail.label}</span>
-              <div className="flex items-center gap-2">
-                <span className="font-mono">{detail.value}</span>
-                <Copy className="h-4 w-4 text-gray-400 cursor-pointer" />
-              </div>
-            </div>
-          ))}
         </div>
       </CardContent>
-      {order.showSupport && (
-         <CardFooter className="p-4 pt-0 mt-2">
-          <Button variant="ghost" className="w-full justify-center gap-2 rounded-md bg-secondary text-sm text-secondary-foreground">
-            <MessageSquare className="h-4 w-4" />
-            Customer Service
-          </Button>
-        </CardFooter>
-      )}
     </Card>
   );
 };
 
-
-export default function OrderPage() {
-
-  const OrderList = ({ orders }: { orders: Order[] }) => {
-    if (orders.length === 0) {
+export default function TransactionPage() {
+  const TransactionList = ({ transactions }: { transactions: Transaction[] }) => {
+    if (transactions.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center pt-20 text-center text-muted-foreground">
           <ClipboardList className="h-16 w-16 opacity-50" />
-          <p className="mt-4 text-lg">No orders yet</p>
+          <p className="mt-4 text-lg">No transactions yet</p>
         </div>
       );
     }
 
     return (
       <div className="space-y-4">
-        {orders.map((order) => (
-          <OrderCard key={order.id} order={order} />
+        {transactions.map((transaction) => (
+          <TransactionCard key={transaction.id} transaction={transaction} />
         ))}
         <p className="text-center text-sm text-muted-foreground/60">No more</p>
       </div>
@@ -137,33 +94,27 @@ export default function OrderPage() {
   return (
     <div className="text-foreground">
        {/* Header */}
-      <header className="flex items-center justify-between p-4 bg-white">
+      <header className="flex items-center justify-between p-4 bg-white sticky top-0 z-10 border-b">
         <Button asChild variant="ghost" size="icon" className="h-8 w-8">
-            <Link href="/home">
+            <Link href="/my">
                 <ChevronLeft className="h-6 w-6 text-muted-foreground" />
             </Link>
         </Button>
-        <h1 className="text-xl font-bold">History</h1>
+        <h1 className="text-xl font-bold">Transaction</h1>
         <div className="w-8"></div>
       </header>
 
       <main className="p-4">
-        <Tabs defaultValue="purchases">
-          <TabsList className="grid w-full grid-cols-2 bg-secondary h-12 rounded-xl p-1">
-            <TabsTrigger value="purchases" className="text-base data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">My Purchases</TabsTrigger>
-            <TabsTrigger value="sales" className="text-base data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg">My Sales</TabsTrigger>
-          </TabsList>
-          
           <div className="my-4 grid grid-cols-2 gap-4">
             <Select defaultValue="all">
               <SelectTrigger className="w-full bg-white border-border rounded-lg h-11">
-                <SelectValue placeholder="All" />
+                <SelectValue placeholder="All Types" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="failed">Failed</SelectItem>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="buy">Buy</SelectItem>
+                <SelectItem value="sell">Sell</SelectItem>
+                <SelectItem value="rebate">Rebate</SelectItem>
               </SelectContent>
             </Select>
 
@@ -180,13 +131,7 @@ export default function OrderPage() {
             </Select>
           </div>
 
-          <TabsContent value="purchases">
-            <OrderList orders={purchaseOrders} />
-          </TabsContent>
-          <TabsContent value="sales">
-            <OrderList orders={salesOrders} />
-          </TabsContent>
-        </Tabs>
+          <TransactionList transactions={transactions} />
       </main>
     </div>
   );
