@@ -78,29 +78,29 @@ const LevelIcon = ({
 );
 
 const vipTasks = [
-    { description: "Invite 0/1 users and complete trades with a total amount of 500", reward: "+58 ARB" },
-    { description: "Invite 0/3 users and complete trades with a total amount of 500", reward: "+128 ARB" },
-    { description: "Invite 0/5 users and complete trades with a total amount of 500", reward: "+138 ARB" },
-    { description: "Invite 0/10 users and complete trades with a total amount of 500", reward: "+348 ARB" },
-    { description: "Invite 0/20 users and complete trades with a total amount of 500", reward: "+728 ARB" },
-    { description: "Invite 0/50 users and complete trades with a total amount of 500", reward: "+2238 ARB" },
-    { description: "Invite 0/100 users and complete trades with a total amount of 500", reward: "+3948 ARB" },
+    { description: "Invite 0/1 users and complete trades with a total amount of 500", reward: "+58 LGB" },
+    { description: "Invite 0/3 users and complete trades with a total amount of 500", reward: "+128 LGB" },
+    { description: "Invite 0/5 users and complete trades with a total amount of 500", reward: "+138 LGB" },
+    { description: "Invite 0/10 users and complete trades with a total amount of 500", reward: "+348 LGB" },
+    { description: "Invite 0/20 users and complete trades with a total amount of 500", reward: "+728 LGB" },
+    { description: "Invite 0/50 users and complete trades with a total amount of 500", reward: "+2238 LGB" },
+    { description: "Invite 0/100 users and complete trades with a total amount of 500", reward: "+3948 LGB" },
 ]
 
 const dailyTasks = [
-    { description: "Buy 0/1 times today", reward: "+1 ARB" },
-    { description: "Buy 0/3 times today", reward: "+3 ARB" },
-    { description: "Buy 0/5 times today", reward: "+5 ARB" },
-    { description: "Buy 0/7 times today", reward: "+7 ARB" },
-    { description: "Buy 0/10 times today", reward: "+10 ARB" },
+    { description: "Buy 0/1 times today", reward: "+1 LGB" },
+    { description: "Buy 0/3 times today", reward: "+3 LGB" },
+    { description: "Buy 0/5 times today", reward: "+5 LGB" },
+    { description: "Buy 0/7 times today", reward: "+7 LGB" },
+    { description: "Buy 0/10 times today", reward: "+10 LGB" },
 ]
 
 const rewardMembers = [
-    { member: "878****586", type: "Successful Buy", amount: "1 ARB" },
-    { member: "863****286", type: "Real name verific...", amount: "5 ARB" },
-    { member: "620****304", type: "Successful Sell", amount: "3 ARB" },
-    { member: "629****932", type: "Buy Transaction...", amount: "1 ARB" },
-    { member: "993****265", type: "Invite new users...", amount: "1 ARB" },
+    { member: "878****586", type: "Successful Buy", amount: "1 LGB" },
+    { member: "863****286", type: "Real name verific...", amount: "5 LGB" },
+    { member: "620****304", type: "Successful Sell", amount: "3 LGB" },
+    { member: "629****932", type: "Buy Transaction...", amount: "1 LGB" },
+    { member: "993****265", type: "Invite new users...", amount: "1 LGB" },
 ]
 
 export default function RewardsPage() {

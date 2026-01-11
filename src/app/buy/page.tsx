@@ -92,7 +92,7 @@ export default function BuyPage() {
         </Button>
         <div className="flex flex-col items-center">
             <h1 className="text-xl font-bold">Buy</h1>
-            <p className="text-xs text-muted-foreground">1INR=1ARB 1U=97.00 INR</p>
+            <p className="text-xs text-muted-foreground">1INR=1LGB 1U=97.00 INR</p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="h-8 w-8">

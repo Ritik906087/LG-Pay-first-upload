@@ -35,6 +35,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { doc } from 'firebase/firestore';
 import React from 'react';
+import { Logo } from '@/components/logo';
 
 const GlassCard = ({
   children,
@@ -107,7 +108,7 @@ export default function MyPage() {
       {/* Header */}
       <header className="flex items-center justify-between bg-white p-4">
         <div className="w-8"></div>
-        <h1 className="text-xl font-bold">ARWallet</h1>
+        <Logo className="text-xl" />
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
@@ -159,7 +160,7 @@ export default function MyPage() {
                     <span className="rounded-full bg-yellow-500/30 px-2 py-0.5 text-yellow-300">LV0</span>
                 </div>
                 <p className="text-sm text-white/70">Total Asset Valuation</p>
-                <p className="text-2xl font-bold">{userProfile?.balance?.toFixed(2) || '0.00'} ARB</p>
+                <p className="text-2xl font-bold">{userProfile?.balance?.toFixed(2) || '0.00'} LGB</p>
                 <div className="flex justify-between text-sm text-white/70">
                     <span>≈ 0.00</span>
                     <span>0.00</span>
