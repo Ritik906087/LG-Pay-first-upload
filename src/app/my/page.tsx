@@ -91,6 +91,8 @@ export default function MyPage() {
     const auth = getAuth();
     try {
       await signOut(auth);
+      // Remove the cookie on logout
+      document.cookie = 'firebase-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       toast({ title: 'Logged out successfully' });
       router.push('/login');
     } catch (error) {
@@ -132,10 +134,10 @@ export default function MyPage() {
           <CardContent className="flex items-center justify-between p-4">
             <div className="flex items-center gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-400">
-                <span className="text-2xl font-bold text-yellow-900">{user?.displayName?.charAt(0) || 'A'}</span>
+                <span className="text-2xl font-bold text-yellow-900">{userProfile?.displayName?.charAt(0) || 'A'}</span>
               </div>
               <div>
-                <h2 className="text-lg font-bold">{user?.displayName || '...'}</h2>
+                <h2 className="text-lg font-bold">{userProfile?.displayName || '...'}</h2>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span>UID:{user?.uid.slice(0, 7)}</span>
                   <Copy className="h-3 w-3" />

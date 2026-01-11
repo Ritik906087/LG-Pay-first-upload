@@ -56,7 +56,11 @@ export function LoginForm() {
     try {
       // Firebase phone auth is complex. We'll use email/password with a fake email.
       const email = `${values.phone}@lgpay.app`;
-      await signInWithEmailAndPassword(auth, email, values.password);
+      const userCredential = await signInWithEmailAndPassword(auth, email, values.password);
+      
+      const idToken = await userCredential.user.getIdToken();
+      document.cookie = `firebase-auth-token=${idToken}; path=/; max-age=3600`; // 1 hour expiry
+
       toast({
         title: "Login Successful",
         description: "Welcome back!",
@@ -64,10 +68,16 @@ export function LoginForm() {
       router.push("/home");
     } catch (error: any) {
       console.error("Login failed:", error);
+      let description = "Invalid credentials. Please try again.";
+      if (error.code === 'auth/invalid-credential') {
+        description = "Incorrect phone number or password. Please check and try again.";
+      } else if (error.code === 'auth/user-not-found') {
+        description = "This account does not exist. Please register first.";
+      }
       toast({
         variant: "destructive",
         title: "Login Failed",
-        description: error.message || "Invalid credentials. Please try again.",
+        description: description,
       });
     } finally {
       setIsLoading(false);
