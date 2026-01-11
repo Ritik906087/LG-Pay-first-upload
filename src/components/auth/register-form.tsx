@@ -143,7 +143,7 @@ export function RegisterForm() {
       console.error("Registration failed:", error);
       let description = "An unexpected error occurred. Please try again.";
       if (error.code === 'auth/email-already-in-use') {
-          description = "An account with this phone number already exists.";
+          description = "An account with this phone number already exists. Please log in instead.";
       } else if (error.code === 'auth/invalid-verification-code') {
           description = "The OTP you entered is incorrect. Please try again.";
       }
