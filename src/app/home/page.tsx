@@ -143,7 +143,7 @@ export default function HomePage() {
           <CarouselContent>
             {carouselImages.map((src, index) => (
               <CarouselItem key={index}>
-                <GlassCard className="overflow-hidden rounded-2xl">
+                <Card className="overflow-hidden rounded-2xl border-none bg-white/10 shadow-2xl shadow-primary/10 backdrop-blur-lg">
                   <Image
                       src={src}
                       alt={`Carousel image ${index + 1}`}
@@ -151,7 +151,7 @@ export default function HomePage() {
                       height={200}
                       className="w-full object-cover aspect-[2/1]"
                     />
-                </GlassCard>
+                </Card>
               </CarouselItem>
             ))}
           </CarouselContent>
