@@ -28,6 +28,9 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import Autoplay from "embla-carousel-autoplay";
 import React from 'react';
+import { useUser, useFirestore, useDoc } from '@/firebase';
+import { doc } from 'firebase/firestore';
+
 
 const GlassCard = ({ children, className }: { children: React.ReactNode, className?: string }) => (
   <Card className={cn("border bg-white rounded-2xl shadow-sm", className)}>
@@ -89,6 +92,16 @@ export default function HomePage() {
    const plugin = React.useRef(
     Autoplay({ delay: 2000, stopOnInteraction: false, playOnInit: true, stopOnMouseEnter: true })
   );
+  
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const userProfileRef = React.useMemo(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+
+  const { data: userProfile } = useDoc(userProfileRef);
 
   const carouselImages = [
       "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/file_000000002654720b92e47bf4b904ef1c.png?alt=media&token=76a4ec53-db8c-41f7-afd5-02f453e9983d",
@@ -128,7 +141,7 @@ export default function HomePage() {
             <p className="text-sm font-normal text-muted-foreground">
               My total assets
             </p>
-            <p className="text-3xl font-bold">2.00 LG</p>
+            <p className="text-3xl font-bold">{userProfile?.balance?.toFixed(2) || '0.00'} LG</p>
           </CardContent>
         </GlassCard>
 

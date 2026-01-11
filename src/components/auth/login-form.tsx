@@ -18,11 +18,17 @@ import { useState } from "react";
 import Link from 'next/link';
 import Image from "next/image";
 import { useLanguage } from "@/context/language-context";
+import { signInWithEmailAndPassword, getAuth } from "firebase/auth";
+import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { translations, language } = useLanguage();
+  const { translations } = useLanguage();
+  const { toast } = useToast();
+  const router = useRouter();
+  const auth = getAuth();
 
   const formSchema = z.object({
     phone: z
@@ -45,13 +51,27 @@ export function LoginForm() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    console.log(values);
-    // Mock API call
-    setTimeout(() => {
+    try {
+      // Firebase phone auth is complex. We'll use email/password with a fake email.
+      const email = `${values.phone}@lgpay.app`;
+      await signInWithEmailAndPassword(auth, email, values.password);
+      toast({
+        title: "Login Successful",
+        description: "Welcome back!",
+      });
+      router.push("/home");
+    } catch (error: any) {
+      console.error("Login failed:", error);
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: error.message || "Invalid credentials. Please try again.",
+      });
+    } finally {
       setIsLoading(false);
-    }, 2000);
+    }
   }
 
   return (

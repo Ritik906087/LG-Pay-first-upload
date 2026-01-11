@@ -29,6 +29,12 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { useUser, useFirestore, useDoc } from '@/firebase';
+import { getAuth, signOut } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
+import { doc } from 'firebase/firestore';
+import React from 'react';
 
 const GlassCard = ({
   children,
@@ -69,6 +75,31 @@ const listItems = [
 
 
 export default function MyPage() {
+  const { user, loading } = useUser();
+  const router = useRouter();
+  const { toast } = useToast();
+  const firestore = useFirestore();
+
+  const userProfileRef = React.useMemo(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+
+  const { data: userProfile } = useDoc(userProfileRef);
+
+  const handleLogout = async () => {
+    const auth = getAuth();
+    try {
+      await signOut(auth);
+      toast({ title: 'Logged out successfully' });
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({ title: 'Logout failed', variant: 'destructive' });
+    }
+  };
+
+
   return (
     <div className="min-h-screen text-foreground">
       {/* Header */}
@@ -101,12 +132,12 @@ export default function MyPage() {
           <CardContent className="flex items-center justify-between p-4">
             <div className="flex items-center gap-4">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-400">
-                <span className="text-2xl font-bold text-yellow-900">A</span>
+                <span className="text-2xl font-bold text-yellow-900">{user?.displayName?.charAt(0) || 'A'}</span>
               </div>
               <div>
-                <h2 className="text-lg font-bold">QPVWBOHC</h2>
+                <h2 className="text-lg font-bold">{user?.displayName || '...'}</h2>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>UID:8104617</span>
+                  <span>UID:{user?.uid.slice(0, 7)}</span>
                   <Copy className="h-3 w-3" />
                 </div>
               </div>
@@ -126,7 +157,7 @@ export default function MyPage() {
                     <span className="rounded-full bg-yellow-500/30 px-2 py-0.5 text-yellow-300">LV0</span>
                 </div>
                 <p className="text-sm text-white/70">Total Asset Valuation</p>
-                <p className="text-2xl font-bold">2.00 ARB</p>
+                <p className="text-2xl font-bold">{userProfile?.balance?.toFixed(2) || '0.00'} ARB</p>
                 <div className="flex justify-between text-sm text-white/70">
                     <span>≈ 0.00</span>
                     <span>0.00</span>
@@ -134,7 +165,7 @@ export default function MyPage() {
                 <div className="flex items-center justify-between text-xs text-white/70">
                     <span>Wallet Address:</span>
                     <div className="flex items-center gap-2">
-                        <p className="truncate font-mono">1GsdoAyBtYCydjhSw7EtEXfPHUEffEz6KG</p>
+                        <p className="truncate font-mono">{user?.uid}</p>
                         <Copy className="h-3 w-3" />
                     </div>
                 </div>
@@ -185,7 +216,7 @@ export default function MyPage() {
         </GlassCard>
 
         {/* Logout Button */}
-        <Button className="w-full h-12 bg-yellow-400 text-yellow-900 font-bold text-base hover:bg-yellow-500 rounded-lg">
+        <Button onClick={handleLogout} className="w-full h-12 bg-yellow-400 text-yellow-900 font-bold text-base hover:bg-yellow-500 rounded-lg">
             <LogOut className="h-5 w-5 mr-2"/>
             Logout
         </Button>

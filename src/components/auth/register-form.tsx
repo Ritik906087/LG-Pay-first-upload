@@ -21,6 +21,11 @@ import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
 import { useLanguage } from "@/context/language-context";
 import { cn } from "@/lib/utils";
+import { createUserWithEmailAndPassword, getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
+import { useFirestore } from "@/firebase";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { useRouter } from "next/navigation";
+
 
 export function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -28,7 +33,10 @@ export function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { toast } = useToast();
-  const { translations, language } = useLanguage();
+  const { translations } = useLanguage();
+  const firestore = useFirestore();
+  const router = useRouter();
+  const auth = getAuth();
 
   const registerSchema = z
     .object({
@@ -38,7 +46,7 @@ export function RegisterForm() {
         .regex(/^[6-9]\d{9}$/, {
           message: translations.phoneInvalid,
         }),
-      otp: z.string().length(6, { message: translations.otpRequired }),
+      otp: z.string().optional(), // OTP is handled separately now
       password: z
         .string()
         .min(6, { message: translations.passwordMin }),
@@ -65,20 +73,48 @@ export function RegisterForm() {
     },
   });
 
-  function onRegisterSubmit(values: z.infer<typeof registerSchema>) {
+  async function onRegisterSubmit(values: z.infer<typeof registerSchema>) {
     setIsLoading(true);
-    // Mock API call to register
-    console.log(values);
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      // Firebase phone auth is complex to set up securely without backend.
+      // We will use email/password auth, creating a "fake" email from the phone number.
+      // This is a common pattern for phone-first login flows.
+      const email = `${values.phone}@lgpay.app`;
+      const userCredential = await createUserWithEmailAndPassword(auth, email, values.password);
+      const user = userCredential.user;
+
+      if (user && firestore) {
+        // Create a user profile document in Firestore
+        const userRef = doc(firestore, "users", user.uid);
+        await setDoc(userRef, {
+          uid: user.uid,
+          phoneNumber: values.phone,
+          balance: 0.00, // Initial balance
+          createdAt: serverTimestamp(),
+          displayName: `User${values.phone.slice(-4)}`
+        });
+      }
+
       toast({
         title: translations.registrationSuccessTitle,
         description: translations.registrationSuccessMessage,
       });
-    }, 2000);
+      router.push("/home");
+
+    } catch (error: any) {
+      console.error("Registration failed:", error);
+      toast({
+        variant: "destructive",
+        title: "Registration Failed",
+        description: error.message || "An unexpected error occurred.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }
   
   function handleSendOtp() {
+    // This is a mock function. Real OTP would require a backend and Firebase Functions.
     const phone = form.getValues("phone");
     if (phone.length < 10) {
       form.setError("phone", { type: "manual", message: translations.phoneRequired });
@@ -90,18 +126,19 @@ export function RegisterForm() {
     }
 
     setIsOtpLoading(true);
-    // Mock API call to send OTP
     setTimeout(() => {
         setIsOtpLoading(false);
         toast({
             title: translations.otpSent,
-            description: translations.otpSentTo.replace('{phone}', phone),
+            description: `A mock OTP has been sent to +91${phone}. Enter any 6 digits.`,
         });
+        // In a real app, you'd initialize Recaptcha and call signInWithPhoneNumber here
     }, 1500);
   }
 
   return (
     <Form {...form}>
+       <div id="recaptcha-container"></div>
       <form
         onSubmit={form.handleSubmit(onRegisterSubmit)}
         className="space-y-4"
