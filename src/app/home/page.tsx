@@ -18,19 +18,17 @@ import {
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
-  Headphones,
-  User,
   RefreshCw,
   X,
   History,
 } from 'lucide-react';
 import Image from 'next/image';
-import { cn } from '@/lib/utils';
 import Autoplay from "embla-carousel-autoplay";
 import React from 'react';
 import { useUser, useFirestore, useDoc } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 
 const GlassCard = ({ children, className }: { children: React.ReactNode, className?: string }) => (
@@ -38,13 +36,6 @@ const GlassCard = ({ children, className }: { children: React.ReactNode, classNa
     {children}
   </Card>
 );
-
-const quickActions = [
-  { icon: ArrowUpFromLine, label: 'Transfer' },
-  { icon: User, label: 'My QR' },
-  { icon: Headphones, label: 'Support' },
-  { icon: ArrowDownToLine, label: 'Receive' },
-];
 
 const faqs = [
     {
@@ -170,26 +161,6 @@ export default function HomePage() {
             ))}
           </CarouselContent>
         </Carousel>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-4 gap-4 text-center">
-          {quickActions.map((action) => (
-            <div
-              key={action.label}
-              className="flex flex-col items-center gap-2"
-            >
-              <Button
-                variant="ghost"
-                className="h-14 w-14 rounded-full bg-secondary"
-              >
-                <action.icon className="h-6 w-6 text-muted-foreground" />
-              </Button>
-              <span className="text-xs text-muted-foreground">
-                {action.label}
-              </span>
-            </div>
-          ))}
-        </div>
 
         {/* Buy/Sell Actions */}
         <div className="grid grid-cols-2 gap-4">
