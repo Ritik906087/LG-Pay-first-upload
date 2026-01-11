@@ -111,7 +111,7 @@ export function LoginForm() {
                   <Input
                     type="tel"
                     placeholder={translations.enterPhoneNumber}
-                    className="pl-[88px] text-base md:text-sm"
+                    className="pl-[88px] text-base"
                     maxLength={10}
                     {...field}
                   />
@@ -137,7 +137,7 @@ export function LoginForm() {
                   <Input
                     type={showPassword ? "text" : "password"}
                     placeholder={translations.enterPassword}
-                    className="pl-4 pr-10 text-base md:text-sm"
+                    className="pl-4 pr-10 text-base"
                     {...field}
                   />
                 </FormControl>

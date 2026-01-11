@@ -216,7 +216,7 @@ export function RegisterForm() {
                   <Input
                     type="tel"
                     placeholder={translations.enterPhoneNumber}
-                    className="pl-[88px] text-base md:text-sm"
+                    className="pl-[88px] text-base"
                     maxLength={10}
                     {...field}
                   />
@@ -235,7 +235,7 @@ export function RegisterForm() {
               <FormLabel>{translations.verificationCode}</FormLabel>
               <div className="relative flex items-center">
                 <FormControl>
-                  <Input placeholder={translations.enterVerificationCode} {...field} className="pr-28 text-base md:text-sm" />
+                  <Input placeholder={translations.enterVerificationCode} {...field} className="pr-28 text-base" />
                 </FormControl>
                 <Button 
                   type="button" 
@@ -264,7 +264,7 @@ export function RegisterForm() {
                     type={showPassword ? "text" : "password"}
                     placeholder={translations.enterPassword}
                     {...field}
-                    className="pr-10 text-base md:text-sm"
+                    className="pr-10 text-base"
                   />
                 </FormControl>
                 <Button
@@ -293,7 +293,7 @@ export function RegisterForm() {
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder={translations.enterConfirmPassword}
                     {...field}
-                    className="pr-10 text-base md:text-sm"
+                    className="pr-10 text-base"
                   />
                 </FormControl>
                  <Button
@@ -318,7 +318,7 @@ export function RegisterForm() {
               <FormLabel>{translations.invitationCodeOptional}</FormLabel>
                <div className="relative">
                 <FormControl>
-                  <Input placeholder={translations.enterInvitationCode} {...field} className="text-base md:text-sm"/>
+                  <Input placeholder={translations.enterInvitationCode} {...field} className="text-base"/>
                 </FormControl>
               </div>
               <FormMessage />
@@ -364,5 +364,3 @@ export function RegisterForm() {
     </Form>
   );
 }
-
-    
