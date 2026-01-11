@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Copy, RefreshCw, X, MessageSquare, History, ChevronLeft } from 'lucide-react';
+import { Copy, RefreshCw, X, MessageSquare, ChevronLeft, ClipboardList } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -119,7 +119,7 @@ export default function OrderPage() {
     if (orders.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center pt-20 text-center text-white/70">
-          <History className="h-16 w-16 opacity-50" />
+          <ClipboardList className="h-16 w-16 opacity-50" />
           <p className="mt-4 text-lg">No orders yet</p>
         </div>
       );
@@ -144,7 +144,7 @@ export default function OrderPage() {
                 <ChevronLeft className="h-6 w-6 text-white/80" />
             </Link>
         </Button>
-        <h1 className="text-xl font-bold text-white">Order history</h1>
+        <h1 className="text-xl font-bold text-white">History</h1>
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-white/10">
             <RefreshCw className="h-5 w-5 text-white/80" />
