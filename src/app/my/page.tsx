@@ -128,7 +128,7 @@ export default function MyPage() {
                     <span className="rounded-full bg-yellow-500/30 px-2 py-0.5 text-yellow-300">LV0</span>
                 </div>
                 <p className="text-sm text-white/70">Total LG Balance</p>
-                 {profileLoading ? <Skeleton className="h-8 w-32 bg-slate-700" /> : <p className="text-2xl font-bold">{userProfile?.balance?.toFixed(2) || '0.00'} LGB</p>}
+                 {profileLoading ? <Skeleton className="h-8 w-32 bg-slate-700" /> : <p className="text-2xl font-bold">{userProfile?.balance?.toFixed(2) || '0.00'} <span className="text-lg font-medium">LGB</span></p>}
                 <div className="flex justify-between text-sm text-white/70">
                     <span className="flex items-baseline gap-1">
                       <span className="text-xs">hold</span>

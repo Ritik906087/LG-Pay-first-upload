@@ -124,7 +124,7 @@ export default function HomePage() {
             <p className="text-sm font-normal text-muted-foreground">
               Total LG Balance
             </p>
-            <p className="text-3xl font-bold">{userProfile?.balance?.toFixed(2) || '0.00'} LGB</p>
+            <p className="text-3xl font-bold">{userProfile?.balance?.toFixed(2) || '0.00'} <span className="text-2xl font-medium">LGB</span></p>
           </CardContent>
         </GlassCard>
 
