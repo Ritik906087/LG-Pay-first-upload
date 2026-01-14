@@ -1,8 +1,9 @@
+
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Loader2, CheckCircle } from "lucide-react";
+import { ChevronLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -17,6 +18,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from "firebase/auth";
+import { useUser, useFirestore, useDoc } from '@/firebase';
+import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
 
 
 type PaymentMethod = {
@@ -30,29 +33,28 @@ type LinkedPaymentMethod = PaymentMethod & {
   upiId?: string;
 };
 
-const initialPaymentMethods: LinkedPaymentMethod[] = [
+const initialPaymentMethods: PaymentMethod[] = [
   {
     name: "PhonePe",
     logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/download%20(1).png?alt=media&token=205260a4-bfcf-46dd-8dc6-5b440852f2ae",
     bgColor: "bg-violet-600",
-    linked: false,
   },
   {
     name: "Paytm",
     logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/download%20(2).png?alt=media&token=1fd9f09a-1f02-4dd9-ab3b-06c756856bd8",
     bgColor: "bg-sky-500",
-    linked: false,
   },
   {
     name: "MobiKwik",
     logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/download.png?alt=media&token=ffb28e60-0b26-4802-9b54-bc6bbb02f35f",
     bgColor: "bg-blue-600",
-    linked: false,
   },
 ];
 
 export default function CollectionPage() {
-  const [paymentMethods, setPaymentMethods] = useState(initialPaymentMethods);
+  const [paymentMethods, setPaymentMethods] = useState<LinkedPaymentMethod[]>(
+    initialPaymentMethods.map(pm => ({...pm, linked: false}))
+  );
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(
     null,
@@ -67,8 +69,29 @@ export default function CollectionPage() {
 
   const { toast } = useToast();
   const auth = getAuth();
+  const { user } = useUser();
+  const firestore = useFirestore();
+
+  const userProfileRef = useMemo(() => {
+    if (!user || !firestore) return null;
+    return doc(firestore, 'users', user.uid);
+  }, [user, firestore]);
+
+  const { data: userProfile } = useDoc<{ paymentMethods?: { name: string, upiId: string }[] }>(userProfileRef);
+
   const recaptchaVerifier = useRef<RecaptchaVerifier | null>(null);
   const confirmationResult = useRef<ConfirmationResult | null>(null);
+
+  useEffect(() => {
+    if (userProfile?.paymentMethods) {
+        setPaymentMethods(prevMethods => 
+            prevMethods.map(pm => {
+                const linked = userProfile.paymentMethods?.find(upm => upm.name === pm.name);
+                return linked ? { ...pm, linked: true, upiId: linked.upiId } : pm;
+            })
+        );
+    }
+  }, [userProfile]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -133,6 +156,11 @@ export default function CollectionPage() {
         toast({ variant: "destructive", title: "Missing Information", description: "Please enter OTP and UPI ID." });
         return;
     }
+     const upiRegex = /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/;
+    if (!upiRegex.test(upiId)) {
+        toast({ variant: "destructive", title: "Invalid UPI ID", description: "Please enter a valid UPI ID (e.g., yourname@okbank)." });
+        return;
+    }
     setIsLinking(true);
     try {
       if (!confirmationResult.current) {
@@ -140,10 +168,13 @@ export default function CollectionPage() {
       }
       await confirmationResult.current.confirm(otp);
       
-      if (selectedMethod) {
-          setPaymentMethods(prevMethods => prevMethods.map(m => 
-              m.name === selectedMethod.name ? { ...m, linked: true, upiId: upiId } : m
-          ));
+      if (selectedMethod && userProfileRef) {
+          await updateDoc(userProfileRef, {
+              paymentMethods: arrayUnion({
+                  name: selectedMethod.name,
+                  upiId: upiId
+              })
+          });
       }
 
       toast({
@@ -205,8 +236,8 @@ export default function CollectionPage() {
                 </div>
               </div>
               {method.linked ? (
-                 <div className="flex items-center justify-center rounded-md bg-green-500/80 px-3 py-1 text-xs font-bold text-white">
-                    VERIFIED
+                 <div className="flex items-center justify-center rounded-md bg-green-500/80 px-3 py-1.5 text-xs font-bold uppercase text-white">
+                    ACTIVATED
                 </div>
               ) : (
                 <Button
@@ -272,6 +303,7 @@ export default function CollectionPage() {
                   className="h-12 text-base"
                   value={upiId}
                   onChange={(e) => setUpiId(e.target.value)}
+                  type="text"
                 />
               </div>
             </div>

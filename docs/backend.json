@@ -39,6 +39,24 @@
           "type": "string",
           "format": "date-time",
           "description": "The timestamp when the user profile was created."
+        },
+        "paymentMethods": {
+            "type": "array",
+            "description": "A list of the user's linked payment methods.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "description": "The name of the payment method (e.g., PhonePe, Paytm)."
+                    },
+                    "upiId": {
+                        "type": "string",
+                        "description": "The user's UPI ID for that payment method."
+                    }
+                },
+                "required": ["name", "upiId"]
+            }
         }
       },
       "required": ["uid", "numericId", "balance", "createdAt"]
