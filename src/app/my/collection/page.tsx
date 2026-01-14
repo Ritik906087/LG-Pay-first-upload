@@ -15,17 +15,17 @@ type PaymentMethod = {
 const paymentMethods: PaymentMethod[] = [
   {
     name: "PhonePe",
-    logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/file_000000000676a666986520336a51d95a.png?alt=media&token=c118c7c1-8406-44b2-a42e-940730d1d61c",
+    logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/download%20(1).png?alt=media&token=205260a4-bfcf-46dd-8dc6-5b440852f2ae",
     bgColor: "bg-violet-600",
   },
   {
     name: "Paytm",
-    logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/file_0000000021c5ba9d1620a2322301980a.png?alt=media&token=c4d16853-90d5-455f-8461-460d37e6f80d",
+    logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/download%20(2).png?alt=media&token=1fd9f09a-1f02-4dd9-ab3b-06c756856bd8",
     bgColor: "bg-sky-500",
   },
   {
     name: "MobiKwik",
-    logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/file_000000002ab4fa90623a8b4e712ccb34.png?alt=media&token=df4f494a-b5e1-4550-932f-7634f19bca40",
+    logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/download.png?alt=media&token=ffb28e60-0b26-4802-9b54-bc6bbb02f35f",
     bgColor: "bg-blue-600",
   },
 ];
@@ -60,21 +60,18 @@ export default function CollectionPage() {
           {paymentMethods.map((method) => (
             <Button
               key={method.name}
-              className={`flex h-16 w-full items-center justify-between rounded-lg px-4 py-2 text-white shadow-md ${method.bgColor}`}
+              className={`flex h-16 w-full items-center justify-start gap-4 rounded-lg px-4 py-2 text-white shadow-md ${method.bgColor}`}
             >
-              <span className="text-lg font-semibold">{method.name}</span>
-              <div className="flex items-center gap-2">
-                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white">
-                     <Image
-                        src={method.logo}
-                        alt={`${method.name} logo`}
-                        width={24}
-                        height={24}
-                        className="object-contain"
-                    />
-                 </div>
-                <span className="font-bold text-lg">{method.name}</span>
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white">
+                <Image
+                  src={method.logo}
+                  alt={`${method.name} logo`}
+                  width={24}
+                  height={24}
+                  className="object-contain"
+                />
               </div>
+              <span className="text-lg font-semibold">{method.name}</span>
             </Button>
           ))}
         </div>
