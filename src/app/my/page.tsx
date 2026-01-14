@@ -56,7 +56,7 @@ const GlassCard = ({
 
 const actionItems = [
     { icon: ShieldCheck, label: "Real-name" },
-    { icon: Star, label: "Collection" },
+    { icon: Star, label: "Collection", href: "/my/collection" },
     { icon: Lock, label: "Payment Password" },
     { icon: MessageSquareWarning, label: "My Appeal" },
     { icon: ScrollText, label: "Transaction", href: "/order" },
