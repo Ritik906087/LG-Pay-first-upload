@@ -92,8 +92,6 @@ export default function MyPage() {
     const auth = getAuth();
     try {
       await signOut(auth);
-      // Remove the cookie on logout
-      document.cookie = 'firebase-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       toast({ title: 'Logged out successfully' });
       router.push('/login');
     } catch (error) {
@@ -176,7 +174,7 @@ export default function MyPage() {
             <CardContent className="grid grid-cols-3 gap-y-6 gap-x-2 p-4 text-center">
                 {actionItems.map(item => {
                     const content = (
-                      <div key={item.label} className="flex flex-col items-center gap-2">
+                      <div className="flex flex-col items-center gap-2">
                           <item.icon className="h-6 w-6 text-muted-foreground" />
                           <span className="text-xs text-muted-foreground">{item.label}</span>
                       </div>
@@ -186,7 +184,7 @@ export default function MyPage() {
                       return <Link href={item.href} key={item.label}>{content}</Link>
                     }
 
-                    return content;
+                    return <div key={item.label}>{content}</div>;
                 })}
             </CardContent>
         </GlassCard>
