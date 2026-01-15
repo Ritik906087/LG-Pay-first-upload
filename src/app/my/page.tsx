@@ -62,7 +62,7 @@ const actionItems = [
 ]
 
 const listItems = [
-    { icon: HelpCircle, label: "Help Center" },
+    { icon: HelpCircle, label: "Help Center", href: "/help" },
     { icon: Globe, label: "Language" },
 ]
 
@@ -202,15 +202,23 @@ export default function MyPage() {
         {/* List Items */}
         <GlassCard>
             <CardContent className="p-2">
-                {listItems.map(item => (
-                     <div key={item.label} className="flex items-center justify-between p-3 rounded-lg hover:bg-secondary cursor-pointer">
-                        <div className="flex items-center gap-3">
-                            <item.icon className="h-5 w-5 text-muted-foreground" />
-                            <span className="font-medium">{item.label}</span>
+                {listItems.map(item => {
+                    const content = (
+                        <div className="flex items-center justify-between p-3 rounded-lg hover:bg-secondary cursor-pointer">
+                            <div className="flex items-center gap-3">
+                                <item.icon className="h-5 w-5 text-muted-foreground" />
+                                <span className="font-medium">{item.label}</span>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-gray-400" />
                         </div>
-                        <ChevronRight className="h-5 w-5 text-gray-400" />
-                    </div>
-                ))}
+                    );
+
+                    if (item.href) {
+                        return <Link href={item.href} key={item.label}>{content}</Link>;
+                    }
+
+                    return <div key={item.label}>{content}</div>;
+                })}
             </CardContent>
         </GlassCard>
 
