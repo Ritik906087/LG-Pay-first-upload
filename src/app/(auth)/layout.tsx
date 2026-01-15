@@ -1,10 +1,16 @@
+"use client";
+
 import type { ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 import { Logo } from '@/components/logo';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import Image from 'next/image';
 import { LanguageProvider } from '@/context/language-context';
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const isHelpPage = pathname === '/help';
+
   return (
     <LanguageProvider>
       <div className="auth-layout flex min-h-screen w-full flex-col items-center justify-start p-4 pt-24 pb-12">
@@ -16,10 +22,10 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             alt="Decorative corner image"
             className="opacity-80"
           />
-          <LanguageSwitcher />
+          {!isHelpPage && <LanguageSwitcher />}
         </header>
         <main className="flex w-full max-w-md flex-col items-center">
-          <Logo className="mb-6 text-2xl font-bold" />
+          {!isHelpPage && <Logo className="mb-6 text-2xl font-bold" />}
           {children}
         </main>
       </div>
