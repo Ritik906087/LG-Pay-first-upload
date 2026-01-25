@@ -1,16 +1,87 @@
+
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Card,
   CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { ChevronLeft, AlertCircle, ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
+
+const purchaseOptions = [
+  { id: 1, amount: 500, bonus: 5 },
+  { id: 2, amount: 1000, bonus: 5 },
+  { id: 3, amount: 3000, bonus: 5 },
+  { id: 4, amount: 5000, bonus: 6 },
+  { id: 5, amount: 10000, bonus: 6 },
+  { id: 6, amount: 20000, bonus: 6 },
+];
+
+const upiMethods = [
+    { name: "PhonePe", logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/download%20(1).png?alt=media&token=205260a4-bfcf-46dd-8dc6-5b440852f2ae" },
+    { name: "Paytm", logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/download%20(2).png?alt=media&token=1fd9f09a-1f02-4dd9-ab3b-06c756856bd8" },
+    { name: "MobiKwik", logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/download.png?alt=media&token=ffb28e60-0b26-4802-9b54-bc6bbb02f35f" },
+    { name: "Google Pay", logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/Google_Pay_logo.svg?alt=media&token=d827a53c-1b15-4603-959c-8516d2146522"},
+];
+
+
+const PurchaseGrid = ({ onBuyClick }: { onBuyClick: (amount: number) => void }) => {
+  return (
+    <div className="grid grid-cols-2 gap-4 mt-4">
+      {purchaseOptions.map((option) => (
+        <Card key={option.id} className="rounded-xl shadow-md overflow-hidden bg-white">
+          <CardHeader className="p-3 bg-gray-50">
+            <CardTitle className="text-base text-center font-bold text-primary">₹ {option.amount.toLocaleString('en-IN')}</CardTitle>
+          </CardHeader>
+          <CardContent className="p-3 text-center">
+            <p className="text-xs text-muted-foreground">Bonus <span className="font-semibold text-green-600">{option.bonus}%</span></p>
+          </CardContent>
+          <CardFooter className="p-0">
+            <Button onClick={() => onBuyClick(option.amount)} className="w-full rounded-none rounded-b-xl h-10 btn-gradient font-bold">
+              Buy
+            </Button>
+          </CardFooter>
+        </Card>
+      ))}
+    </div>
+  );
+};
+
 
 export default function BuyPage() {
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState('otp-upi');
+  const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const handleBuyClick = (amount: number) => {
+    setSelectedAmount(amount);
+    if (activeTab === 'bank') {
+      router.push(`/buy/confirm?amount=${amount}&type=bank`);
+    } else {
+      setIsDialogOpen(true);
+    }
+  };
+
+  const handleUpiSelect = (methodName: string) => {
+    setIsDialogOpen(false);
+    router.push(`/buy/confirm?amount=${selectedAmount}&type=upi&provider=${methodName}`);
+  };
 
   return (
     <div className="text-foreground pb-4 min-h-screen flex flex-col">
@@ -29,7 +100,7 @@ export default function BuyPage() {
       </header>
 
       <main className="p-4 flex-grow">
-        <Tabs defaultValue="otp-upi" className="w-full">
+        <Tabs defaultValue="otp-upi" className="w-full" onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2 bg-transparent p-0 h-auto">
             <TabsTrigger value="otp-upi" className="text-base data-[state=active]:font-bold data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none bg-transparent text-muted-foreground p-3 relative">OTP-UPI <span className="absolute top-1 right-1 text-xs text-red-500 font-bold">+5%</span></TabsTrigger>
             <TabsTrigger value="bank" className="text-base data-[state=active]:font-bold data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none bg-transparent text-muted-foreground p-3 relative">BANK <span className="absolute top-1 right-1 text-xs text-red-500 font-bold">+6%</span></TabsTrigger>
@@ -40,36 +111,34 @@ export default function BuyPage() {
             <span>Tips: Requires KYC connection to purchase.</span>
           </div>
 
-          <Tabs defaultValue="default" className="w-full mt-4">
-            <TabsList className="bg-gray-100 rounded-lg p-1 h-auto">
-                <TabsTrigger value="default" className="px-4 py-1 text-sm data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md">Default</TabsTrigger>
-                <TabsTrigger value="large" className="px-4 py-1 text-sm data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md">Large</TabsTrigger>
-                <TabsTrigger value="small" className="px-4 py-1 text-sm data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md">Small</TabsTrigger>
-            </TabsList>
-            <TabsContent value="default" className="mt-4">
-                 <div className="flex flex-col items-center justify-center pt-20 text-center text-muted-foreground">
-                    <ShoppingCart className="h-16 w-16 opacity-50" />
-                    <p className="mt-4 text-lg">No purchase options available</p>
-                    <p className="text-sm">Please check back later.</p>
-                </div>
-            </TabsContent>
-            <TabsContent value="large" className="mt-4">
-                <div className="flex flex-col items-center justify-center pt-20 text-center text-muted-foreground">
-                    <ShoppingCart className="h-16 w-16 opacity-50" />
-                    <p className="mt-4 text-lg">No large purchase options available</p>
-                    <p className="text-sm">Please check back later.</p>
-                </div>
-            </TabsContent>
-            <TabsContent value="small" className="mt-4">
-                <div className="flex flex-col items-center justify-center pt-20 text-center text-muted-foreground">
-                    <ShoppingCart className="h-16 w-16 opacity-50" />
-                    <p className="mt-4 text-lg">No small purchase options available</p>
-                    <p className="text-sm">Please check back later.</p>
-                </div>
-            </TabsContent>
-          </Tabs>
+          <TabsContent value="otp-upi">
+            <PurchaseGrid onBuyClick={handleBuyClick} />
+          </TabsContent>
+          <TabsContent value="bank">
+            <PurchaseGrid onBuyClick={handleBuyClick} />
+          </TabsContent>
         </Tabs>
       </main>
+
+       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-md p-0">
+          <DialogHeader className="p-4 border-b">
+            <DialogTitle className="text-lg font-semibold text-center">Choose Payment Method</DialogTitle>
+          </DialogHeader>
+          <div className="p-4 space-y-3">
+            {upiMethods.map((method) => (
+                <button 
+                    key={method.name}
+                    onClick={() => handleUpiSelect(method.name)}
+                    className="w-full flex items-center p-3 rounded-lg border hover:bg-secondary transition-colors"
+                >
+                    <Image src={method.logo} alt={method.name} width={32} height={32} className="mr-4" />
+                    <span className="font-medium">{method.name}</span>
+                </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
