@@ -13,12 +13,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useCollection } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { LogOut, Users, LayoutDashboard, Wallet, Eye, Search } from 'lucide-react';
+import { LogOut, Users, LayoutDashboard, Wallet, Eye, Search, Landmark, Banknote } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 type UserProfile = {
     id: string;
@@ -112,6 +113,62 @@ function UsersGrid({ users, loading, error }: { users: UserProfile[], loading: b
     );
 }
 
+function BankDetailsForm() {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Add Bank Account</CardTitle>
+                <CardDescription>Enter the details of the bank account to be added.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="space-y-2">
+                    <Label htmlFor="bank-name">Bank Name</Label>
+                    <Input id="bank-name" placeholder="e.g., State Bank of India" />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="account-holder-name">Account Holder Name</Label>
+                    <Input id="account-holder-name" placeholder="e.g., John Doe" />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="account-number">Account Number</Label>
+                    <Input id="account-number" placeholder="e.g., 1234567890" />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="ifsc-code">IFSC Code</Label>
+                    <Input id="ifsc-code" placeholder="e.g., SBIN0001234" />
+                </div>
+            </CardContent>
+            <CardFooter>
+                <Button className="w-full">Add Bank Account</Button>
+            </CardFooter>
+        </Card>
+    );
+}
+
+function UpiDetailsForm() {
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Add UPI ID</CardTitle>
+                <CardDescription>Enter the details of the UPI ID to be added.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="space-y-2">
+                    <Label htmlFor="upi-holder-name">Name</Label>
+                    <Input id="upi-holder-name" placeholder="e.g., John Doe" />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="upi-id">UPI ID</Label>
+                    <Input id="upi-id" placeholder="e.g., johndoe@upi" />
+                </div>
+            </CardContent>
+            <CardFooter>
+                <Button className="w-full">Add UPI ID</Button>
+            </CardFooter>
+        </Card>
+    );
+}
+
 
 export default function AdminDashboardPage() {
     const router = useRouter();
@@ -146,7 +203,7 @@ export default function AdminDashboardPage() {
       </header>
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 md:w-1/2 lg:w-1/3">
+          <TabsList className="grid w-full grid-cols-3 md:w-auto md:inline-flex">
             <TabsTrigger value="dashboard">
                 <LayoutDashboard className="mr-2" />
                 Dashboard
@@ -154,6 +211,10 @@ export default function AdminDashboardPage() {
             <TabsTrigger value="users">
                 <Users className="mr-2"/>
                 Users
+            </TabsTrigger>
+             <TabsTrigger value="buy-lgb">
+                <Wallet className="mr-2"/>
+                Buy LGB
             </TabsTrigger>
           </TabsList>
           <TabsContent value="dashboard" className="mt-4">
@@ -177,7 +238,7 @@ export default function AdminDashboardPage() {
                         <Wallet className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                       {loading ? <Skeleton className="h-8 w-2/3" /> : <div className="text-2xl font-bold">{totalBalance.toFixed(2)} <span className="text-sm text-muted-foreground">LGB</span></div>}
+                       {loading ? <Skeleton className="h-8 w-2/3" /> : <div className="text-2xl font-bold">{(totalBalance || 0).toFixed(2)} <span className="text-sm text-muted-foreground">LGB</span></div>}
                     </CardContent>
                 </Card>
             </div>
@@ -195,6 +256,26 @@ export default function AdminDashboardPage() {
               </div>
               <UsersGrid users={filteredUsers} loading={loading} error={error} />
             </div>
+          </TabsContent>
+          <TabsContent value="buy-lgb" className="mt-4">
+             <Tabs defaultValue="bank" className="w-full max-w-2xl mx-auto">
+                <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="bank">
+                        <Landmark className="mr-2" />
+                        Bank
+                    </TabsTrigger>
+                    <TabsTrigger value="upi">
+                        <Banknote className="mr-2" />
+                        UPI
+                    </TabsTrigger>
+                </TabsList>
+                <TabsContent value="bank" className="mt-4">
+                    <BankDetailsForm />
+                </TabsContent>
+                <TabsContent value="upi" className="mt-4">
+                    <UpiDetailsForm />
+                </TabsContent>
+             </Tabs>
           </TabsContent>
         </Tabs>
       </main>
