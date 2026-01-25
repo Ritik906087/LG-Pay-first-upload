@@ -16,6 +16,7 @@ import {
 import { Copy, ChevronLeft, ClipboardList } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 type Transaction = {
   id: string;
@@ -25,20 +26,19 @@ type Transaction = {
   orderNumber: string;
 };
 
-const transactions: Transaction[] = [
-  { id: '1', type: 'Buy Rebate', amount: '10.00', time: '2026-01-11 09:41:37', orderNumber: 'MR2026011109324909988' },
-  { id: '2', type: 'Buy Rebate', amount: '15.00', time: '2026-01-11 09:14:39', orderNumber: 'MR2026011109082200039' },
-  { id: '3', type: 'Buy Rebate', amount: '9.00', time: '2026-01-10 10:57:16', orderNumber: 'MR2026011010523601857' },
-  { id: '4', type: 'Buy Rebate', amount: '7.00', time: '2026-01-10 10:31:12', orderNumber: 'MR2026011010255308579' },
-  { id: '5', type: 'Buy Rebate', amount: '10.00', time: '2026-01-10 10:21:36', orderNumber: 'MR2026011010140303660' },
-  { id: '6', type: 'Buy Rebate', amount: '8.00', time: '2026-01-09 11:19:57', orderNumber: 'MR2026010911142201814' },
-  { id: '7', type: 'Buy Rebate', amount: '12.00', time: '2026-01-09 11:08:06', orderNumber: 'MR2026010911021608389' },
-  { id: '8', type: 'Buy Rebate', amount: '10.00', time: '2026-01-09 11:00:47', orderNumber: 'MR2026010910540706783' },
-  { id: '9', type: 'Sell', amount: '100.00', time: '2026-01-08 15:30:00', orderNumber: 'MS2026010815300012345' },
-];
+// In a real app, this would be fetched from a server
+const transactions: Transaction[] = [];
 
 const TransactionCard = ({ transaction }: { transaction: Transaction }) => {
   const isBuy = transaction.type.includes('Buy');
+  const { toast } = useToast();
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      toast({ title: 'Order number copied!' });
+    });
+  };
+
   return (
     <Card className="mb-4 bg-white text-foreground shadow-sm">
       <CardContent className="p-4 space-y-3">
@@ -61,7 +61,7 @@ const TransactionCard = ({ transaction }: { transaction: Transaction }) => {
             <span className="text-muted-foreground">Order Number</span>
             <div className="flex items-center gap-2">
               <span className="font-mono text-muted-foreground">{transaction.orderNumber}</span>
-              <Copy className="h-3 w-3 text-gray-400 cursor-pointer" />
+              <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={() => copyToClipboard(transaction.orderNumber)} />
             </div>
           </div>
         </div>
@@ -70,29 +70,30 @@ const TransactionCard = ({ transaction }: { transaction: Transaction }) => {
   );
 };
 
-export default function TransactionPage() {
-  const TransactionList = ({ transactions }: { transactions: Transaction[] }) => {
-    if (transactions.length === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center pt-20 text-center text-muted-foreground">
-          <ClipboardList className="h-16 w-16 opacity-50" />
-          <p className="mt-4 text-lg">No transactions yet</p>
-        </div>
-      );
-    }
-
+const TransactionList = ({ transactions }: { transactions: Transaction[] }) => {
+  if (transactions.length === 0) {
     return (
-      <div className="space-y-4">
-        {transactions.map((transaction) => (
-          <TransactionCard key={transaction.id} transaction={transaction} />
-        ))}
-        <p className="text-center text-sm text-muted-foreground/60">No more</p>
+      <div className="flex flex-col items-center justify-center pt-20 text-center text-muted-foreground">
+        <ClipboardList className="h-16 w-16 opacity-50" />
+        <p className="mt-4 text-lg">No transactions yet</p>
       </div>
     );
-  };
+  }
+
+  return (
+    <div className="space-y-4">
+      {transactions.map((transaction) => (
+        <TransactionCard key={transaction.id} transaction={transaction} />
+      ))}
+      <p className="text-center text-sm text-muted-foreground/60">No more</p>
+    </div>
+  );
+};
+
+export default function TransactionPage() {
   
   return (
-    <div className="text-foreground">
+    <div className="text-foreground min-h-screen">
        {/* Header */}
       <header className="flex items-center justify-between p-4 bg-white sticky top-0 z-10 border-b">
         <Button asChild variant="ghost" size="icon" className="h-8 w-8">

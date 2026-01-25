@@ -17,6 +17,7 @@ import {
   BadgeHelp,
   Clipboard,
   Trophy,
+  Inbox,
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
@@ -75,37 +76,18 @@ const LevelIcon = ({
   </div>
 );
 
-const vipTasks = [
-    { description: "Invite 0/1 users and complete trades with a total amount of 500", reward: "+58 LGB" },
-    { description: "Invite 0/3 users and complete trades with a total amount of 500", reward: "+128 LGB" },
-    { description: "Invite 0/5 users and complete trades with a total amount of 500", reward: "+138 LGB" },
-    { description: "Invite 0/10 users and complete trades with a total amount of 500", reward: "+348 LGB" },
-    { description: "Invite 0/20 users and complete trades with a total amount of 500", reward: "+728 LGB" },
-    { description: "Invite 0/50 users and complete trades with a total amount of 500", reward: "+2238 LGB" },
-    { description: "Invite 0/100 users and complete trades with a total amount of 500", reward: "+3948 LGB" },
-]
-
-const dailyTasks = [
-    { description: "Buy 0/1 times today", reward: "+1 LGB" },
-    { description: "Buy 0/3 times today", reward: "+3 LGB" },
-    { description: "Buy 0/5 times today", reward: "+5 LGB" },
-    { description: "Buy 0/7 times today", reward: "+7 LGB" },
-    { description: "Buy 0/10 times today", reward: "+10 LGB" },
-]
-
-const rewardMembers = [
-    { member: "878****586", type: "Successful Buy", amount: "1 LGB" },
-    { member: "863****286", type: "Real name verific...", amount: "5 LGB" },
-    { member: "620****304", type: "Successful Sell", amount: "3 LGB" },
-    { member: "629****932", type: "Buy Transaction...", amount: "1 LGB" },
-    { member: "993****265", type: "Invite new users...", amount: "1 LGB" },
-]
+const EmptyState = ({ message }: { message: string }) => (
+    <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
+        <Inbox className="h-12 w-12 opacity-50" />
+        <p className="mt-4 text-base">{message}</p>
+    </div>
+)
 
 export default function RewardsPage() {
   return (
-    <div className="min-h-screen text-foreground">
+    <div className="min-h-screen text-foreground pb-24">
       {/* Header */}
-      <header className="flex items-center justify-between bg-white p-4">
+      <header className="flex items-center justify-between bg-white p-4 sticky top-0 z-10 border-b">
         <Button
           asChild
           variant="ghost"
@@ -127,7 +109,7 @@ export default function RewardsPage() {
             <div className="flex items-center gap-3">
               <Award className="h-5 w-5 text-yellow-500" />
               <p className="text-sm font-semibold">
-                Reward Claimed <span className="font-bold text-yellow-600">2 LG</span>
+                Reward Claimed <span className="font-bold text-yellow-600">0 LG</span>
               </p>
             </div>
             <Button
@@ -156,7 +138,7 @@ export default function RewardsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Progress value={20} className="h-2 bg-black/10" />
+              <Progress value={0} className="h-2 bg-black/10" />
               <div className="flex justify-between text-xs font-medium text-yellow-800">
                 <span>LV0</span>
                 <span>LV1</span>
@@ -201,50 +183,24 @@ export default function RewardsPage() {
                         <Button variant="link" className="text-yellow-500 p-0 h-auto">VIP Zone ▸</Button>
                     </div>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                    {vipTasks.map((task, index) => (
-                        <div key={index} className="flex items-center justify-between text-sm">
-                            <p className="text-muted-foreground flex-1 pr-2">{task.description}</p>
-                            <div className="flex items-center gap-2">
-                                <span className="font-semibold text-yellow-500">{task.reward}</span>
-                                <Button size="sm" className="h-7 rounded-full bg-yellow-400 text-yellow-900 font-bold hover:bg-yellow-500">Invite Now</Button>
-                            </div>
-                        </div>
-                    ))}
+                <CardContent>
+                    <EmptyState message="No VIP tasks available right now." />
                 </CardContent>
             </GlassCard>
             <GlassCard>
                 <CardHeader>
                     <CardTitle className="text-lg font-bold">Daily Tasks</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                     {dailyTasks.map((task, index) => (
-                        <div key={index} className="flex items-center justify-between text-sm">
-                            <p className="text-muted-foreground">{task.description}</p>
-                            <div className="flex items-center gap-2">
-                                <span className="font-semibold text-yellow-500">{task.reward}</span>
-                                <Button size="sm" className="h-7 rounded-full bg-yellow-400 text-yellow-900 font-bold hover:bg-yellow-500">Buy now</Button>                            </div>
-                        </div>
-                    ))}
+                <CardContent>
+                     <EmptyState message="No daily tasks available. Check back tomorrow!" />
                 </CardContent>
             </GlassCard>
              <GlassCard>
                 <CardHeader>
                     <CardTitle className="text-lg font-bold">Reward getting member</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                    <div className="flex justify-between text-sm font-semibold text-muted-foreground px-2">
-                        <span>Member</span>
-                        <span>Reward type</span>
-                        <span>Reward amount</span>
-                    </div>
-                    {rewardMembers.map((member, index) => (
-                        <div key={index} className="flex justify-between items-center text-sm bg-secondary p-2 rounded-md">
-                            <span className="font-mono text-foreground">{member.member}</span>
-                            <span className="text-muted-foreground">{member.type}</span>
-                            <span className="font-semibold text-yellow-500">{member.amount}</span>
-                        </div>
-                    ))}
+                <CardContent>
+                    <EmptyState message="No recent rewards." />
                 </CardContent>
             </GlassCard>
           </TabsContent>
@@ -280,5 +236,3 @@ export default function RewardsPage() {
     </div>
   );
 }
-
-    

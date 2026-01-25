@@ -133,14 +133,8 @@ export default function UserDetailsPage() {
     
     const { data: user, loading, error } = useDoc<UserProfile>(userRef);
 
-    // Placeholder data for now
-    const transactions: Transaction[] = [
-        { id: '1', type: 'Buy', amount: 50, timestamp: '2026-01-15 10:00' },
-        { id: '2', type: 'Sell', amount: 20, timestamp: '2026-01-14 15:30' },
-        { id: '3', type: 'Rebate', amount: 2, timestamp: '2026-01-14 15:30' },
-    ];
-    const totalBuy = 1200;
-    const totalSell = 800;
+    // Transactions will be fetched from Firestore in a real app
+    const transactions: Transaction[] = [];
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text).then(() => {
@@ -216,16 +210,6 @@ export default function UserDetailsPage() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="text-4xl font-bold">{(user.balance || 0).toFixed(2)} <span className="text-lg text-muted-foreground">LGB</span></div>
-                        <div className="grid grid-cols-2 gap-4 text-center">
-                            <div className="rounded-lg bg-green-100 p-3">
-                                <p className="text-sm text-green-800">Total Buy</p>
-                                <p className="text-lg font-bold text-green-900">₹{totalBuy.toFixed(2)}</p>
-                            </div>
-                             <div className="rounded-lg bg-red-100 p-3">
-                                <p className="text-sm text-red-800">Total Sell</p>
-                                <p className="text-lg font-bold text-red-900">₹{totalSell.toFixed(2)}</p>
-                            </div>
-                        </div>
                     </CardContent>
                     <CardFooter>
                          <BalanceActionDialog userId={userId} currentBalance={user.balance || 0} />
@@ -248,7 +232,7 @@ export default function UserDetailsPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {transactions.map((tx) => (
+                            {transactions.length > 0 ? transactions.map((tx) => (
                                 <TableRow key={tx.id}>
                                     <TableCell className="font-medium">{tx.type}</TableCell>
                                     <TableCell className={tx.type === 'Sell' ? 'text-destructive' : 'text-green-600'}>
@@ -256,7 +240,13 @@ export default function UserDetailsPage() {
                                     </TableCell>
                                     <TableCell className="text-right font-mono text-xs">{tx.timestamp}</TableCell>
                                 </TableRow>
-                            ))}
+                            )) : (
+                                <TableRow>
+                                    <TableCell colSpan={3} className="h-24 text-center">
+                                        No transactions found.
+                                    </TableCell>
+                                </TableRow>
+                            )}
                         </TableBody>
                     </Table>
                 </CardContent>
