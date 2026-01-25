@@ -92,6 +92,19 @@ function PaymentDetailsContent() {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+             if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                toast({
+                    variant: 'destructive',
+                    title: 'File is too large',
+                    description: 'Please upload an image smaller than 5MB.'
+                });
+                if(fileInputRef.current) {
+                    fileInputRef.current.value = "";
+                }
+                setScreenshot(null);
+                setScreenshotPreview(null);
+                return;
+            }
             setScreenshot(file);
             setScreenshotPreview(URL.createObjectURL(file));
         }
@@ -106,11 +119,15 @@ function PaymentDetailsContent() {
             toast({ variant: 'destructive', title: 'Missing Screenshot', description: 'Please upload a payment screenshot.' });
             return;
         }
-        if (!orderRef || !storage || !user) return;
+        if (!orderRef || !storage || !user) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not initialize required services. Please try again.' });
+            return;
+        }
 
         setIsConfirming(true);
         try {
-            const screenshotPath = `screenshots/${user.uid}/${orderId}/${screenshot.name}`;
+            const sanitizedFileName = screenshot.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+            const screenshotPath = `screenshots/${user.uid}/${orderId}/${sanitizedFileName}`;
             const fileRef = storageRef(storage, screenshotPath);
             await uploadBytes(fileRef, screenshot);
             const screenshotURL = await getDownloadURL(fileRef);
@@ -127,7 +144,16 @@ function PaymentDetailsContent() {
 
         } catch (error) {
             console.error("Error confirming payment: ", error);
-            toast({ variant: 'destructive', title: 'Submission Failed', description: 'There was a problem submitting your payment proof.' });
+            let errorMessage = 'There was a problem submitting your payment proof.';
+             if (error instanceof Error && 'code' in error) {
+                const firebaseError = error as { code: string; message: string };
+                if (firebaseError.code === 'storage/unauthorized') {
+                    errorMessage = 'You do not have permission to upload files.';
+                } else if (firebaseError.code === 'storage/canceled') {
+                     errorMessage = 'The file upload was canceled.';
+                }
+            }
+            toast({ variant: 'destructive', title: 'Submission Failed', description: errorMessage });
             setIsConfirming(false);
         }
     }
