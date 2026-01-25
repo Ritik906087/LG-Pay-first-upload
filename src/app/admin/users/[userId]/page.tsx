@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useDoc } from '@/firebase';
-import { useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { LogOut, Users, LayoutDashboard, Wallet, ChevronLeft, User, Copy, DollarSign, ArrowUp, ArrowDown } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -120,8 +120,9 @@ const BalanceActionDialog = ({ userId, currentBalance }: { userId: string, curre
     )
 }
 
-export default function UserDetailsPage({ params }: { params: { userId: string } }) {
-    const { userId } = params;
+export default function UserDetailsPage() {
+    const params = useParams();
+    const userId = params.userId as string;
     const firestore = useFirestore();
     const { toast } = useToast();
     
