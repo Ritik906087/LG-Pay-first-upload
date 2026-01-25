@@ -11,7 +11,7 @@ import { ChevronLeft, Copy, Upload, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useCollection, useDoc, useUser, useFirestore, useStorage } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, serverTimestamp, collection } from 'firebase/firestore';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import Image from 'next/image';
 
@@ -48,7 +48,6 @@ function PaymentDetailsContent() {
     const [isConfirming, setIsConfirming] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const { data: paymentMethods, loading: paymentMethodsLoading } = useCollection<PaymentMethod>(firestore ? doc(firestore, 'paymentMethods', 'all') : null); // A bit of a hack to use useCollection for a single doc path
     const { data: allPaymentMethods, loading: allPaymentMethodsLoading } = useCollection<PaymentMethod>(firestore ? collection(firestore, 'paymentMethods'): null);
 
 
@@ -274,3 +273,5 @@ export default function ConfirmPage() {
     </Suspense>
   )
 }
+
+    
