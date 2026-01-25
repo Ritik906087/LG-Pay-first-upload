@@ -87,7 +87,7 @@ function UsersTable() {
                             <TableCell className="font-medium">{user.displayName}</TableCell>
                             <TableCell>{user.numericId}</TableCell>
                             <TableCell>{user.phoneNumber || 'N/A'}</TableCell>
-                            <TableCell className="text-right">{user.balance.toFixed(2)}</TableCell>
+                            <TableCell className="text-right">{(user.balance || 0).toFixed(2)}</TableCell>
                         </TableRow>
                         ))}
                     </TableBody>
