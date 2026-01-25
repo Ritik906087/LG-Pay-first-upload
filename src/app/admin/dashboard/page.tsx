@@ -284,11 +284,16 @@ function PaymentMethodsList({ methods, loading, onDelete }: { methods: PaymentMe
 
 export default function AdminDashboardPage() {
     const router = useRouter();
-    const { data: allUsers, loading, error } = useCollection<UserProfile>('users');
-    const { data: paymentMethods, loading: paymentMethodsLoading } = useCollection<PaymentMethod>('paymentMethods');
-    const [searchTerm, setSearchTerm] = useState('');
     const firestore = useFirestore();
     const { toast } = useToast();
+
+    const usersQuery = useMemo(() => firestore ? collection(firestore, "users") : null, [firestore]);
+    const { data: allUsers, loading, error } = useCollection<UserProfile>(usersQuery);
+    
+    const paymentMethodsQuery = useMemo(() => firestore ? collection(firestore, "paymentMethods") : null, [firestore]);
+    const { data: paymentMethods, loading: paymentMethodsLoading } = useCollection<PaymentMethod>(paymentMethodsQuery);
+
+    const [searchTerm, setSearchTerm] = useState('');
 
     const handleLogout = () => {
         document.cookie = 'admin-auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';

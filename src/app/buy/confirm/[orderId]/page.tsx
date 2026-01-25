@@ -48,7 +48,8 @@ function PaymentDetailsContent() {
     const [isConfirming, setIsConfirming] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const { data: allPaymentMethods, loading: allPaymentMethodsLoading } = useCollection<PaymentMethod>(firestore ? collection(firestore, 'paymentMethods'): null);
+    const paymentMethodsQuery = useMemo(() => firestore ? collection(firestore, 'paymentMethods') : null, [firestore]);
+    const { data: allPaymentMethods, loading: allPaymentMethodsLoading } = useCollection<PaymentMethod>(paymentMethodsQuery);
 
 
     const orderRef = useMemo(() => {
