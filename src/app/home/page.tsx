@@ -138,7 +138,9 @@ const InProgressOrderCard = ({ order }: { order: any }) => {
         } else if (order.status === 'processing') {
             buttonText = "View Status";
             buttonLink = `/order/${order.id}`;
-            expiryTimestamp = new Timestamp(order.submittedAt.seconds + 30 * 60, order.submittedAt.nanoseconds);
+            if (order.submittedAt) { // Safety check for submittedAt
+                expiryTimestamp = new Timestamp(order.submittedAt.seconds + 30 * 60, order.submittedAt.nanoseconds);
+            }
         }
     } else if (isSell) {
          if (order.status === 'pending') {
@@ -149,16 +151,20 @@ const InProgressOrderCard = ({ order }: { order: any }) => {
         }
     }
 
+    // A dummy onExpire function for the Countdown component.
+    // In a real scenario, this would trigger a refetch or state update.
+    const handleExpire = () => {};
+
 
     return (
         <Card className="bg-secondary/50">
             <CardContent className="p-3">
-                <div className="flex items-center justify-between gap-4">
+                <div className="flex items-start justify-between gap-4">
                     <div className="flex-grow space-y-1">
-                        <p className="font-bold">₹{order.amount.toFixed(2)}</p>
+                        <p className="font-bold text-lg">₹{order.amount.toFixed(2)}</p>
                         <div className="flex items-center gap-2">
                              <p className="text-xs text-muted-foreground capitalize">{statusText}</p>
-                             {expiryTimestamp && <Countdown expiryTimestamp={expiryTimestamp} />}
+                             {expiryTimestamp && <Countdown expiryTimestamp={expiryTimestamp} onExpire={handleExpire} />}
                         </div>
                     </div>
                     <Button asChild size="sm" className="font-bold flex-shrink-0">
