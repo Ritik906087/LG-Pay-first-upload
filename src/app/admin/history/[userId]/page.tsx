@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useDoc, useCollection, useFirestore } from '@/firebase';
 import { useParams, useRouter } from 'next/navigation';
-import { ChevronLeft, Copy, Loader2, Search, XCircle, Download } from 'lucide-react';
+import { ChevronLeft, Copy, Loader2, Search, XCircle, Download, CheckCircle } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { doc, collection, query, orderBy, Timestamp } from 'firebase/firestore';
 import {
@@ -134,10 +134,61 @@ const CancelledReceipt = React.forwardRef<HTMLDivElement, { order: SellOrder }>(
 });
 CancelledReceipt.displayName = 'CancelledReceipt';
 
+const SuccessfulReceipt = React.forwardRef<HTMLDivElement, { order: SellOrder }>(({ order }, ref) => {
+    const receiptDate = new Date().toLocaleString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+    });
+
+    return (
+        <div ref={ref} className="bg-white p-6 rounded-lg shadow-lg w-[360px] relative overflow-hidden font-sans">
+            <div className="absolute inset-0 flex items-center justify-center z-0">
+                <h1 className="text-[120px] font-bold text-gray-200/30 rotate-[-30deg] select-none">LG PAY</h1>
+            </div>
+            <div className="relative z-10">
+                <div className="text-center mb-6">
+                    <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
+                    <h2 className="text-xl font-semibold mt-4 text-green-600">Payment Successful</h2>
+                    <p className="text-3xl font-bold mt-2">₹{order.amount.toFixed(2)}</p>
+                </div>
+
+                <div className="space-y-3 text-sm border-t border-dashed pt-4">
+                    <div className="flex justify-between">
+                        <span className="text-gray-500">To</span>
+                        <span className="font-medium text-right">{order.withdrawalMethod.upiId}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-gray-500">From</span>
+                        <span className="font-medium">LG PAY ADMIN</span>
+                    </div>
+                     <div className="flex justify-between">
+                        <span className="text-gray-500">UTR Number</span>
+                        <span className="font-medium font-mono">{order.utr || 'XXXXXXXXXXXXXXXX'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-gray-500">Order ID</span>
+                        <span className="font-medium font-mono text-xs">{order.orderId}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-gray-500">Date & Time</span>
+                        <span className="font-medium">{receiptDate}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+});
+SuccessfulReceipt.displayName = 'SuccessfulReceipt';
+
 
 const PaymentDetailsDialog = ({ order, orderType, adminPaymentMethods }: { order: Order | SellOrder, orderType: 'buy' | 'sell', adminPaymentMethods: AdminPaymentMethod[] }) => {
     const { toast } = useToast();
     const cancelledReceiptRef = useRef<HTMLDivElement>(null);
+    const successfulReceiptRef = useRef<HTMLDivElement>(null);
 
     const handleDownloadCancelledImage = async () => {
         if (!cancelledReceiptRef.current) return;
@@ -148,6 +199,23 @@ const PaymentDetailsDialog = ({ order, orderType, adminPaymentMethods }: { order
             const link = document.createElement('a');
             link.href = dataUrl;
             link.download = `LGPAY-Receipt-Failed-${order.orderId}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (error) {
+            toast({ variant: 'destructive', title: 'Download Failed' });
+        }
+    };
+
+    const handleDownloadSuccessfulImage = async () => {
+        if (!successfulReceiptRef.current) return;
+        try {
+            const html2canvas = (await import('html2canvas')).default;
+            const canvas = await html2canvas(successfulReceiptRef.current, { backgroundColor: '#ffffff', scale: 2 });
+            const dataUrl = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.href = dataUrl;
+            link.download = `LGPAY-Receipt-Success-${order.orderId}.png`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -214,6 +282,7 @@ const PaymentDetailsDialog = ({ order, orderType, adminPaymentMethods }: { order
         <>
             <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
                 {orderType === 'sell' && (order as SellOrder).status === 'failed' && <CancelledReceipt ref={cancelledReceiptRef} order={order as SellOrder} />}
+                {orderType === 'sell' && (order as SellOrder).status === 'completed' && <SuccessfulReceipt ref={successfulReceiptRef} order={order as SellOrder} />}
             </div>
             <Dialog>
                 <DialogTrigger asChild>
@@ -235,6 +304,12 @@ const PaymentDetailsDialog = ({ order, orderType, adminPaymentMethods }: { order
                      <DialogFooter className="sm:justify-end gap-2">
                         {orderType === 'sell' && (order as SellOrder).status === 'failed' && (
                              <Button onClick={handleDownloadCancelledImage} variant="secondary">
+                                <Download className="mr-2 h-4 w-4"/>
+                                Download Receipt
+                            </Button>
+                        )}
+                        {orderType === 'sell' && (order as SellOrder).status === 'completed' && (
+                             <Button onClick={handleDownloadSuccessfulImage} variant="secondary">
                                 <Download className="mr-2 h-4 w-4"/>
                                 Download Receipt
                             </Button>
