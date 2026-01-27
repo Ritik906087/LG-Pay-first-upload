@@ -53,10 +53,6 @@ const paymentMethodDetails: { [key: string]: { logo: string; bgColor: string } }
     logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/download.png?alt=media&token=ffb28e60-0b26-4802-9b54-bc6bbb02f35f",
     bgColor: "bg-blue-600",
   },
-  "Google Pay": {
-    logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/Google_Pay_logo.svg?alt=media&token=d827a53c-1b15-4603-959c-8516d2146522",
-    bgColor: "bg-gray-700",
-  },
 };
 
 type UserProfile = {
@@ -303,6 +299,7 @@ export default function UserDetailsPage() {
                         <div className="space-y-3">
                             {user.paymentMethods.map((method) => {
                                 const details = paymentMethodDetails[method.name];
+                                if (!details) return null;
                                 return (
                                     <div
                                         key={method.name}

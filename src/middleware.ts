@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
@@ -29,7 +30,7 @@ export function middleware(request: NextRequest) {
   const authRoutes = ['/login', '/register', '/forgot-password', '/terms', '/help'];
   const isAuthRoute = authRoutes.some(route => pathname.startsWith(route));
 
-  const protectedRoutes = ['/home', '/my', '/order', '/rewards', '/buy'];
+  const protectedRoutes = ['/home', '/my', '/order', '/rewards', '/buy', '/sell'];
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
 
   if (userToken && isAuthRoute) {

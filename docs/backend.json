@@ -155,6 +155,52 @@
         }
       },
       "required": ["userId", "amount", "status", "createdAt"]
+    },
+     "SellOrder": {
+      "title": "Sell Order",
+      "description": "Represents a user's request to sell LGB and withdraw money.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who created the sell order."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of LGB to sell, in INR."
+        },
+        "withdrawalMethod": {
+          "type": "object",
+          "description": "The UPI method chosen by the user for withdrawal.",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "The name of the UPI provider (e.g., PhonePe)."
+            },
+            "upiId": {
+              "type": "string",
+              "description": "The UPI ID for withdrawal."
+            }
+          },
+          "required": ["name", "upiId"]
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the sell order.",
+          "enum": [
+            "pending",
+            "processing",
+            "completed",
+            "failed"
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the order was created."
+        }
+      },
+      "required": ["userId", "amount", "withdrawalMethod", "status", "createdAt"]
     }
   },
   "auth": {
@@ -178,6 +224,12 @@
         "$ref": "#/entities/Order"
       },
       "description": "Stores user orders to buy LGB."
+    },
+     "/users/{userId}/sellOrders/{orderId}": {
+      "schema": {
+        "$ref": "#/entities/SellOrder"
+      },
+      "description": "Stores user orders to sell LGB."
     }
   }
 }

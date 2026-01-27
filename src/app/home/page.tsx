@@ -207,19 +207,21 @@ export default function HomePage() {
               </CardContent>
             </Card>
           </Link>
-          <Card className="border-none bg-green-100 shadow-lg">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-green-900">Sell LG</h3>
-                  <p className="text-xs text-green-800">Efficient and fast</p>
+          <Link href="/sell" className="block">
+            <Card className="border-none bg-green-100 shadow-lg">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold text-green-900">Sell LG</h3>
+                    <p className="text-xs text-green-800">Efficient and fast</p>
+                  </div>
+                  <div className="rounded-md bg-black/5 p-2">
+                    <ArrowUpFromLine className="h-5 w-5 text-green-900" />
+                  </div>
                 </div>
-                <div className="rounded-md bg-black/5 p-2">
-                  <ArrowUpFromLine className="h-5 w-5 text-green-900" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
         
         {/* In Progress Orders */}

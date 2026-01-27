@@ -35,5 +35,11 @@ service cloud.firestore {
       // should be replaced with a role-based system.
       allow read;
     }
+    
+    // Rules for the 'sellOrders' subcollection within 'users'
+    match /users/{userId}/sellOrders/{orderId} {
+      allow write: if isSignedIn() && isOwner(userId);
+      allow read;
+    }
   }
 }
