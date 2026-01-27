@@ -14,6 +14,7 @@ import Link from 'next/link';
 
 type Order = {
     id: string;
+    orderId: string;
     amount: number;
     status: string;
     utr: string;
@@ -185,7 +186,7 @@ function OrderStatusContent() {
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Order ID</span>
-                            <span className="font-mono text-xs">{order.id}</span>
+                            <span className="font-mono text-xs">{order.orderId}</span>
                         </div>
                          <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">UTR</span>

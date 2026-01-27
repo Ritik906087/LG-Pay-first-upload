@@ -98,8 +98,8 @@ const BuyTransactionCard = ({ transaction }: { transaction: Order }) => {
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground">Order Number</span>
             <div className="flex items-center gap-2">
-              <span className="font-mono text-muted-foreground">{transaction.orderId || transaction.id}</span>
-              <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={() => copyToClipboard(transaction.orderId || transaction.id)} />
+              <span className="font-mono text-muted-foreground">{transaction.orderId}</span>
+              <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={() => copyToClipboard(transaction.orderId)} />
             </div>
           </div>
         </div>
