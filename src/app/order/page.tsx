@@ -37,6 +37,7 @@ type SellOrder = {
   orderId: string;
   amount: number;
   status: 'pending' | 'processing' | 'completed' | 'failed';
+  utr?: string;
   createdAt: Timestamp;
 };
 
@@ -151,7 +152,7 @@ const SellTransactionCard = ({ transaction }: { transaction: SellOrder }) => {
             </div>
              <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">UTR</span>
-                <span className="font-mono text-muted-foreground">---</span>
+                <span className="font-mono text-muted-foreground">{transaction.utr || '---'}</span>
             </div>
             <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Time</span>

@@ -75,6 +75,15 @@ type Order = {
   createdAt: Timestamp;
 };
 
+type SellOrder = {
+  id: string;
+  amount: number;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  utr?: string;
+  withdrawalMethod: { name: string, upiId: string };
+  createdAt: Timestamp;
+};
+
 
 const BalanceActionDialog = ({ userId, currentBalance }: { userId: string, currentBalance: number }) => {
     const [amount, setAmount] = useState('');
@@ -161,6 +170,13 @@ export default function UserDetailsPage() {
 
     const { data: orders, loading: ordersLoading } = useCollection<Order>(ordersQuery);
 
+    const sellOrdersQuery = useMemo(() => {
+        if (!firestore || !userId) return null;
+        return query(collection(firestore, 'users', userId, 'sellOrders'), orderBy('createdAt', 'desc'));
+    }, [firestore, userId]);
+
+    const { data: sellOrders, loading: sellOrdersLoading } = useCollection<SellOrder>(sellOrdersQuery);
+
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text).then(() => {
           toast({ title: 'UID Copied!' });
@@ -242,10 +258,10 @@ export default function UserDetailsPage() {
                 </Card>
             </div>
 
-            {/* Order History */}
+            {/* Buy Order History */}
             <Card>
                 <CardHeader>
-                    <CardTitle>Order History</CardTitle>
+                    <CardTitle>Buy Order History</CardTitle>
                 </CardHeader>
                 <CardContent>
                      <Table>
@@ -280,7 +296,7 @@ export default function UserDetailsPage() {
                             )) : (
                                 <TableRow>
                                     <TableCell colSpan={5} className="h-24 text-center">
-                                        No orders found.
+                                        No buy orders found.
                                     </TableCell>
                                 </TableRow>
                             )}
@@ -288,6 +304,53 @@ export default function UserDetailsPage() {
                     </Table>
                 </CardContent>
             </Card>
+
+             {/* Sell Order History */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Sell Order History</CardTitle>
+                    <CardDescription>
+                       Successful: {sellOrders?.filter(o => o.status === 'completed').length || 0} | Failed/Cancelled: {sellOrders?.filter(o => o.status === 'failed').length || 0}
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                     <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Amount</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead>To UPI</TableHead>
+                                <TableHead>UTR</TableHead>
+                                <TableHead className="text-right">Date</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {sellOrdersLoading ? (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="h-24 text-center">
+                                        Loading sell orders...
+                                    </TableCell>
+                                </TableRow>
+                            ) : sellOrders && sellOrders.length > 0 ? sellOrders.map((order) => (
+                                <TableRow key={order.id}>
+                                    <TableCell className="font-medium">₹{order.amount.toFixed(2)}</TableCell>
+                                    <TableCell className="capitalize">{order.status}</TableCell>
+                                    <TableCell className="text-xs">{order.withdrawalMethod.name} ({order.withdrawalMethod.upiId})</TableCell>
+                                    <TableCell>{order.utr || 'N/A'}</TableCell>
+                                    <TableCell className="text-right font-mono text-xs">{order.createdAt.toDate().toLocaleString()}</TableCell>
+                                </TableRow>
+                            )) : (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="h-24 text-center">
+                                        No sell orders found.
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+
 
              {/* Linked UPIs Card */}
             <Card>

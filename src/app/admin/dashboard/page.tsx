@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   Card,
   CardContent,
@@ -13,17 +13,24 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useCollection, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { LogOut, Users, LayoutDashboard, Wallet, Eye, Search, Landmark, Banknote, Trash2, Loader2 } from 'lucide-react';
+import { LogOut, Users, LayoutDashboard, Wallet, Eye, Search, Landmark, Banknote, Trash2, Loader2, Clock } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { collection, addDoc, doc, deleteDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, deleteDoc, collectionGroup, query, where, getDocs, updateDoc, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 type UserProfile = {
     id: string;
@@ -45,6 +52,54 @@ type PaymentMethod = {
     upiHolderName?: string;
     upiId?: string;
 }
+
+type SellOrder = {
+    id: string;
+    userId: string;
+    userNumericId: string;
+    userPhoneNumber: string;
+    orderId: string;
+    amount: number;
+    status: 'pending' | 'processing' | 'completed' | 'failed';
+    withdrawalMethod: { name: string, upiId: string };
+    createdAt: Timestamp;
+}
+
+const CountdownTimer = ({ expiryTimestamp }: { expiryTimestamp: Timestamp }) => {
+    const [timeLeft, setTimeLeft] = useState('');
+
+    useEffect(() => {
+        const expiryTime = expiryTimestamp.toDate().getTime();
+
+        const interval = setInterval(() => {
+            const now = new Date().getTime();
+            const distance = expiryTime - now;
+
+            if (distance < 0) {
+                clearInterval(interval);
+                setTimeLeft("Expired");
+                return;
+            }
+
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+            setTimeLeft(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [expiryTimestamp]);
+
+    return (
+        <div className={cn(
+            "flex items-center gap-1 text-xs font-mono",
+            timeLeft === "Expired" ? "text-red-500" : "text-yellow-600"
+        )}>
+            <Clock className="h-3 w-3" />
+            <span>{timeLeft}</span>
+        </div>
+    );
+};
+
 
 function UsersGrid({ users, loading, error }: { users: UserProfile[], loading: boolean, error: any }) {
     if (loading) {
@@ -281,6 +336,149 @@ function PaymentMethodsList({ methods, loading, onDelete }: { methods: PaymentMe
     )
 }
 
+function ProcessWithdrawalDialog({ order, onProcessed }: { order: SellOrder, onProcessed: () => void }) {
+    const [utr, setUtr] = useState('');
+    const [isConfirming, setIsConfirming] = useState(false);
+    const [open, setOpen] = useState(false);
+    const firestore = useFirestore();
+    const { toast } = useToast();
+
+    const handleConfirm = async () => {
+        if (utr.length !== 12 || !/^\d+$/.test(utr)) {
+            toast({ variant: 'destructive', title: 'Invalid UTR', description: 'UTR must be 12 digits.' });
+            return;
+        }
+        setIsConfirming(true);
+        try {
+            const orderRef = doc(firestore, 'users', order.userId, 'sellOrders', order.id);
+            await updateDoc(orderRef, {
+                status: 'completed',
+                utr: utr,
+            });
+            toast({ title: 'Withdrawal Confirmed!', description: `Order ${order.orderId} marked as completed.` });
+            setOpen(false);
+            onProcessed();
+        } catch (e: any) {
+            console.error("Failed to confirm withdrawal:", e);
+            toast({ variant: 'destructive', title: 'Error', description: e.message });
+        } finally {
+            setIsConfirming(false);
+        }
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold">Process</Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Process Withdrawal</DialogTitle>
+                    <CardDescription>Order ID: {order.orderId}</CardDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                    <p>Amount: <span className="font-bold">₹{order.amount}</span></p>
+                    <p>To: <span className="font-bold">{order.withdrawalMethod.name} - {order.withdrawalMethod.upiId}</span></p>
+                    <div className="space-y-2">
+                        <Label htmlFor="utr">12-Digit UTR Number</Label>
+                        <Input id="utr" value={utr} onChange={(e) => setUtr(e.target.value)} maxLength={12} placeholder="Enter payment UTR" />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="destructive" onClick={() => setOpen(false)}>Cancel</Button>
+                    <Button className="bg-green-600 hover:bg-green-700" onClick={handleConfirm} disabled={isConfirming}>
+                        {isConfirming && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                        Confirm
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function WithdrawalsTabContent() {
+    const firestore = useFirestore();
+    const [searchTerm, setSearchTerm] = useState('');
+    const [orders, setOrders] = useState<SellOrder[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchWithdrawals = useCallback(async () => {
+        if (!firestore) return;
+        setLoading(true);
+        try {
+            const q = query(collectionGroup(firestore, 'sellOrders'), where('status', '==', 'pending'));
+            const querySnapshot = await getDocs(q);
+            const pendingOrders = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SellOrder));
+            setOrders(pendingOrders.sort((a,b) => a.createdAt.seconds - b.createdAt.seconds));
+        } catch (error) {
+            console.error("Error fetching withdrawals:", error);
+        } finally {
+            setLoading(false);
+        }
+    }, [firestore]);
+
+    useEffect(() => {
+        fetchWithdrawals();
+    }, [fetchWithdrawals]);
+
+    const filteredOrders = useMemo(() => {
+        if (!searchTerm) return orders;
+        const lowercasedTerm = searchTerm.toLowerCase();
+        return orders.filter(order =>
+            order.orderId.toLowerCase().includes(lowercasedTerm) ||
+            order.userNumericId.toLowerCase().includes(lowercasedTerm) ||
+            order.userPhoneNumber?.toLowerCase().includes(lowercasedTerm)
+        );
+    }, [orders, searchTerm]);
+
+
+    return (
+        <div className="space-y-4">
+            <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                    placeholder="Search by Order ID, UID, or Phone..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 max-w-sm"
+                />
+            </div>
+
+            {loading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-56 w-full" />)}
+                </div>
+            ) : filteredOrders.length === 0 ? (
+                <Card>
+                    <CardContent className="p-8 text-center text-muted-foreground">
+                        No pending withdrawals found.
+                    </CardContent>
+                </Card>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredOrders.map(order => (
+                        <Card key={order.id} className="flex flex-col">
+                            <CardHeader>
+                                <CardTitle className="text-sm font-semibold">Withdrawal Request</CardTitle>
+                                <CountdownTimer expiryTimestamp={new Timestamp(order.createdAt.seconds + 30 * 60, order.createdAt.nanoseconds)} />
+                            </CardHeader>
+                            <CardContent className="flex-grow space-y-2 text-sm">
+                                <p><strong>Amount:</strong> <span className="font-bold text-lg text-primary">₹{order.amount}</span></p>
+                                <p><strong>User UID:</strong> {order.userNumericId}</p>
+                                <p><strong>Phone:</strong> {order.userPhoneNumber}</p>
+                                <p><strong>Order ID:</strong> {order.orderId}</p>
+                                <p><strong>To ({order.withdrawalMethod.name}):</strong> {order.withdrawalMethod.upiId}</p>
+                            </CardContent>
+                            <CardFooter>
+                                <ProcessWithdrawalDialog order={order} onProcessed={fetchWithdrawals} />
+                            </CardFooter>
+                        </Card>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
 
 export default function AdminDashboardPage() {
     const router = useRouter();
@@ -346,7 +544,7 @@ export default function AdminDashboardPage() {
       </header>
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 md:w-auto md:inline-flex">
+          <TabsList className="grid w-full grid-cols-4 md:w-auto md:inline-flex">
             <TabsTrigger value="dashboard">
                 <LayoutDashboard className="mr-2" />
                 Dashboard
@@ -355,9 +553,13 @@ export default function AdminDashboardPage() {
                 <Users className="mr-2"/>
                 Users
             </TabsTrigger>
-             <TabsTrigger value="buy-lgb">
+             <TabsTrigger value="withdrawals">
+                <Banknote className="mr-2"/>
+                Withdrawals
+            </TabsTrigger>
+             <TabsTrigger value="payment-methods">
                 <Wallet className="mr-2"/>
-                Buy LGB
+                Payment Methods
             </TabsTrigger>
           </TabsList>
           <TabsContent value="dashboard" className="mt-4">
@@ -400,7 +602,10 @@ export default function AdminDashboardPage() {
               <UsersGrid users={filteredUsers} loading={loading} error={error} />
             </div>
           </TabsContent>
-          <TabsContent value="buy-lgb" className="mt-4">
+           <TabsContent value="withdrawals" className="mt-4">
+                <WithdrawalsTabContent />
+            </TabsContent>
+          <TabsContent value="payment-methods" className="mt-4">
              <div className="w-full max-w-2xl mx-auto">
                 <Tabs defaultValue="bank">
                     <TabsList className="grid w-full grid-cols-2">

@@ -38,8 +38,10 @@ service cloud.firestore {
     
     // Rules for the 'sellOrders' subcollection within 'users'
     match /users/{userId}/sellOrders/{orderId} {
-      allow write: if isSignedIn() && isOwner(userId);
-      allow read;
+      // Allow user to create their own order.
+      allow create: if isOwner(userId);
+      // Allow admin to read and update any order. This is simplified for the prototype.
+      allow read, update: if isSignedIn();
     }
   }
 }

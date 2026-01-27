@@ -26,6 +26,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 type UserProfile = {
   id: string;
   balance: number;
+  numericId: string;
+  phoneNumber: string;
   paymentMethods?: { name: string; upiId: string }[];
 };
 
@@ -110,7 +112,9 @@ export default function SellPage() {
                 throw "User profile does not exist!";
             }
 
-            const currentBalance = userProfileSnap.data().balance;
+            const profileData = userProfileSnap.data() as UserProfile;
+            const currentBalance = profileData.balance;
+
             if (currentBalance < sellAmount) {
                 throw "Insufficient balance.";
             }
@@ -118,7 +122,7 @@ export default function SellPage() {
             const newBalance = currentBalance - sellAmount;
             
             const sellOrdersRef = collection(firestore, 'users', user.uid, 'sellOrders');
-            const newSellOrderRef = doc(sellOrdersRef);
+            const newSellOrderRef = doc(sellOrdersRef); // Auto-generate ID
             
             const orderId = `LGPAY${Date.now()}`;
 
@@ -129,6 +133,8 @@ export default function SellPage() {
                 withdrawalMethod: selectedUpi,
                 status: 'pending',
                 createdAt: serverTimestamp(),
+                userNumericId: profileData.numericId,
+                userPhoneNumber: profileData.phoneNumber
             });
 
             transaction.update(userProfileRef, { balance: newBalance });

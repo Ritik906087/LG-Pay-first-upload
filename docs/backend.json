@@ -59,7 +59,7 @@
           }
         }
       },
-      "required": ["uid", "numericId", "balance", "createdAt"]
+      "required": ["uid", "numericId", "balance", "createdAt", "phoneNumber"]
     },
     "AdminPaymentMethod": {
       "title": "Admin Payment Method",
@@ -169,6 +169,14 @@
           "type": "string",
           "description": "The ID of the user who created the sell order."
         },
+        "userNumericId": {
+          "type": "string",
+          "description": "The numeric ID of the user who created the order."
+        },
+        "userPhoneNumber": {
+            "type": "string",
+            "description": "The phone number of the user who created the order."
+        },
         "orderId": {
           "type": "string",
           "description": "A unique, randomly generated ID for the order, prefixed with 'LGPAY'."
@@ -202,13 +210,17 @@
             "failed"
           ]
         },
+        "utr": {
+            "type": "string",
+            "description": "The UTR/reference number of the payment sent by the admin."
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",
           "description": "Timestamp when the order was created."
         }
       },
-      "required": ["userId", "amount", "withdrawalMethod", "status", "createdAt", "orderId"]
+      "required": ["userId", "amount", "withdrawalMethod", "status", "createdAt", "orderId", "userNumericId", "userPhoneNumber"]
     }
   },
   "auth": {
