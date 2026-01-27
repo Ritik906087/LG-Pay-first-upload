@@ -49,6 +49,11 @@ const initialPaymentMethods: PaymentMethod[] = [
     logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/download.png?alt=media&token=ffb28e60-0b26-4802-9b54-bc6bbb02f35f",
     bgColor: "bg-blue-600",
   },
+  {
+    name: "Google Pay",
+    logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/Google_Pay_logo.svg?alt=media&token=d827a53c-1b15-4603-959c-8516d2146522",
+    bgColor: "bg-gray-700",
+  },
 ];
 
 export default function CollectionPage() {
