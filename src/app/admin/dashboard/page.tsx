@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import {
   Card,
   CardContent,
@@ -13,14 +13,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useCollection, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { LogOut, Users, LayoutDashboard, Wallet, Eye, Search, Landmark, Banknote, Trash2, Loader2, Clock, History } from 'lucide-react';
+import { LogOut, Users, LayoutDashboard, Wallet, Eye, Search, Landmark, Banknote, Trash2, Loader2, Clock, History, CheckCircle, Download } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { collection, addDoc, doc, deleteDoc, collectionGroup, query, where, getDocs, updateDoc, Timestamp, orderBy } from 'firebase/firestore';
+import { collection, addDoc, doc, deleteDoc, collectionGroup, query, where, getDocs, updateDoc, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import {
@@ -336,12 +336,65 @@ function PaymentMethodsList({ methods, loading, onDelete }: { methods: PaymentMe
     )
 }
 
+const PaymentReceipt = React.forwardRef<HTMLDivElement, { order: SellOrder; utr: string }>(({ order, utr }, ref) => {
+    const receiptDate = new Date().toLocaleString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+    });
+
+    return (
+        <div ref={ref} className="bg-white p-6 rounded-lg shadow-lg w-[360px] relative overflow-hidden font-sans">
+            <div className="absolute inset-0 flex items-center justify-center z-0">
+                <h1 className="text-[120px] font-bold text-gray-200/30 rotate-[-30deg] select-none">LG PAY</h1>
+            </div>
+            <div className="relative z-10">
+                <div className="text-center mb-6">
+                    <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
+                    <h2 className="text-xl font-semibold mt-4">Payment Successful</h2>
+                    <p className="text-3xl font-bold mt-2">₹{order.amount.toFixed(2)}</p>
+                </div>
+
+                <div className="space-y-3 text-sm border-t border-dashed pt-4">
+                    <div className="flex justify-between">
+                        <span className="text-gray-500">To</span>
+                        <span className="font-medium text-right">{order.withdrawalMethod.upiId}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-gray-500">From</span>
+                        <span className="font-medium">LG PAY ADMIN</span>
+                    </div>
+                     <div className="flex justify-between">
+                        <span className="text-gray-500">UTR Number</span>
+                        <span className="font-medium font-mono">{utr || 'XXXXXXXXXXXXXXXX'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-gray-500">Order ID</span>
+                        <span className="font-medium font-mono text-xs">{order.orderId}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-gray-500">Date & Time</span>
+                        <span className="font-medium">{receiptDate}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+});
+PaymentReceipt.displayName = 'PaymentReceipt';
+
+
 function ProcessWithdrawalDialog({ order, onProcessed }: { order: SellOrder, onProcessed: () => void }) {
     const [utr, setUtr] = useState('');
     const [isConfirming, setIsConfirming] = useState(false);
+    const [isDownloading, setIsDownloading] = useState(false);
     const [open, setOpen] = useState(false);
     const firestore = useFirestore();
     const { toast } = useToast();
+    const receiptRef = useRef<HTMLDivElement>(null);
 
     const handleConfirm = async () => {
         if (utr.length !== 12 || !/^\d+$/.test(utr)) {
@@ -365,44 +418,86 @@ function ProcessWithdrawalDialog({ order, onProcessed }: { order: SellOrder, onP
             setIsConfirming(false);
         }
     };
+    
+    const handleDownloadImage = async () => {
+        if (!receiptRef.current) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Receipt element not found.' });
+            return;
+        }
+        if (!utr || utr.length !== 12) {
+            toast({ variant: 'destructive', title: 'Invalid UTR', description: 'Please enter a 12-digit UTR before downloading.' });
+            return;
+        }
+
+        setIsDownloading(true);
+        try {
+            const html2canvas = (await import('html2canvas')).default;
+            const canvas = await html2canvas(receiptRef.current, {
+                backgroundColor: '#ffffff',
+                scale: 2, // Higher scale for better resolution
+            });
+            const dataUrl = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.href = dataUrl;
+            link.download = `LGPAY-Receipt-${order.orderId}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } catch (error) {
+            console.error('Failed to download image:', error);
+            toast({ variant: 'destructive', title: 'Download Failed', description: 'Could not generate receipt image.' });
+        } finally {
+            setIsDownloading(false);
+        }
+    };
 
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                <Button className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold">View Details</Button>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Process Withdrawal</DialogTitle>
-                    <div className="flex justify-between items-center text-sm pt-2">
-                        <CardDescription>Order ID: {order.orderId}</CardDescription>
-                        <CountdownTimer expiryTimestamp={new Timestamp(order.createdAt.seconds + 30 * 60, order.createdAt.nanoseconds)} />
+        <>
+            {/* Hidden receipt for capturing */}
+            <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+                <PaymentReceipt ref={receiptRef} order={order} utr={utr} />
+            </div>
+            <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger asChild>
+                    <Button className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold">View Details</Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Process Withdrawal</DialogTitle>
+                        <div className="flex justify-between items-center text-sm pt-2">
+                            <CardDescription>Order ID: {order.orderId}</CardDescription>
+                            <CountdownTimer expiryTimestamp={new Timestamp(order.createdAt.seconds + 30 * 60, order.createdAt.nanoseconds)} />
+                        </div>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <p><strong>Amount:</strong> <span className="font-bold text-lg text-primary">₹{order.amount}</span></p>
+                        <p><strong>User UID:</strong> {order.userNumericId}</p>
+                        <p><strong>Phone:</strong> {order.userPhoneNumber}</p>
+                        <p><strong>To ({order.withdrawalMethod.name}):</strong> {order.withdrawalMethod.upiId}</p>
+                        <div className="space-y-2 pt-2">
+                            <Label htmlFor="utr">12-Digit UTR Number</Label>
+                            <Input id="utr" value={utr} onChange={(e) => setUtr(e.target.value)} maxLength={12} placeholder="Enter payment UTR" />
+                        </div>
                     </div>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                    <p><strong>Amount:</strong> <span className="font-bold text-lg text-primary">₹{order.amount}</span></p>
-                    <p><strong>User UID:</strong> {order.userNumericId}</p>
-                    <p><strong>Phone:</strong> {order.userPhoneNumber}</p>
-                    <p><strong>To ({order.withdrawalMethod.name}):</strong> {order.withdrawalMethod.upiId}</p>
-                    <div className="space-y-2 pt-2">
-                        <Label htmlFor="utr">12-Digit UTR Number</Label>
-                        <Input id="utr" value={utr} onChange={(e) => setUtr(e.target.value)} maxLength={12} placeholder="Enter payment UTR" />
-                    </div>
-                </div>
-                <DialogFooter className="sm:justify-between">
-                    <Button asChild variant="secondary" className="sm:mr-auto">
-                        <Link href={`/admin/users/${order.userId}`} target="_blank">View User</Link>
-                    </Button>
-                    <div className="flex gap-2">
-                        <Button variant="destructive" onClick={() => setOpen(false)} disabled={isConfirming}>Cancel</Button>
-                        <Button className="bg-green-600 hover:bg-green-700" onClick={handleConfirm} disabled={isConfirming}>
-                            {isConfirming && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
-                            Confirm
+                    <DialogFooter className="sm:justify-between flex-col-reverse sm:flex-row sm:items-center gap-2">
+                        <Button asChild variant="secondary" className="sm:mr-auto">
+                            <Link href={`/admin/users/${order.userId}`} target="_blank">View User</Link>
                         </Button>
-                    </div>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                        <div className="flex gap-2 justify-end">
+                            <Button variant="outline" className="text-primary border-primary" onClick={handleDownloadImage} disabled={isDownloading || isConfirming}>
+                                {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Download className="mr-2 h-4 w-4" />}
+                                Receipt
+                            </Button>
+                            <Button variant="destructive" onClick={() => setOpen(false)} disabled={isConfirming}>Cancel</Button>
+                            <Button className="bg-green-600 hover:bg-green-700" onClick={handleConfirm} disabled={isConfirming || !utr || utr.length !== 12}>
+                                {isConfirming && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                Confirm
+                            </Button>
+                        </div>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }
 
@@ -416,11 +511,10 @@ function WithdrawalsTabContent() {
         if (!firestore) return;
         setLoading(true);
         try {
-            const q = query(collectionGroup(firestore, 'sellOrders'));
+            const q = query(collectionGroup(firestore, 'sellOrders'), where('status', '==', 'pending'));
             const querySnapshot = await getDocs(q);
             const allOrders = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SellOrder));
-            const pendingOrders = allOrders.filter(order => order.status === 'pending');
-            setOrders(pendingOrders.sort((a,b) => a.createdAt.seconds - b.createdAt.seconds));
+            setOrders(allOrders.sort((a,b) => a.createdAt.seconds - b.createdAt.seconds));
         } catch (error) {
             console.error("Error fetching withdrawals:", error);
         } finally {
