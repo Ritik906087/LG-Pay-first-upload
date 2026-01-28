@@ -77,9 +77,9 @@ const PurchaseGrid = ({ onBuyClick, options, bonusPercentage }: { onBuyClick: (o
             <motion.div
               key={option.id}
               layout
-              initial={{ opacity: 0, y: -20 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, x: -50, transition: { duration: 0.3 } }}
+              exit={{ opacity: 0, y: -20, transition: { duration: 0.3 } }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               className="relative transition-all duration-500 rounded-xl"
             >
@@ -150,15 +150,14 @@ export default function BuyPage() {
         
         setter(currentOpts => {
             let newOpts = [...currentOpts];
+            const itemsToReplace = Math.floor(Math.random() * 2) + 2; // 2 or 3 items
             
-            const itemsToReplace = Math.floor(Math.random() * 2) + 2;
-            
-            const indicesToRemove = new Set<number>();
-            while (indicesToRemove.size < itemsToReplace && newOpts.length > 0) {
-                indicesToRemove.add(Math.floor(Math.random() * newOpts.length));
+            for (let i = 0; i < itemsToReplace; i++) {
+                if (newOpts.length > 0) {
+                    const removeIndex = Math.floor(Math.random() * newOpts.length);
+                    newOpts.splice(removeIndex, 1);
+                }
             }
-
-            newOpts = newOpts.filter((_, index) => !indicesToRemove.has(index));
 
             const availableToAdd = initialOpts.filter(o => !newOpts.some(opt => opt.id === o.id));
             
@@ -166,17 +165,16 @@ export default function BuyPage() {
                 const newItemIndex = Math.floor(Math.random() * availableToAdd.length);
                 const newItem = availableToAdd.splice(newItemIndex, 1)[0];
                 if (newItem) {
-                    newOpts.push(newItem);
+                    newOpts.push(newItem); // Add to bottom
                 }
             }
             
             return newOpts;
         });
-    }, 2000);
+    }, 2000); // Update every 2 seconds
 
     return () => clearInterval(interval);
 }, [activeSubTab, memoizedSmallPurchaseOptions, memoizedHighPurchaseOptions]);
-
 
   const handleBuyClick = (option: { amount: number }) => {
      if (!user || !firestore) {
@@ -237,7 +235,7 @@ export default function BuyPage() {
   return (
     <div className="text-foreground pb-4 min-h-screen flex flex-col">
       {/* Header */}
-      <header className="flex items-center justify-between p-4 bg-white sticky top-0 z-10 border-b">
+      <header className="flex items-center justify-between p-4 bg-white/95 backdrop-blur-sm sticky top-0 z-10 border-b">
         <Button asChild variant="ghost" size="icon" className="h-8 w-8">
           <Link href="/home">
             <ChevronLeft className="h-6 w-6 text-muted-foreground" />
