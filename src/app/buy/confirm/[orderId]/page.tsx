@@ -21,6 +21,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 
 type PaymentMethod = {
@@ -39,6 +49,11 @@ type Order = {
     status: string;
     createdAt: Timestamp;
 }
+
+type UserProfile = {
+    paymentMethods?: { name: string; upiId: string }[];
+};
+
 
 const paymentMethodDetails: { [key: string]: { logo: string; bgColor: string } } = {
   PhonePe: {
@@ -86,6 +101,10 @@ function PaymentDetailsContent() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
+    const [isVerificationDialogOpen, setIsVerificationDialogOpen] = useState(false);
+    const [methodToVerify, setMethodToVerify] = useState<string | null>(null);
+
+
     const upiMethods = [
         { name: "PhonePe", logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/download%20(1).png?alt=media&token=205260a4-bfcf-46dd-8dc6-5b440852f2ae" },
         { name: "Paytm", logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/download%20(2).png?alt=media&token=1fd9f09a-1f02-4dd9-ab3b-06c756856bd8" },
@@ -103,6 +122,13 @@ function PaymentDetailsContent() {
 
     const { data: order, loading: orderLoading } = useDoc<Order>(orderRef);
     
+    const userProfileRef = useMemo(() => {
+        if (!user || !firestore) return null;
+        return doc(firestore, 'users', user.uid);
+    }, [user, firestore]);
+
+    const { data: userProfile, loading: profileLoading } = useDoc<UserProfile>(userProfileRef);
+
      const handleCancelOrder = async (isAutoCancel = false) => {
         if (!orderRef) return;
         
@@ -126,6 +152,16 @@ function PaymentDetailsContent() {
 
     const handlePaymentMethodChange = async (newProvider: string) => {
         if (!orderRef) return;
+        
+        const isVerified = userProfile?.paymentMethods?.some(pm => pm.name === newProvider);
+
+        if (!isVerified) {
+            setMethodToVerify(newProvider);
+            setIsChangeDialogOpen(false);
+            setIsVerificationDialogOpen(true);
+            return;
+        }
+
         setIsUpdatingProvider(true);
         try {
             await updateDoc(orderRef, { paymentProvider: newProvider });
@@ -290,7 +326,7 @@ function PaymentDetailsContent() {
         }
     }
 
-    const loading = allPaymentMethodsLoading || orderLoading;
+    const loading = allPaymentMethodsLoading || orderLoading || profileLoading;
     const currentProviderDetails = provider ? paymentMethodDetails[provider] : null;
 
     if (loading) {
@@ -475,7 +511,8 @@ function PaymentDetailsContent() {
                           disabled={isUpdatingProvider}
                           className="w-full flex items-center p-3 rounded-lg border hover:bg-secondary transition-colors disabled:opacity-50"
                       >
-                          {isUpdatingProvider && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                          {isUpdatingProvider && provider !== method.name && <div className="w-6 mr-2"></div>}
+                          {isUpdatingProvider && provider === method.name && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                           <Image src={method.logo} alt={method.name} width={32} height={32} className="mr-4" />
                           <span className="font-medium">{method.name}</span>
                       </button>
@@ -483,6 +520,25 @@ function PaymentDetailsContent() {
                 </div>
               </DialogContent>
             </Dialog>
+
+            <AlertDialog open={isVerificationDialogOpen} onOpenChange={setIsVerificationDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Verification Required</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            To use {methodToVerify}, you need to link it to your account first. Please complete the verification.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={() => router.push('/my/collection')}
+                            className="bg-green-600 hover:bg-green-700">
+                            Verify
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }
@@ -499,7 +555,3 @@ export default function ConfirmPage() {
     </Suspense>
   )
 }
-
-    
-
-    
