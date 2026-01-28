@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useMemo, useState, useRef } from 'react';
@@ -12,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useDoc, useCollection, useFirestore } from '@/firebase';
 import { useParams, useRouter } from 'next/navigation';
-import { ChevronLeft, Copy, Loader2, Search, X, Download } from 'lucide-react';
+import { ChevronLeft, Copy, Loader2, Search, X, Download, Check } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { doc, collection, query, orderBy, Timestamp, limit } from 'firebase/firestore';
 import {
@@ -67,6 +68,7 @@ type SellOrder = {
   utr?: string;
   withdrawalMethod: { name: string, upiId: string };
   createdAt: Timestamp;
+  completedAt?: Timestamp;
   failureReason?: string;
 };
 
@@ -89,7 +91,8 @@ const DetailItem = ({ label, value }: { label: string, value?: string | number }
 );
 
 const CancelledReceipt = React.forwardRef<HTMLDivElement, { order: SellOrder }>(({ order }, ref) => {
-    const receiptDate = new Date().toLocaleString('en-IN', {
+    const transactionDate = order.createdAt.toDate();
+    const receiptDate = transactionDate.toLocaleString('en-IN', {
         day: '2-digit',
         month: 'short',
         year: 'numeric',
@@ -99,49 +102,39 @@ const CancelledReceipt = React.forwardRef<HTMLDivElement, { order: SellOrder }>(
     });
 
     return (
-        <div ref={ref} className="bg-white p-6 rounded-2xl shadow-lg w-[360px] overflow-hidden relative font-sans">
-            <div className="text-center pt-2 pb-4">
-                <div className="inline-block relative h-24 w-24 rounded-full bg-red-100/80">
-                     <div className="absolute inset-2.5 rounded-full bg-white flex items-center justify-center">
-                        <div className="h-14 w-14 rounded-2xl bg-red-500 flex items-center justify-center shadow-lg shadow-red-500/40">
+        <div ref={ref} className="bg-background rounded-2xl shadow-lg w-[360px] overflow-hidden font-sans">
+             <div className="bg-destructive p-4 text-center text-destructive-foreground">
+                <h1 className="font-bold text-lg">Payment Status</h1>
+            </div>
+             <div className="p-4">
+                <div className="text-center py-4">
+                     <div className="mx-auto w-20 h-20 rounded-full bg-red-100 grid place-items-center">
+                        <div className="w-14 h-14 rounded-full bg-red-500 grid place-items-center shadow-lg shadow-red-500/40">
                              <X className="h-8 w-8 text-white" />
                         </div>
                     </div>
+                    <h2 className="text-lg font-extrabold mt-3 text-red-600">Payment Failed</h2>
+                    <p className="text-4xl font-black mt-2">₹{order.amount.toFixed(2)}</p>
+                    <p className="text-xs text-muted-foreground mt-1 max-w-[80%] mx-auto">{order.failureReason || 'Transaction could not be completed'}</p>
                 </div>
-
-                <h2 className="text-lg font-extrabold mt-3 text-red-600">Payment Failed</h2>
-                <p className="text-4xl font-black mt-2">₹{order.amount.toFixed(2)}</p>
-                <p className="text-xs text-muted-foreground mt-1 max-w-[80%] mx-auto">{order.failureReason || 'Transaction could not be completed'}</p>
-            </div>
-            
-            <div className="h-2.5 my-3 -mx-6 bg-gradient-to-r from-gray-100 via-gray-50 to-gray-100"></div>
-
-            <div className="space-y-3 text-sm">
-                 <div className="flex justify-between items-center py-2 border-b border-dashed">
-                    <span className="text-muted-foreground">Status</span>
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-2 py-1 text-xs font-extrabold text-red-700">
-                        ● FAILED
-                    </span>
-                </div>
-                 <div className="flex justify-between items-center py-2 border-b border-dashed">
-                    <span className="text-muted-foreground">To</span>
-                    <span className="font-bold text-right">{order.withdrawalMethod.name}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-dashed">
-                    <span className="text-muted-foreground">UPI ID</span>
-                    <span className="font-bold text-right break-all">{order.withdrawalMethod.upiId}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-dashed">
-                    <span className="text-muted-foreground">Transaction ID</span>
-                    <span className="font-mono font-bold">{order.orderId}</span>
-                </div>
-                 <div className="flex justify-between items-center py-2 border-b border-dashed">
-                    <span className="text-muted-foreground">Reason</span>
-                    <span className="font-bold text-right max-w-[60%]">{order.failureReason || 'N/A'}</span>
-                </div>
-                <div className="flex justify-between items-center py-2">
-                    <span className="text-muted-foreground">Date & Time</span>
-                    <span className="font-bold">{receiptDate}</span>
+                
+                <div className="space-y-3 text-sm border-t border-dashed pt-4">
+                     <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">To</span>
+                        <span className="font-bold text-right break-all">{order.withdrawalMethod.upiId}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Order ID</span>
+                        <span className="font-mono font-bold">{order.orderId}</span>
+                    </div>
+                     <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Reason</span>
+                        <span className="font-bold text-right max-w-[60%]">{order.failureReason || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Date & Time</span>
+                        <span className="font-bold">{receiptDate}</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -150,7 +143,8 @@ const CancelledReceipt = React.forwardRef<HTMLDivElement, { order: SellOrder }>(
 CancelledReceipt.displayName = 'CancelledReceipt';
 
 const SuccessfulReceipt = React.forwardRef<HTMLDivElement, { order: SellOrder }>(({ order }, ref) => {
-    const receiptDate = new Date().toLocaleString('en-IN', {
+    const transactionDate = order.completedAt ? order.completedAt.toDate() : order.createdAt.toDate();
+    const receiptDate = transactionDate.toLocaleString('en-IN', {
         day: '2-digit',
         month: 'short',
         year: 'numeric',
@@ -160,47 +154,39 @@ const SuccessfulReceipt = React.forwardRef<HTMLDivElement, { order: SellOrder }>
     });
 
     return (
-        <div ref={ref} className="bg-white p-6 rounded-2xl shadow-lg w-[360px] overflow-hidden relative font-sans">
-            <div className="text-center pt-2 pb-4">
-                <div className="inline-block relative h-24 w-24 rounded-full bg-green-100/80">
-                     <div className="absolute inset-2.5 rounded-full bg-white flex items-center justify-center">
-                        <div className="h-14 w-14 rounded-2xl bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/40">
-                             <svg className="h-8 w-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/>
-                            </svg>
+        <div ref={ref} className="bg-background rounded-2xl shadow-lg w-[360px] overflow-hidden font-sans">
+            <div className="bg-primary p-4 text-center text-primary-foreground">
+                <h1 className="font-bold text-lg">Payment Status</h1>
+            </div>
+            <div className="p-4">
+                <div className="text-center py-4">
+                    <div className="mx-auto w-20 h-20 rounded-full bg-green-100 grid place-items-center">
+                        <div className="w-14 h-14 rounded-full bg-green-500 grid place-items-center shadow-lg shadow-green-500/40">
+                             <Check className="h-8 w-8 text-white" />
                         </div>
                     </div>
+                    <h2 className="text-lg font-extrabold mt-3">Payment Successful</h2>
+                    <p className="text-4xl font-black mt-2">₹{order.amount.toFixed(2)}</p>
+                    <p className="text-xs text-muted-foreground mt-1">Transaction completed successfully</p>
                 </div>
-
-                <h2 className="text-lg font-extrabold mt-3">Payment Successful</h2>
-                <p className="text-4xl font-black mt-2">₹{order.amount.toFixed(2)}</p>
-                <p className="text-xs text-muted-foreground mt-1">Transaction completed successfully</p>
-            </div>
-            
-            <div className="h-2.5 my-3 -mx-6 bg-gradient-to-r from-gray-100 via-gray-50 to-gray-100"></div>
-
-            <div className="space-y-3 text-sm">
-                 <div className="flex justify-between items-center py-2 border-b border-dashed">
-                    <span className="text-muted-foreground">Status</span>
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2 py-1 text-xs font-extrabold text-green-700">
-                        ● SUCCESS
-                    </span>
-                </div>
-                 <div className="flex justify-between items-center py-2 border-b border-dashed">
-                    <span className="text-muted-foreground">To</span>
-                    <span className="font-bold text-right">{order.withdrawalMethod.name}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-dashed">
-                    <span className="text-muted-foreground">UPI ID</span>
-                    <span className="font-bold text-right break-all">{order.withdrawalMethod.upiId}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-dashed">
-                    <span className="text-muted-foreground">Transaction ID</span>
-                    <span className="font-mono font-bold">{order.utr || 'XXXXXXXXXXXXXXXX'}</span>
-                </div>
-                <div className="flex justify-between items-center py-2">
-                    <span className="text-muted-foreground">Date & Time</span>
-                    <span className="font-bold">{receiptDate}</span>
+                
+                <div className="space-y-3 text-sm border-t border-dashed pt-4">
+                    <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">To</span>
+                        <span className="font-bold text-right break-all">{order.withdrawalMethod.upiId}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">UTR Number</span>
+                        <span className="font-mono font-bold">{order.utr || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Order ID</span>
+                        <span className="font-mono font-bold">{order.orderId}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">Date & Time</span>
+                        <span className="font-bold">{receiptDate}</span>
+                    </div>
                 </div>
             </div>
         </div>

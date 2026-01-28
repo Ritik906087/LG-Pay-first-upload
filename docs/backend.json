@@ -227,6 +227,11 @@
           "type": "string",
           "format": "date-time",
           "description": "Timestamp when the order was created."
+        },
+        "completedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the sell order was completed by the admin."
         }
       },
       "required": ["userId", "amount", "withdrawalMethod", "status", "createdAt", "orderId", "userNumericId", "userPhoneNumber"]

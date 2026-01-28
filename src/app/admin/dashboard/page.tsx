@@ -68,6 +68,7 @@ type SellOrder = {
     status: 'pending' | 'processing' | 'completed' | 'failed';
     withdrawalMethod: { name: string, upiId: string };
     createdAt: Timestamp;
+    completedAt?: Timestamp;
     failureReason?: string;
 }
 
@@ -451,6 +452,7 @@ function ProcessWithdrawalDialog({ order, onProcessed }: { order: SellOrder, onP
             await updateDoc(orderRef, {
                 status: 'completed',
                 utr: utr,
+                completedAt: serverTimestamp(),
             });
             toast({ title: 'Withdrawal Confirmed!', description: `Order ${order.orderId} marked as completed.` });
             setOpen(false);
@@ -599,7 +601,7 @@ function ProcessWithdrawalDialog({ order, onProcessed }: { order: SellOrder, onP
 function WithdrawalsTabContent() {
     const firestore = useFirestore();
     const [searchTerm, setSearchTerm] = useState('');
-    const [orders, setOrders] = useState<SellOrder[]>([]);
+    const [allOrders, setAllOrders] = useState<SellOrder[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<any>(null);
 
@@ -610,11 +612,9 @@ function WithdrawalsTabContent() {
         try {
             const q = query(collectionGroup(firestore, 'sellOrders'));
             const querySnapshot = await getDocs(q);
-            const allOrders = querySnapshot.docs
-                .map(doc => ({ id: doc.id, ...doc.data() } as SellOrder))
-                .filter(order => order.status === 'pending')
-                .sort((a, b) => a.createdAt.seconds - b.createdAt.seconds);
-            setOrders(allOrders);
+            const fetchedOrders = querySnapshot.docs
+                .map(doc => ({ id: doc.id, ...doc.data() } as SellOrder));
+            setAllOrders(fetchedOrders);
         } catch (error) {
             console.error("Error fetching withdrawals:", error);
             setError(error);
@@ -628,14 +628,18 @@ function WithdrawalsTabContent() {
     }, [fetchWithdrawals]);
 
     const filteredOrders = useMemo(() => {
-        if (!searchTerm) return orders;
+        const pendingOrders = allOrders
+            .filter(order => order.status === 'pending')
+            .sort((a, b) => a.createdAt.seconds - b.createdAt.seconds);
+
+        if (!searchTerm) return pendingOrders;
         const lowercasedTerm = searchTerm.toLowerCase();
-        return orders.filter(order =>
+        return pendingOrders.filter(order =>
             order.orderId.toLowerCase().includes(lowercasedTerm) ||
             order.userNumericId.toLowerCase().includes(lowercasedTerm) ||
             order.userPhoneNumber?.toLowerCase().includes(lowercasedTerm)
         );
-    }, [orders, searchTerm]);
+    }, [allOrders, searchTerm]);
 
     if (error) {
         return (
