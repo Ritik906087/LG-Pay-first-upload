@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, ListOrdered, Award, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useState, useEffect } from 'react';
 
 export default function HomeLayout({
   children,
@@ -11,6 +12,11 @@ export default function HomeLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const [showNavBar, setShowNavBar] = useState(true);
+
+  useEffect(() => {
+    setShowNavBar(!pathname.startsWith('/buy'));
+  }, [pathname]);
 
   const navItems = [
     { href: '/home', icon: Home, label: 'Home' },
@@ -18,8 +24,6 @@ export default function HomeLayout({
     { href: '/rewards', icon: Award, label: 'Rewards' },
     { href: '/my', icon: User, label: 'My' },
   ];
-
-  const showNavBar = !pathname.startsWith('/buy');
 
   return (
     <div className="home-layout relative min-h-screen w-full font-body text-foreground">
