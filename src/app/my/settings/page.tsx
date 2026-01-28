@@ -106,7 +106,7 @@ export default function SettingsPage() {
             <span className="font-medium">Avatar</span>
             <div className="flex items-center gap-2">
                <div className="relative">
-                <Avatar className="h-14 w-14 border-2 border-primary/20">
+                <Avatar key={userProfile?.photoURL} className="h-14 w-14 border-2 border-primary/20">
                   <AvatarImage src={userProfile?.photoURL} alt={userProfile?.displayName} />
                   <AvatarFallback className="bg-yellow-400 text-yellow-900 font-bold text-lg">
                     {userProfile?.displayName?.charAt(0) || 'A'}
