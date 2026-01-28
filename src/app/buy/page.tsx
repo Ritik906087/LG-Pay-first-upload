@@ -46,7 +46,7 @@ const PurchaseGrid = ({ onBuyClick }: { onBuyClick: (amount: number) => void }) 
   return (
     <div className="grid grid-cols-1 gap-3 mt-4">
       {purchaseOptions.map((option) => {
-        const bonusLGB = option.amount * (option.bonus / 100);
+        const totalLGB = option.amount + (option.amount * (option.bonus / 100));
         return (
           <Card key={option.id} className="rounded-xl shadow-sm overflow-hidden bg-white">
             <div className="flex items-center justify-between p-3">
@@ -56,7 +56,7 @@ const PurchaseGrid = ({ onBuyClick }: { onBuyClick: (amount: number) => void }) 
                    </div>
                    <div>
                       <p className="font-bold text-lg">₹ {option.amount.toLocaleString('en-IN')}</p>
-                      <p className="text-xs text-green-600 font-semibold">Bonus +{option.bonus}% = {bonusLGB.toLocaleString('en-IN')} LGB</p>
+                      <p className="text-xs text-green-600 font-semibold">You Get: {totalLGB.toLocaleString('en-IN')} LGB</p>
                    </div>
                </div>
                <Button onClick={() => onBuyClick(option.amount)} className="h-10 px-6 btn-gradient font-bold rounded-lg">
