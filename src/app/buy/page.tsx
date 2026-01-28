@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -32,6 +33,8 @@ import Image from 'next/image';
 import { useUser, useFirestore, useCollection } from '@/firebase';
 import { addDoc, collection, serverTimestamp, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+
 
 const purchaseConfig = {
   100: 5, 200: 6, 300: 7, 400: 5, 500: 6, 600: 5, 700: 4, 800: 3, 1000: 4,
@@ -41,7 +44,7 @@ const purchaseConfig = {
 let idCounter = 1;
 const smallPurchaseOptions = [100, 200, 300, 400, 500, 600, 700, 800, 1000]
   .flatMap(amount =>
-    Array.from({ length: purchaseConfig[amount] }, () => ({
+    Array.from({ length: purchaseConfig[amount] || 0 }, () => ({
       id: idCounter++,
       amount,
     }))
@@ -62,46 +65,8 @@ const upiMethods = [
     { name: "MobiKwik", logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/download.png?alt=media&token=ffb28e60-0b26-4802-9b54-bc6bbb02f35f" },
 ];
 
-const PurchaseGrid = ({ onBuyClick, initialOptions, activeTab, sortOrder }: { onBuyClick: (option: any) => void; initialOptions: any[]; activeTab: string, sortOrder: 'asc' | 'desc' }) => {
-    
-  const bonusPercentage = activeTab === 'bank' ? 6 : 5;
-  const [options, setOptions] = useState(() => 
-    [...initialOptions].sort((a,b) => sortOrder === 'asc' ? a.amount - b.amount : b.amount - a.amount)
-  );
-
-  useEffect(() => {
-    const timeout = setInterval(() => {
-      setOptions(currentOpts => {
-        let newOpts = [...currentOpts];
-        // 1. Randomly remove one item
-        if (newOpts.length > 1) {
-          const indexToRemove = Math.floor(Math.random() * newOpts.length);
-          newOpts.splice(indexToRemove, 1);
-        }
-        
-        // 2. Find an item from initialOptions that is not in the current list
-        const availableToAdd = initialOptions.filter(o => !newOpts.find(opt => opt.id === o.id));
-        
-        // 3. Add one of the available items
-        if (availableToAdd.length > 0) {
-          const newItem = availableToAdd[Math.floor(Math.random() * availableToAdd.length)];
-          newOpts.push(newItem);
-        } else {
-            // if all items are already in the list, just add a random one from initial options
-            newOpts.push(initialOptions[Math.floor(Math.random() * initialOptions.length)]);
-        }
-        
-        // 4. Re-sort the list to maintain order
-        newOpts.sort((a, b) => sortOrder === 'asc' ? a.amount - b.amount : b.amount - a.amount);
-        
-        return newOpts;
-      });
-    }, Math.random() * 1500 + 1500); // 1.5 - 3 seconds
-
-    return () => clearInterval(timeout);
-  }, [initialOptions, sortOrder]);
-
-
+const PurchaseGrid = ({ onBuyClick, options, bonusPercentage, highlightedId }: { onBuyClick: (option: any) => void; options: any[]; bonusPercentage: number; highlightedId: number | null }) => {
+  
   return (
     <div className="grid grid-cols-1 gap-3 mt-4">
       <AnimatePresence>
@@ -116,7 +81,10 @@ const PurchaseGrid = ({ onBuyClick, initialOptions, activeTab, sortOrder }: { on
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, x: -50, transition: { duration: 0.3 } }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="relative"
+              className={cn(
+                "relative transition-all duration-500 rounded-xl",
+                highlightedId === option.id && "shadow-2xl shadow-primary/40 ring-2 ring-primary"
+              )}
             >
               <Card className="rounded-xl shadow-sm overflow-hidden bg-white w-full">
                  <div className="flex items-center justify-between p-3 relative z-10">
@@ -150,6 +118,7 @@ const PurchaseGrid = ({ onBuyClick, initialOptions, activeTab, sortOrder }: { on
 export default function BuyPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('otp-upi');
+  const [activeSubTab, setActiveSubTab] = useState('small');
   
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -159,6 +128,11 @@ export default function BuyPage() {
 
   const [isInProgressDialogOpen, setIsInProgressDialogOpen] = useState(false);
   const [inProgressOrder, setInProgressOrder] = useState<any>(null);
+  
+  const [smallOptions, setSmallOptions] = useState(() => [...smallPurchaseOptions].sort((a,b) => a.amount - b.amount));
+  const [highOptions, setHighOptions] = useState(() => [...highPurchaseOptions].sort((a,b) => b.amount - a.amount));
+  const [highlightedId, setHighlightedId] = useState<number | null>(null);
+
 
   const inProgressBuyOrdersQuery = useMemo(() => {
     if (!user || !firestore) return null;
@@ -169,6 +143,57 @@ export default function BuyPage() {
   }, [user, firestore]);
 
   const { data: inProgressBuyOrders } = useCollection(inProgressBuyOrdersQuery);
+  
+  useEffect(() => {
+    const updateOptions = (setter: React.Dispatch<React.SetStateAction<any[]>>, initialOpts: any[], sortOrder: 'asc' | 'desc') => {
+      setter(currentOpts => {
+        let newOpts = [...currentOpts];
+        if (newOpts.length > 1) {
+          const indexToRemove = Math.floor(Math.random() * newOpts.length);
+          newOpts.splice(indexToRemove, 1);
+        }
+        
+        const availableToAdd = initialOpts.filter(o => !newOpts.find(opt => opt.id === o.id));
+        
+        if (availableToAdd.length > 0) {
+          const newItem = availableToAdd[Math.floor(Math.random() * availableToAdd.length)];
+          newOpts.unshift(newItem);
+        } else {
+            newOpts.unshift(initialOpts[Math.floor(Math.random() * initialOpts.length)]);
+        }
+        
+        newOpts.sort((a, b) => sortOrder === 'asc' ? a.amount - b.amount : b.amount - a.amount);
+        
+        return newOpts;
+      });
+    };
+
+    const smallTimeout = setInterval(() => updateOptions(setSmallOptions, smallPurchaseOptions, 'asc'), Math.random() * 1500 + 1500);
+    const highTimeout = setInterval(() => updateOptions(setHighOptions, highPurchaseOptions, 'desc'), Math.random() * 1500 + 1500);
+    
+    return () => {
+        clearInterval(smallTimeout);
+        clearInterval(highTimeout);
+    }
+  }, []);
+
+  useEffect(() => {
+    const highlightInterval = setInterval(() => {
+        const currentOptions = activeSubTab === 'small' ? smallOptions : highOptions;
+        if (currentOptions.length > 0) {
+            const randomIndex = Math.floor(Math.random() * currentOptions.length);
+            const randomId = currentOptions[randomIndex].id;
+            setHighlightedId(randomId);
+
+            setTimeout(() => {
+                setHighlightedId(null);
+            }, 700);
+        }
+    }, Math.random() * 2000 + 2000);
+
+    return () => clearInterval(highlightInterval);
+  }, [smallOptions, highOptions, activeSubTab]);
+
 
   const handleBuyClick = (option: { amount: number }) => {
      if (!user || !firestore) {
@@ -223,6 +248,8 @@ export default function BuyPage() {
         router.push(path);
     }
   };
+
+  const bonusPercentage = activeTab === 'bank' ? 6 : 5;
   
   return (
     <div className="text-foreground pb-4 min-h-screen flex flex-col">
@@ -253,30 +280,30 @@ export default function BuyPage() {
           </TabsList>
 
           <TabsContent value="otp-upi">
-            <Tabs defaultValue="small" className="w-full mt-4">
+            <Tabs defaultValue="small" className="w-full mt-4" onValueChange={setActiveSubTab}>
                 <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="small">Small Amount</TabsTrigger>
                     <TabsTrigger value="high">High Amount</TabsTrigger>
                 </TabsList>
                 <TabsContent value="small">
-                    <PurchaseGrid onBuyClick={handleBuyClick} initialOptions={smallPurchaseOptions} activeTab={activeTab} sortOrder="asc" />
+                    <PurchaseGrid onBuyClick={handleBuyClick} options={smallOptions} bonusPercentage={bonusPercentage} highlightedId={highlightedId} />
                 </TabsContent>
                 <TabsContent value="high">
-                    <PurchaseGrid onBuyClick={handleBuyClick} initialOptions={highPurchaseOptions} activeTab={activeTab} sortOrder="desc" />
+                    <PurchaseGrid onBuyClick={handleBuyClick} options={highOptions} bonusPercentage={bonusPercentage} highlightedId={highlightedId} />
                 </TabsContent>
             </Tabs>
           </TabsContent>
           <TabsContent value="bank">
-            <Tabs defaultValue="small" className="w-full mt-4">
+            <Tabs defaultValue="small" className="w-full mt-4" onValueChange={setActiveSubTab}>
                 <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="small">Small Amount</TabsTrigger>
                     <TabsTrigger value="high">High Amount</TabsTrigger>
                 </TabsList>
                 <TabsContent value="small">
-                    <PurchaseGrid onBuyClick={handleBuyClick} initialOptions={smallPurchaseOptions} activeTab={activeTab} sortOrder="asc" />
+                     <PurchaseGrid onBuyClick={handleBuyClick} options={smallOptions} bonusPercentage={bonusPercentage} highlightedId={highlightedId} />
                 </TabsContent>
                 <TabsContent value="high">
-                    <PurchaseGrid onBuyClick={handleBuyClick} initialOptions={highPurchaseOptions} activeTab={activeTab} sortOrder="desc" />
+                     <PurchaseGrid onBuyClick={handleBuyClick} options={highOptions} bonusPercentage={bonusPercentage} highlightedId={highlightedId} />
                 </TabsContent>
             </Tabs>
           </TabsContent>
