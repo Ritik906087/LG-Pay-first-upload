@@ -90,21 +90,24 @@ export default function HelpPage() {
 
   const chatRequestQuery = useMemo(() => {
     if (!user || !firestore) return null;
+    // This query is intentionally broad to avoid a composite index requirement.
+    // Filtering and sorting will be done client-side.
     const q = query(
         collection(firestore, 'chatRequests'),
         where('userId', '==', user.uid),
-        where('status', 'in', ['pending', 'active'])
     );
     return q;
   }, [user, firestore]);
 
-  const { data: activeChatRequests, loading: chatRequestsLoading } = useCollection<ChatRequest>(chatRequestQuery);
+  const { data: allUserChatRequests, loading: chatRequestsLoading } = useCollection<ChatRequest>(allUserChatRequestsQuery);
   
   const activeRequest = useMemo(() => {
-      if (!activeChatRequests || activeChatRequests.length === 0) return null;
-      // Return the most recent one
-      return [...activeChatRequests].sort((a, b) => b.createdAt.seconds - a.createdAt.seconds)[0];
-  }, [activeChatRequests]);
+      if (!allUserChatRequests || allUserChatRequests.length === 0) return null;
+      // Filter for active/pending and sort to find the most recent one.
+      return allUserChatRequests
+        .filter(req => ['pending', 'active'].includes(req.status))
+        .sort((a, b) => b.createdAt.seconds - a.createdAt.seconds)[0];
+  }, [allUserChatRequests]);
 
   const activeChatRequestRef = useMemo(() => {
     if (!firestore || !activeRequest) return null;
@@ -190,7 +193,7 @@ export default function HelpPage() {
     if (displayedMessages) {
         const lastMessage = displayedMessages[displayedMessages.length - 1];
         if (displayedMessages.length > previousMessagesLength.current && lastMessage && !lastMessage.isUser && isSoundOn) {
-            audioRef.current?.play().catch(e => console.error("Audio play failed:", e));
+            audioRef.current?.play().catch(() => {}); // Suppress autoplay error
         }
         previousMessagesLength.current = displayedMessages.length;
     }
@@ -239,16 +242,29 @@ export default function HelpPage() {
   
   const handleSendMessage = async () => {
     if ((!currentMessage.trim() && !attachment) || isWaitingForAgent) return;
+    if (isAgentActive) {
+        if (!firestore || !activeRequest) return;
+        const requestRef = doc(firestore, 'chatRequests', activeRequest.id);
+        const agentMessage = {
+            text: currentMessage.trim(),
+            isUser: true,
+            timestamp: Date.now(),
+            userName: userProfile?.displayName || 'You',
+        };
+        try {
+            await updateDoc(requestRef, { chatHistory: arrayUnion(agentMessage) });
+            setCurrentMessage('');
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Could not send message', description: error.message });
+        }
+        return;
+    }
+
+    if (isSending) return;
 
     const textForPrompt = currentMessage.trim();
     
-    const messagePayload: {
-      text: string;
-      isUser: boolean;
-      timestamp: number;
-      userName: string;
-      attachment?: StorableAttachment;
-    } = {
+    const messagePayload: Message = {
       text: textForPrompt,
       isUser: true,
       timestamp: Date.now(),
@@ -256,29 +272,15 @@ export default function HelpPage() {
     };
 
     if (attachment) {
+      // This is a simplified attachment handling for the prompt.
+      // The AI flow would need to be able to process the data URI.
       messagePayload.attachment = attachment;
     }
     
     setCurrentMessage('');
     setAttachment(null);
     
-    if (isAgentActive && activeRequest) {
-        if (!firestore) return;
-        const requestRef = doc(firestore, 'chatRequests', activeRequest.id);
-        try {
-            await updateDoc(requestRef, {
-                chatHistory: arrayUnion(messagePayload)
-            });
-        } catch (error: any) {
-            console.error("Firestore update error:", error);
-            toast({ variant: 'destructive', title: 'Could not send message', description: error.message });
-        }
-        return;
-    }
-
-    if (isSending || isAgentActive) return;
-
-    const updatedMessages = [...messages, messagePayload as Message];
+    const updatedMessages = [...messages, messagePayload];
     setMessages(updatedMessages);
     setIsSending(true);
 
@@ -295,9 +297,13 @@ export default function HelpPage() {
       setMessages(prev => [...prev, aiResponse]);
     } catch (error) {
       console.error("AI chat error:", error);
-      // The AI flow now handles errors by creating a human request.
-      // A generic message is returned from the flow in case of error.
-      // We can display that message.
+      const aiResponse: Message = { 
+          text: "I'm having some trouble connecting. Let me find a human agent for you. Please wait.", 
+          isUser: false, 
+          timestamp: Date.now(),
+          userName: 'AI HELP'
+      };
+      setMessages(prev => [...prev, aiResponse]);
     } finally {
       setIsSending(false);
     }
@@ -539,6 +545,8 @@ export default function HelpPage() {
     </div>
   );
 }
+
+    
 
     
 
