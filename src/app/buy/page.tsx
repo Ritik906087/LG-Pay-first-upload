@@ -15,7 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { ChevronLeft, ShoppingCart, Loader2 } from 'lucide-react';
+import { ChevronLeft, ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useUser, useFirestore } from '@/firebase';
@@ -32,8 +32,8 @@ const purchaseOptions = [
   { id: 6, amount: 20000, bonus: 6 },
 ];
 
-const smallPurchaseOptions = purchaseOptions.filter(o => o.amount < 5000).sort((a, b) => a.amount - b.amount);
-const highPurchaseOptions = purchaseOptions.filter(o => o.amount >= 5000).sort((a, b) => b.amount - a.amount);
+const smallPurchaseOptions = [...purchaseOptions].sort((a, b) => a.amount - b.amount);
+const highPurchaseOptions = [...purchaseOptions].sort((a, b) => b.amount - a.amount);
 
 const upiMethods = [
     { name: "PhonePe", logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/download%20(1).png?alt=media&token=205260a4-bfcf-46dd-8dc6-5b440852f2ae" },
@@ -179,15 +179,11 @@ export default function BuyPage() {
         <Tabs defaultValue="otp-upi" className="w-full" onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2 gap-2 h-auto p-0 bg-transparent">
              <TabsTrigger value="otp-upi" className="flex flex-col items-center justify-center p-3 h-auto rounded-xl border-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 transition-all space-y-1">
-                <div className="flex items-center gap-2">
-                    <span className="font-bold text-base text-foreground">OTP-UPI</span>
-                </div>
+                <span className="font-bold text-base text-foreground">OTP-UPI</span>
                 <span className="text-xs text-green-600 font-semibold">+5% Bonus</span>
             </TabsTrigger>
             <TabsTrigger value="bank" className="flex flex-col items-center justify-center p-3 h-auto rounded-xl border-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 transition-all space-y-1">
-                <div className="flex items-center gap-2">
-                    <span className="font-bold text-base text-foreground">BANK</span>
-                </div>
+                <span className="font-bold text-base text-foreground">BANK</span>
                 <span className="text-xs text-green-600 font-semibold">+6% Bonus</span>
             </TabsTrigger>
           </TabsList>
