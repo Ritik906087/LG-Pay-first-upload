@@ -601,17 +601,18 @@ function WithdrawalsTabContent() {
     const [searchTerm, setSearchTerm] = useState('');
     const [orders, setOrders] = useState<SellOrder[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<any>(null); // Added for error handling
+    const [error, setError] = useState<any>(null);
 
     const fetchWithdrawals = useCallback(async () => {
         if (!firestore) return;
         setLoading(true);
-        setError(null); // Reset error on new fetch
+        setError(null);
         try {
-            const q = query(collectionGroup(firestore, 'sellOrders'), where('status', '==', 'pending'));
+            const q = query(collectionGroup(firestore, 'sellOrders'));
             const querySnapshot = await getDocs(q);
             const allOrders = querySnapshot.docs
                 .map(doc => ({ id: doc.id, ...doc.data() } as SellOrder))
+                .filter(order => order.status === 'pending')
                 .sort((a, b) => a.createdAt.seconds - b.createdAt.seconds);
             setOrders(allOrders);
         } catch (error) {
@@ -636,7 +637,7 @@ function WithdrawalsTabContent() {
         );
     }, [orders, searchTerm]);
 
-    if (error) { // Added error UI
+    if (error) {
         return (
             <Card className="bg-destructive/10">
                 <CardHeader>
@@ -879,12 +880,11 @@ function LiveChatTabContent() {
     );
 }
 
-export default function AdminDashboardPage() {
+function AdminDashboard() {
     const router = useRouter();
     const firestore = useFirestore();
     const { toast } = useToast();
-    const [isMounted, setIsMounted] = React.useState(false);
-
+    
     const usersQuery = useMemo(() => firestore ? query(collection(firestore, "users"), orderBy('createdAt', 'desc'), limit(50)) : null, [firestore]);
     const { data: allUsers, loading, error } = useCollection<UserProfile>(usersQuery);
     
@@ -892,10 +892,6 @@ export default function AdminDashboardPage() {
     const { data: paymentMethods, loading: paymentMethodsLoading } = useCollection<PaymentMethod>(paymentMethodsQuery);
 
     const [searchTerm, setSearchTerm] = useState('');
-
-    useEffect(() => {
-        setIsMounted(true);
-    }, []);
 
     const handleLogout = () => {
         document.cookie = 'admin-auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
@@ -937,25 +933,8 @@ export default function AdminDashboardPage() {
         }
     };
 
-    if (!isMounted) {
-        return (
-            <div className="flex min-h-screen w-full flex-col">
-                <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 z-10 justify-between">
-                    <Logo className="text-2xl" />
-                    <Button onClick={handleLogout} variant="outline" size="sm">
-                        <LogOut className="mr-2 h-4 w-4" />
-                        Logout
-                    </Button>
-                </header>
-                <main className="flex flex-1 items-center justify-center">
-                    <Loader2 className="h-12 w-12 animate-spin text-primary"/>
-                </main>
-            </div>
-        )
-    }
-
-  return (
-    <div className="flex min-h-screen w-full flex-col">
+    return (
+        <div className="flex min-h-screen w-full flex-col">
        <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 z-10 justify-between">
             <Logo className="text-2xl" />
             <Button onClick={handleLogout} variant="outline" size="sm">
@@ -1077,7 +1056,29 @@ export default function AdminDashboardPage() {
         </Tabs>
       </main>
     </div>
-  );
+    )
 }
 
+export default function AdminDashboardPage() {
+    const [isMounted, setIsMounted] = React.useState(false);
+    
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+    if (!isMounted) {
+        return (
+            <div className="flex min-h-screen w-full flex-col">
+                <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 z-10 justify-between">
+                    <Logo className="text-2xl" />
+                </header>
+                <main className="flex flex-1 items-center justify-center">
+                    <Loader2 className="h-12 w-12 animate-spin text-primary"/>
+                </main>
+            </div>
+        )
+    }
+
+    return <AdminDashboard />;
+}
     
