@@ -258,8 +258,8 @@ export default function BuyPage() {
       <AlertDialog open={isInProgressDialogOpen} onOpenChange={setIsInProgressDialogOpen}>
         <AlertDialogContent className="rounded-2xl bg-white shadow-2xl">
           <AlertDialogHeader className="text-center items-center">
-              <AlertDialogTitle className="text-xl font-bold">Order Already In Progress</AlertDialogTitle>
-              <AlertDialogDescription className="text-muted-foreground pt-2">
+              <AlertDialogTitle className="text-xl font-bold text-orange-500">Order Already In Progress</AlertDialogTitle>
+              <AlertDialogDescription className="pt-2 font-semibold text-red-500">
                   You can buy your order only after completing your old order, otherwise not.
               </AlertDialogDescription>
           </AlertDialogHeader>
