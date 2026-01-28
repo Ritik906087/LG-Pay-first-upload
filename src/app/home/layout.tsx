@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, ListOrdered, Award, User } from 'lucide-react';
+import { Home, ListOrdered, Award, User, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 
@@ -12,11 +12,11 @@ export default function HomeLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const [showNavBar, setShowNavBar] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setShowNavBar(!pathname.startsWith('/buy'));
-  }, [pathname]);
+    setIsMounted(true);
+  }, []);
 
   const navItems = [
     { href: '/home', icon: Home, label: 'Home' },
@@ -24,6 +24,18 @@ export default function HomeLayout({
     { href: '/rewards', icon: Award, label: 'Rewards' },
     { href: '/my', icon: User, label: 'My' },
   ];
+
+  if (!isMounted) {
+    return (
+      <div className="home-layout md:bg-gray-200">
+        <div className="relative mx-auto flex min-h-screen w-full flex-col items-center justify-center bg-background md:max-w-md md:shadow-lg">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  const showNavBar = !pathname.startsWith('/buy') && !pathname.startsWith('/sell');
 
   return (
     <div className="home-layout md:bg-gray-200">
