@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight, Copy, Loader2, Camera } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useStorage } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytesResumable, getDownloadURL, type UploadTaskSnapshot } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -58,7 +58,7 @@ export default function SettingsPage() {
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !user || !storage || !userProfileRef) return;
 
@@ -68,23 +68,44 @@ export default function SettingsPage() {
     }
 
     setIsSaving(true);
-    try {
-      const uniqueFileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
-      const storagePath = `avatars/${user.uid}/${uniqueFileName}`;
-      const fileRef = ref(storage, storagePath);
-      
-      const snapshot = await uploadBytes(fileRef, file);
-      const downloadURL = await getDownloadURL(snapshot.ref);
-      
-      await updateDoc(userProfileRef, { photoURL: downloadURL });
-      
-      toast({ title: 'Success', description: 'Profile picture updated.' });
-    } catch (error) {
-      console.error("Error uploading image: ", error);
-      toast({ variant: 'destructive', title: 'Error', description: 'Failed to upload image.' });
-    } finally {
-      setIsSaving(false);
-    }
+    
+    const uniqueFileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_')}`;
+    const storagePath = `avatars/${user.uid}/${uniqueFileName}`;
+    const fileRef = ref(storage, storagePath);
+
+    const uploadTask = uploadBytesResumable(fileRef, file);
+
+    uploadTask.on('state_changed', 
+      (snapshot: UploadTaskSnapshot) => {
+        // Optional: handle progress
+        // const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+      }, 
+      (error) => {
+        // Handle unsuccessful uploads
+        console.error("Error uploading image: ", error);
+        toast({ variant: 'destructive', title: 'Upload Error', description: 'Failed to upload image. Please check permissions and network.' });
+        setIsSaving(false);
+      }, 
+      () => {
+        // Handle successful uploads on complete
+        getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
+          try {
+            await updateDoc(userProfileRef, { photoURL: downloadURL });
+            toast({ title: 'Success', description: 'Profile picture updated.' });
+          } catch (dbError) {
+             console.error("Error updating firestore: ", dbError);
+             toast({ variant: 'destructive', title: 'Database Error', description: 'Failed to save profile picture.' });
+          } finally {
+            // This will be called regardless of the database update success or failure
+            setIsSaving(false);
+          }
+        }).catch(urlError => {
+            console.error("Error getting download URL: ", urlError);
+            toast({ variant: 'destructive', title: 'Upload Error', description: 'Could not get the image URL after upload.' });
+            setIsSaving(false);
+        });
+      }
+    );
   };
   
   return (
@@ -106,7 +127,7 @@ export default function SettingsPage() {
             <span className="font-medium">Avatar</span>
             <div className="flex items-center gap-2">
                <div className="relative">
-                <Avatar key={userProfile?.photoURL} className="h-14 w-14 border-2 border-primary/20">
+                <Avatar className="h-14 w-14 border-2 border-primary/20">
                   <AvatarImage src={userProfile?.photoURL} alt={userProfile?.displayName} />
                   <AvatarFallback className="bg-yellow-400 text-yellow-900 font-bold text-lg">
                     {userProfile?.displayName?.charAt(0) || 'A'}
@@ -178,3 +199,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
