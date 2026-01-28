@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -21,7 +22,7 @@ import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { collection, addDoc, doc, deleteDoc, collectionGroup, query, where, getDocs, updateDoc, Timestamp, runTransaction, limit, orderBy } from 'firebase/firestore';
+import { collection, addDoc, doc, deleteDoc, collectionGroup, query, where, getDocs, updateDoc, Timestamp, runTransaction, limit, orderBy, serverTimestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import {
@@ -79,7 +80,7 @@ type ChatRequest = {
     chatHistory: { text: string; isUser: boolean; timestamp: number }[];
 }
 
-const CountdownTimer = ({ expiryTimestamp }: { expiryTimestamp: Timestamp }) => {
+const CountdownTimer = ({ expiryTimestamp, className }: { expiryTimestamp: Timestamp, className?: string }) => {
     const [timeLeft, setTimeLeft] = useState('');
 
     useEffect(() => {
@@ -106,7 +107,8 @@ const CountdownTimer = ({ expiryTimestamp }: { expiryTimestamp: Timestamp }) => 
     return (
         <div className={cn(
             "flex items-center gap-1 text-xs font-mono",
-            timeLeft === "Expired" ? "text-red-500" : "text-yellow-600"
+            timeLeft === "Expired" ? "text-red-500" : "text-yellow-600",
+            className
         )}>
             <Clock className="h-3 w-3" />
             <span>{timeLeft}</span>
@@ -731,40 +733,58 @@ function ChatHistoryDialog({ request }: { request: ChatRequest }) {
     const { toast } = useToast();
     const [isUpdating, setIsUpdating] = useState(false);
     const [open, setOpen] = useState(false);
+    const [isJoined, setIsJoined] = useState(request.status === 'active');
 
-    const handleUpdateStatus = async (status: 'active' | 'closed') => {
+    const handleJoinChat = async () => {
         if (!firestore) return;
         setIsUpdating(true);
         try {
             const requestRef = doc(firestore, 'chatRequests', request.id);
-            await updateDoc(requestRef, { status: status });
-            toast({ title: `Chat status updated to ${status}` });
-            setOpen(false);
+            await updateDoc(requestRef, { status: 'active', agentJoinedAt: serverTimestamp() });
+            setIsJoined(true);
+            toast({ title: 'Chat Joined!', description: "You can now chat with the user." });
         } catch (e) {
-            toast({ variant: 'destructive', title: 'Failed to update status' });
+            toast({ variant: 'destructive', title: 'Failed to join chat' });
         } finally {
             setIsUpdating(false);
         }
     };
+    
+    const handleCloseChat = async () => {
+        if (!firestore) return;
+        setIsUpdating(true);
+        try {
+            const requestRef = doc(firestore, 'chatRequests', request.id);
+            await updateDoc(requestRef, { status: 'closed' });
+            setOpen(false); // Close the dialog on successful closing
+            toast({ title: `Chat closed` });
+        } catch (e) {
+            toast({ variant: 'destructive', title: 'Failed to close chat' });
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
+    const expiryTimestamp = new Timestamp(request.createdAt.seconds + 10 * 60, request.createdAt.nanoseconds);
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <Button className="w-full bg-green-500 hover:bg-green-600 text-white font-bold">CHAT</Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg">
-                <DialogHeader>
-                    <DialogTitle>Chat Request</DialogTitle>
-                    <DialogDescription>
-                        User: {request.userNumericId || request.enteredIdentifier}
-                    </DialogDescription>
+            <DialogContent className="max-w-lg p-0">
+                <DialogHeader className="p-4 border-b">
+                    <DialogTitle className="flex justify-between items-center">
+                       <span>Chat with {request.userNumericId || request.enteredIdentifier}</span>
+                       <CountdownTimer expiryTimestamp={expiryTimestamp} className="text-base" />
+                    </DialogTitle>
                 </DialogHeader>
-                <ScrollArea className="h-96 w-full rounded-md border bg-secondary/50 p-4 my-4">
+                <ScrollArea className="h-96 w-full bg-secondary/50 p-4">
                     {request.chatHistory.map((msg, index) => (
                         <div key={index} className={cn("flex items-end gap-2 mb-3", msg.isUser ? "justify-end" : "justify-start")}>
                             {!msg.isUser && (
                                 <Avatar className="h-8 w-8">
-                                    <AvatarFallback className="bg-primary text-primary-foreground font-bold">LG</AvatarFallback>
+                                    <AvatarFallback className="bg-primary text-primary-foreground font-bold text-sm">LG</AvatarFallback>
                                 </Avatar>
                             )}
                             <div className="flex flex-col max-w-[80%]">
@@ -775,17 +795,28 @@ function ChatHistoryDialog({ request }: { request: ChatRequest }) {
                                 {new Date(msg.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                                 </p>
                             </div>
+                             {msg.isUser && (
+                                <Avatar className="h-8 w-8">
+                                    <AvatarFallback>{request.userNumericId?.charAt(0) ?? 'U'}</AvatarFallback>
+                                </Avatar>
+                             )}
                         </div>
                     ))}
                 </ScrollArea>
-                <DialogFooter className="sm:justify-between">
-                     <p className="text-xs text-muted-foreground">This is a read-only history.</p>
-                     <div className="flex gap-2">
-                        <Button variant="outline" onClick={() => handleUpdateStatus('closed')} disabled={isUpdating}>Close Chat</Button>
-                        <Button className="bg-green-600 hover:bg-green-700" onClick={() => handleUpdateStatus('active')} disabled={isUpdating}>
-                            {isUpdating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : "Accept & Chat"}
+                <DialogFooter className="p-4 border-t">
+                    {isJoined ? (
+                         <div className="w-full flex justify-between items-center">
+                            <p className="text-sm text-green-600 font-semibold flex items-center gap-1.5">
+                                <span className="h-2 w-2 rounded-full bg-green-500"></span>
+                                User is Online
+                            </p>
+                            <Button variant="outline" onClick={handleCloseChat} disabled={isUpdating}>Close Chat</Button>
+                         </div>
+                    ) : (
+                        <Button className="w-full h-12 bg-green-600 hover:bg-green-700 text-lg" onClick={handleJoinChat} disabled={isUpdating}>
+                            {isUpdating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : "JOIN CHAT"}
                         </Button>
-                    </div>
+                    )}
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -795,13 +826,11 @@ function ChatHistoryDialog({ request }: { request: ChatRequest }) {
 
 function LiveChatTabContent() {
     const firestore = useFirestore();
-    // We removed orderBy to avoid needing a composite index. Sorting is now done client-side.
     const chatRequestsQuery = useMemo(() => firestore ? query(collection(firestore, 'chatRequests'), where('status', '==', 'pending')) : null, [firestore]);
     const { data: unsortedChatRequests, loading, error } = useCollection<ChatRequest>(chatRequestsQuery);
 
     const chatRequests = useMemo(() => {
         if (!unsortedChatRequests) return [];
-        // Sort by creation time descending to show newest requests first
         return [...unsortedChatRequests].sort((a, b) => b.createdAt.seconds - a.createdAt.seconds);
     }, [unsortedChatRequests]);
 
@@ -819,7 +848,7 @@ function LiveChatTabContent() {
                 <CardHeader>
                     <CardTitle className="text-destructive">Error Fetching Chat Requests</CardTitle>
                     <CardDescription className="text-destructive/80">
-                        Could not retrieve chat data. This can be caused by Firestore security rules or a missing database index. The original error is:
+                        Could not retrieve chat data. This can be caused by Firestore security rules or a missing database index.
                     </CardDescription>
                 </CardHeader>
                  <CardContent>
@@ -846,10 +875,15 @@ function LiveChatTabContent() {
             {chatRequests.map(request => (
                 <Card key={request.id} className="flex flex-col">
                     <CardHeader>
-                        <CardTitle className="text-base">New Chat Request</CardTitle>
-                        <CardDescription>
-                            {new Date(request.createdAt.toDate()).toLocaleString()}
-                        </CardDescription>
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <CardTitle className="text-base">New Chat Request</CardTitle>
+                                <CardDescription>
+                                    {new Date(request.createdAt.toDate()).toLocaleString()}
+                                </CardDescription>
+                            </div>
+                            <CountdownTimer expiryTimestamp={new Timestamp(request.createdAt.seconds + 10 * 60, request.createdAt.nanoseconds)} />
+                        </div>
                     </CardHeader>
                     <CardContent className="flex-grow space-y-2 text-sm">
                         <p><strong>User UID:</strong> {request.userNumericId || 'N/A'}</p>

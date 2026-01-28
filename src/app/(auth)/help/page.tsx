@@ -11,10 +11,10 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { LifeBuoy, UserPlus, AlertTriangle, Send, ChevronLeft, Loader2, Paperclip, Image as ImageIcon, X } from 'lucide-react';
+import { LifeBuoy, UserPlus, AlertTriangle, Send, ChevronLeft, Loader2, Paperclip, Image as ImageIcon, X, Clock } from 'lucide-react';
 import { useLanguage } from '@/context/language-context';
-import { useUser, useFirestore, useDoc } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useCollection } from '@/firebase';
+import { doc, collection, query, where, orderBy, limit, Timestamp } from 'firebase/firestore';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { helpChat, type HelpChatInput } from '@/ai/flows/help-chat-flow';
@@ -39,6 +39,19 @@ type Message = {
   userName?: string;
 };
 
+type ChatRequest = {
+    id: string;
+    status: 'pending' | 'active' | 'closed';
+    createdAt: Timestamp;
+};
+
+const formatTime = (seconds: number) => {
+    if (seconds < 0) return '00:00';
+    const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const secs = (seconds % 60).toString().padStart(2, '0');
+    return `${mins}:${secs}`;
+};
+
 export default function HelpPage() {
   const { translations } = useLanguage();
   const { user, loading: authLoading } = useUser();
@@ -60,7 +73,7 @@ export default function HelpPage() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [enteredIdentifier, setEnteredIdentifier] = useState('');
-
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
   const userProfileRef = useMemo(() => {
     if (!user || !firestore) return null;
@@ -68,14 +81,31 @@ export default function HelpPage() {
   }, [user, firestore]);
 
   const { data: userProfile } = useDoc<{ numericId?: string, displayName?: string, photoURL?: string }>(userProfileRef);
-  
+
+  const chatRequestQuery = useMemo(() => {
+    if (!user || !firestore) return null;
+    return query(
+        collection(firestore, 'chatRequests'),
+        where('userId', '==', user.uid),
+        where('status', 'in', ['pending', 'active']),
+        orderBy('createdAt', 'desc'),
+        limit(1)
+    );
+  }, [user, firestore]);
+
+  const { data: activeChatRequests } = useCollection<ChatRequest>(chatRequestQuery);
+  const activeRequest = activeChatRequests?.[0];
+
+  const isWaitingForAgent = activeRequest?.status === 'pending';
+  const isAgentActive = activeRequest?.status === 'active';
+
+
   // Load chat from localStorage
   useEffect(() => {
     try {
         const savedMessages = localStorage.getItem(CHAT_STORAGE_KEY);
         if (savedMessages) {
             const parsedMessages = JSON.parse(savedMessages) as Message[];
-            // Start chat if history exists
             if(parsedMessages.length > 0) {
               setMessages(parsedMessages);
               setChatStarted(true);
@@ -90,17 +120,37 @@ export default function HelpPage() {
   useEffect(() => {
     if (messages.length > 0 && chatStarted) {
         try {
-            // Avoid saving the initial state if chat was just started without history
-            if (messages.length === 1 && messages[0].text === "Hello! How can I help you today?") {
-                // Don't save this default message alone
-            } else {
-                localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
-            }
+            localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
         } catch (error) {
             console.error("Failed to save chat to storage:", error);
         }
     }
   }, [messages, chatStarted]);
+
+   // Countdown Timer Logic
+  useEffect(() => {
+    if (isWaitingForAgent && activeRequest?.createdAt) {
+        const createdAt = activeRequest.createdAt.toDate();
+        const expiryTime = new Date(createdAt.getTime() + 10 * 60 * 1000); // 10 minutes
+
+        const interval = setInterval(() => {
+            const now = new Date();
+            const secondsLeft = Math.floor((expiryTime.getTime() - now.getTime()) / 1000);
+
+            if (secondsLeft <= 0) {
+                setTimeLeft(0);
+                clearInterval(interval);
+                // Optionally handle expiry on user side
+            } else {
+                setTimeLeft(secondsLeft);
+            }
+        }, 1000);
+
+        return () => clearInterval(interval);
+    } else {
+        setTimeLeft(null);
+    }
+  }, [isWaitingForAgent, activeRequest]);
 
 
   useEffect(() => {
@@ -138,7 +188,6 @@ export default function HelpPage() {
     setTimeout(() => {
       setIsVerifying(false);
       setChatStarted(true);
-      // Only set initial message if there's no history
       if (messages.length === 0) {
         setMessages([{ text: "Hello! How can I help you today?", isUser: false, timestamp: Date.now() }]);
       }
@@ -146,7 +195,7 @@ export default function HelpPage() {
   };
   
   const handleSendMessage = async () => {
-    if (!currentMessage.trim() && !attachment) return;
+    if ((!currentMessage.trim() && !attachment) || isWaitingForAgent) return;
 
     const newUserMessage: Message = { 
       text: currentMessage, 
@@ -217,26 +266,42 @@ export default function HelpPage() {
   if (chatStarted) {
     return (
       <div className="flex flex-col h-screen bg-secondary">
-        <header className="flex items-center p-3 bg-white sticky top-0 z-10 border-b shadow-sm">
+        <header className="flex items-center justify-between p-3 bg-white sticky top-0 z-10 border-b shadow-sm">
            <Button asChild variant="ghost" size="icon" className="h-9 w-9">
              <Link href={user ? "/my" : "/login"}>
                 <ChevronLeft className="h-6 w-6 text-muted-foreground" />
              </Link>
            </Button>
-          <div className="flex-1 flex flex-col items-center -ml-9">
-            <h1 className="text-lg font-bold">LG Pay Support</h1>
+            {isWaitingForAgent && timeLeft !== null && (
+                <div className="flex items-center gap-2 text-yellow-600">
+                    <Clock className="h-5 w-5" />
+                    <span className="font-mono font-bold text-lg">{formatTime(timeLeft)}</span>
+                </div>
+            )}
+          <div className="flex-1 flex flex-col items-center">
+            <h1 className="text-lg font-bold">{isAgentActive ? "Agent" : "LG Pay Support"}</h1>
             <div className="flex items-center gap-1.5">
                 <div className="h-2 w-2 rounded-full bg-green-500"></div>
                 <p className="text-xs text-muted-foreground font-semibold">Online</p>
             </div>
           </div>
+          <div className="w-9"></div>
         </header>
         <main ref={chatContainerRef} className="flex-1 space-y-4 p-4 overflow-y-auto">
+            {isWaitingForAgent && (
+                 <Card className="bg-blue-50 border-blue-200">
+                    <CardContent className="p-4 text-center text-blue-800">
+                        <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
+                        <p className="font-semibold">Connecting you to an agent...</p>
+                        <p className="text-sm">Please wait, an agent will join shortly.</p>
+                    </CardContent>
+                </Card>
+            )}
             {messages.map((msg, index) => (
               <div key={index} className={cn("flex items-end gap-2", msg.isUser ? "justify-end" : "justify-start")}>
                 {!msg.isUser && (
                     <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-primary text-primary-foreground font-bold">LG</AvatarFallback>
+                        <AvatarFallback className="bg-primary text-primary-foreground font-bold text-sm">LG</AvatarFallback>
                     </Avatar>
                 )}
                 <div className="flex flex-col max-w-[75%]">
@@ -267,7 +332,7 @@ export default function HelpPage() {
             {isSending && (
                 <div className="flex items-end gap-2 justify-start">
                     <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-primary text-primary-foreground font-bold">LG</AvatarFallback>
+                        <AvatarFallback className="bg-primary text-primary-foreground font-bold text-sm">LG</AvatarFallback>
                     </Avatar>
                     <div className="bg-white rounded-2xl px-4 py-2 rounded-bl-none shadow-sm">
                        <p className="text-sm">Typing...</p>
@@ -300,7 +365,7 @@ export default function HelpPage() {
             )}
             <div className="flex w-full items-center gap-2">
                 <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
-                <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isSending}>
+                <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} disabled={isSending || isWaitingForAgent}>
                     <Paperclip className="h-5 w-5 text-muted-foreground" />
                 </Button>
                 <Input 
@@ -309,9 +374,9 @@ export default function HelpPage() {
                     value={currentMessage}
                     onChange={(e) => setCurrentMessage(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                    disabled={isSending}
+                    disabled={isSending || isWaitingForAgent}
                 />
-                <Button onClick={handleSendMessage} disabled={isSending || (!currentMessage.trim() && !attachment)} className="btn-gradient rounded-full w-12 h-12">
+                <Button onClick={handleSendMessage} disabled={isSending || isWaitingForAgent || (!currentMessage.trim() && !attachment)} className="btn-gradient rounded-full w-12 h-12">
                     {isSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
                 </Button>
             </div>
