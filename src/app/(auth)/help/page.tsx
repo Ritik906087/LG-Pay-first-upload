@@ -102,6 +102,7 @@ export default function HelpPage() {
   
   const activeRequest = useMemo(() => {
       if (!activeChatRequests || activeChatRequests.length === 0) return null;
+      // Return the most recent one
       return [...activeChatRequests].sort((a, b) => b.createdAt.seconds - a.createdAt.seconds)[0];
   }, [activeChatRequests]);
 
@@ -113,7 +114,7 @@ export default function HelpPage() {
   const { data: liveChat } = useDoc<ChatRequest>(activeChatRequestRef);
 
   const isWaitingForAgent = activeRequest?.status === 'pending';
-  const isAgentActive = activeRequest?.status === 'active';
+  const isAgentActive = liveChat?.status === 'active';
 
   const displayedMessages = isAgentActive ? liveChat?.chatHistory || messages : messages;
 
@@ -239,37 +240,51 @@ export default function HelpPage() {
   const handleSendMessage = async () => {
     if ((!currentMessage.trim() && !attachment) || isWaitingForAgent) return;
 
-    const newUserMessage: Message = { 
-      text: currentMessage, 
-      isUser: true, 
-      attachment: attachment || undefined, 
+    const textForPrompt = currentMessage.trim();
+    
+    const messagePayload: {
+      text: string;
+      isUser: boolean;
+      timestamp: number;
+      userName: string;
+      attachment?: StorableAttachment;
+    } = {
+      text: textForPrompt,
+      isUser: true,
       timestamp: Date.now(),
-      userName: userProfile?.displayName ?? 'You'
+      userName: userProfile?.displayName || 'You',
     };
+
+    if (attachment) {
+      messagePayload.attachment = attachment;
+    }
     
     setCurrentMessage('');
     setAttachment(null);
     
     if (isAgentActive && activeRequest) {
+        if (!firestore) return;
         const requestRef = doc(firestore, 'chatRequests', activeRequest.id);
         try {
             await updateDoc(requestRef, {
-                chatHistory: arrayUnion(newUserMessage)
+                chatHistory: arrayUnion(messagePayload)
             });
-        } catch (error) {
+        } catch (error: any) {
             console.error("Firestore update error:", error);
-            toast({ variant: 'destructive', title: 'Could not send message' });
+            toast({ variant: 'destructive', title: 'Could not send message', description: error.message });
         }
         return;
     }
 
-    const updatedMessages = [...messages, newUserMessage];
+    if (isSending || isAgentActive) return;
+
+    const updatedMessages = [...messages, messagePayload as Message];
     setMessages(updatedMessages);
     setIsSending(true);
 
     try {
       const input: HelpChatInput = { 
-          prompt: currentMessage, 
+          prompt: textForPrompt, 
           uid: user?.uid,
           chatHistory: updatedMessages,
           enteredIdentifier: enteredIdentifier,
@@ -280,8 +295,9 @@ export default function HelpPage() {
       setMessages(prev => [...prev, aiResponse]);
     } catch (error) {
       console.error("AI chat error:", error);
-      const errorResponse: Message = { text: "I've encountered an issue. Escalating you to a human agent now.", isUser: false, timestamp: Date.now(), userName: 'AI HELP' };
-      setMessages(prev => [...prev, errorResponse]);
+      // The AI flow now handles errors by creating a human request.
+      // A generic message is returned from the flow in case of error.
+      // We can display that message.
     } finally {
       setIsSending(false);
     }
@@ -319,10 +335,10 @@ export default function HelpPage() {
     );
   }
 
-  if (chatStarted || isAgentActive) {
+  if (chatStarted || isAgentActive || isWaitingForAgent) {
     return (
       <div className="flex flex-col h-screen bg-secondary">
-        <audio ref={audioRef} src="https://firebasestorage.googleapis.com/v0/b/prototyper.appspot.com/o/message-received.mp3?alt=media&token=952473a3-34e8-4660-8451-344c3a110a3c" preload="auto"></audio>
+        <audio ref={audioRef} src="https://firebasestorage.googleapis.com/v0/b/prototyper-test-28ea3.appspot.com/o/message-sound.mp3?alt=media&token=c1a3b544-5dfb-4680-9286-638f20a67272" preload="auto"></audio>
         <header className="grid grid-cols-3 items-center p-3 bg-white sticky top-0 z-10 border-b shadow-sm">
             <div className="flex items-center gap-2">
                  <Button asChild variant="ghost" size="icon" className="h-9 w-9 -ml-2">
@@ -330,7 +346,7 @@ export default function HelpPage() {
                         <ChevronLeft className="h-6 w-6 text-muted-foreground" />
                     </Link>
                 </Button>
-                {isWaitingForAgent && timeLeft !== null && !isAgentActive && (
+                {isWaitingForAgent && !isAgentActive && timeLeft !== null && (
                     <div className="flex items-center gap-1 text-yellow-600">
                         <Clock className="h-4 w-4" />
                         <span className="font-mono font-bold text-sm">{formatTime(timeLeft)}</span>
@@ -392,7 +408,7 @@ export default function HelpPage() {
                  )}
               </div>
             ))}
-            {isSending && (
+            {isSending && !isAgentActive && (
                 <div className="flex items-end gap-2 justify-start">
                     <Avatar className="h-8 w-8">
                         <AvatarFallback className="bg-primary text-primary-foreground font-bold text-sm">LG</AvatarFallback>
@@ -440,7 +456,7 @@ export default function HelpPage() {
                     disabled={isSending || isWaitingForAgent}
                 />
                 <Button onClick={handleSendMessage} disabled={isSending || isWaitingForAgent || (!currentMessage.trim() && !attachment)} className="btn-gradient rounded-full w-12 h-12">
-                    {isSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                    {isSending && !isAgentActive ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
                 </Button>
             </div>
         </footer>
@@ -523,3 +539,7 @@ export default function HelpPage() {
     </div>
   );
 }
+
+    
+
+    
