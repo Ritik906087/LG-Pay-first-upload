@@ -6,10 +6,21 @@ import { Logo } from '@/components/logo';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import Image from 'next/image';
 import { LanguageProvider } from '@/context/language-context';
+import { useState, useEffect } from 'react';
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isHelpPage = pathname === '/help';
+
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return null;
+  }
 
   return (
     <LanguageProvider>
