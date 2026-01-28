@@ -16,7 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { ChevronLeft, ShoppingCart, Banknote, Landmark } from 'lucide-react';
+import { ChevronLeft, ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useUser, useFirestore } from '@/firebase';
@@ -56,7 +56,7 @@ const PurchaseGrid = ({ onBuyClick, options }: { onBuyClick: (amount: number) =>
                    </div>
                    <div>
                       <p className="font-bold text-lg">₹ {option.amount.toLocaleString('en-IN')}</p>
-                      <p className="text-xs text-green-600 font-semibold">You Get: {option.amount.toLocaleString('en-IN')}+{option.bonus}%={totalLGB.toLocaleString('en-IN')}</p>
+                      <p className="text-xs text-green-600 font-semibold">You Get: {option.amount}+{option.bonus}%={totalLGB.toLocaleString('en-IN')}</p>
                    </div>
                </div>
                <Button onClick={() => onBuyClick(option.amount)} className="h-10 px-6 btn-gradient font-bold rounded-lg">
@@ -155,14 +155,12 @@ export default function BuyPage() {
           <TabsList className="grid w-full grid-cols-2 gap-2 h-auto p-0 bg-transparent">
              <TabsTrigger value="otp-upi" className="flex flex-col items-center justify-center p-3 h-auto rounded-xl border-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 transition-all space-y-1">
                 <div className="flex items-center gap-2">
-                    <Banknote className="h-5 w-5 text-primary" />
                     <span className="font-bold text-base text-foreground">OTP-UPI</span>
                 </div>
                 <span className="text-xs text-green-600 font-semibold">+5% Bonus</span>
             </TabsTrigger>
             <TabsTrigger value="bank" className="flex flex-col items-center justify-center p-3 h-auto rounded-xl border-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 transition-all space-y-1">
                 <div className="flex items-center gap-2">
-                    <Landmark className="h-5 w-5 text-primary" />
                     <span className="font-bold text-base text-foreground">BANK</span>
                 </div>
                 <span className="text-xs text-green-600 font-semibold">+6% Bonus</span>
