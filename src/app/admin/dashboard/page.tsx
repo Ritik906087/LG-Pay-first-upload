@@ -12,9 +12,9 @@ import {
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { useCollection, useFirestore } from '@/firebase';
+import { useCollection, useDoc, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { LogOut, Users, LayoutDashboard, Wallet, Eye, Search, Landmark, Banknote, Trash2, Loader2, Clock, History, CheckCircle, Download, XCircle, MessageSquare } from 'lucide-react';
+import { LogOut, Users, LayoutDashboard, Wallet, Eye, Search, Landmark, Banknote, Trash2, Loader2, Clock, History, CheckCircle, Download, XCircle, MessageSquare, Send } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -22,7 +22,7 @@ import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { collection, addDoc, doc, deleteDoc, collectionGroup, query, where, getDocs, updateDoc, Timestamp, runTransaction, limit, orderBy, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, doc, deleteDoc, collectionGroup, query, where, getDocs, updateDoc, Timestamp, runTransaction, limit, orderBy, serverTimestamp, arrayUnion } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import {
@@ -43,7 +43,6 @@ type UserProfile = {
     email?: string;
     phoneNumber?: string;
     photoURL?: string;
-    createdAt: Timestamp;
 };
 
 type PaymentMethod = {
@@ -70,6 +69,13 @@ type SellOrder = {
     failureReason?: string;
 }
 
+type Message = { 
+    text: string; 
+    isUser: boolean; 
+    timestamp: number; 
+    userName?: string; 
+};
+
 type ChatRequest = {
     id: string;
     userId?: string;
@@ -77,7 +83,7 @@ type ChatRequest = {
     enteredIdentifier: string;
     status: 'pending' | 'active' | 'closed';
     createdAt: Timestamp;
-    chatHistory: { text: string; isUser: boolean; timestamp: number }[];
+    chatHistory: Message[];
     agentId?: string;
     agentJoinedAt?: Timestamp;
 }
@@ -754,21 +760,33 @@ function HistoryUsersGrid({ users, loading, error }: { users: UserProfile[], loa
     );
 }
 
-function ChatHistoryDialog({ request }: { request: ChatRequest }) {
+function ChatHistoryDialog({ request, onUpdate }: { request: ChatRequest; onUpdate: () => void }) {
     const firestore = useFirestore();
     const { toast } = useToast();
     const [isUpdating, setIsUpdating] = useState(false);
     const [open, setOpen] = useState(false);
-    const [isJoined, setIsJoined] = useState(request.status === 'active');
+    const [newMessage, setNewMessage] = useState("");
+    const chatContentRef = useRef<HTMLDivElement>(null);
+
+    const liveRequestRef = useMemo(() => firestore ? doc(firestore, 'chatRequests', request.id) : null, [firestore, request.id]);
+    const { data: liveRequest } = useDoc<ChatRequest>(liveRequestRef);
+
+    const isJoined = liveRequest?.status === 'active';
+    const currentRequest = liveRequest || request;
+
+    useEffect(() => {
+        if (chatContentRef.current) {
+            chatContentRef.current.scrollTop = chatContentRef.current.scrollHeight;
+        }
+    }, [liveRequest?.chatHistory]);
 
     const handleJoinChat = async () => {
-        if (!firestore) return;
+        if (!liveRequestRef) return;
         setIsUpdating(true);
         try {
-            const requestRef = doc(firestore, 'chatRequests', request.id);
-            await updateDoc(requestRef, { status: 'active', agentId: 'admin', agentJoinedAt: serverTimestamp() });
-            setIsJoined(true);
+            await updateDoc(liveRequestRef, { status: 'active', agentId: 'admin', agentJoinedAt: serverTimestamp() });
             toast({ title: 'Chat Joined!', description: "You can now chat with the user." });
+            onUpdate();
         } catch (e) {
             toast({ variant: 'destructive', title: 'Failed to join chat' });
         } finally {
@@ -777,46 +795,72 @@ function ChatHistoryDialog({ request }: { request: ChatRequest }) {
     };
     
     const handleCloseChat = async () => {
-        if (!firestore) return;
+        if (!liveRequestRef) return;
         setIsUpdating(true);
         try {
-            const requestRef = doc(firestore, 'chatRequests', request.id);
-            await updateDoc(requestRef, { status: 'closed' });
-            setOpen(false); // Close the dialog on successful closing
+            await updateDoc(liveRequestRef, { status: 'closed' });
+            setOpen(false);
             toast({ title: `Chat closed` });
+            onUpdate();
         } catch (e) {
             toast({ variant: 'destructive', title: 'Failed to close chat' });
         } finally {
             setIsUpdating(false);
         }
     };
+    
+    const handleAdminSendMessage = async () => {
+        if (!liveRequestRef || !newMessage.trim()) return;
+        
+        const message: Message = {
+            text: newMessage.trim(),
+            isUser: false,
+            timestamp: Date.now(),
+            userName: 'JONNY'
+        };
 
-    const expiryTimestamp = new Timestamp(request.createdAt.seconds + 10 * 60, request.createdAt.nanoseconds);
-    const isPending = request.status === 'pending';
+        try {
+            await updateDoc(liveRequestRef, {
+                chatHistory: arrayUnion(message)
+            });
+            setNewMessage('');
+        } catch (e) {
+            console.error("Failed to send message:", e);
+            toast({ variant: 'destructive', title: 'Failed to send message' });
+        }
+    };
+
+    const expiryTimestamp = new Timestamp(currentRequest.createdAt.seconds + 10 * 60, currentRequest.createdAt.nanoseconds);
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <Button className={cn(
                     "w-full font-bold",
-                    isPending ? "bg-green-500 hover:bg-green-600 text-white" : "bg-blue-500 hover:bg-blue-600 text-white"
+                    currentRequest.status === 'pending' ? "bg-green-500 hover:bg-green-600 text-white" : "bg-blue-500 hover:bg-blue-600 text-white"
                 )}>
-                    {isPending ? "CHAT" : "VIEW ACTIVE CHAT"}
+                    {currentRequest.status === 'pending' ? "CHAT" : "VIEW ACTIVE CHAT"}
                 </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg p-0">
+            <DialogContent className="max-w-lg p-0 flex flex-col h-[90vh] sm:h-[70vh]">
                 <DialogHeader className="p-4 border-b">
                     <DialogTitle className="flex justify-between items-center">
-                       <span>Chat with {request.userNumericId || request.enteredIdentifier}</span>
+                       <span>Chat with {currentRequest.userNumericId || currentRequest.enteredIdentifier}</span>
                        <CountdownTimer expiryTimestamp={expiryTimestamp} className="text-base" />
                     </DialogTitle>
+                     {isJoined && (
+                        <div className="flex items-center gap-1.5 text-xs text-green-600 font-semibold pt-1">
+                            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+                            User is Online
+                        </div>
+                    )}
                 </DialogHeader>
-                <ScrollArea className="h-96 w-full bg-secondary/50 p-4">
-                    {request.chatHistory.map((msg, index) => (
+                <ScrollArea className="flex-1 w-full bg-secondary/50 p-4" ref={chatContentRef}>
+                    {(currentRequest.chatHistory || []).map((msg, index) => (
                         <div key={index} className={cn("flex items-end gap-2 mb-3", msg.isUser ? "justify-end" : "justify-start")}>
                             {!msg.isUser && (
                                 <Avatar className="h-8 w-8">
-                                    <AvatarFallback className="bg-primary text-primary-foreground font-bold text-sm">LG</AvatarFallback>
+                                    <AvatarFallback className="bg-primary text-primary-foreground font-bold text-sm">{msg.userName === 'JONNY' ? 'J' : 'LG'}</AvatarFallback>
                                 </Avatar>
                             )}
                             <div className="flex flex-col max-w-[80%]">
@@ -829,7 +873,7 @@ function ChatHistoryDialog({ request }: { request: ChatRequest }) {
                             </div>
                              {msg.isUser && (
                                 <Avatar className="h-8 w-8">
-                                    <AvatarFallback>{request.userNumericId?.charAt(0) ?? 'U'}</AvatarFallback>
+                                    <AvatarFallback>{currentRequest.userNumericId?.charAt(0) ?? 'U'}</AvatarFallback>
                                 </Avatar>
                              )}
                         </div>
@@ -837,11 +881,16 @@ function ChatHistoryDialog({ request }: { request: ChatRequest }) {
                 </ScrollArea>
                 <DialogFooter className="p-4 border-t">
                     {isJoined ? (
-                         <div className="w-full flex justify-between items-center">
-                            <p className="text-sm text-green-600 font-semibold flex items-center gap-1.5">
-                                <span className="h-2 w-2 rounded-full bg-green-500"></span>
-                                User is Online
-                            </p>
+                         <div className="w-full flex items-center gap-2">
+                             <Input 
+                                placeholder="Type your message..."
+                                value={newMessage}
+                                onChange={e => setNewMessage(e.target.value)}
+                                onKeyPress={e => e.key === 'Enter' && handleAdminSendMessage()}
+                             />
+                             <Button onClick={handleAdminSendMessage} disabled={!newMessage.trim()}>
+                                <Send className="h-4 w-4"/>
+                             </Button>
                             <Button variant="outline" onClick={handleCloseChat} disabled={isUpdating}>Close Chat</Button>
                          </div>
                     ) : (
@@ -858,17 +907,38 @@ function ChatHistoryDialog({ request }: { request: ChatRequest }) {
 
 function LiveChatTabContent() {
     const firestore = useFirestore();
-    const chatRequestsQuery = useMemo(() => firestore ? query(collection(firestore, 'chatRequests'), where('status', 'in', ['pending', 'active'])) : null, [firestore]);
-    const { data: unsortedChatRequests, loading, error } = useCollection<ChatRequest>(chatRequestsQuery);
+    const [allChatRequests, setAllChatRequests] = useState<ChatRequest[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<any>(null);
 
-    const chatRequests = useMemo(() => {
-        if (!unsortedChatRequests) return [];
-        return [...unsortedChatRequests].sort((a, b) => {
+    const fetchChatRequests = useCallback(async () => {
+        if (!firestore) return;
+        setLoading(true);
+        setError(null);
+        try {
+            const q = query(collection(firestore, 'chatRequests'), where('status', 'in', ['pending', 'active']));
+            const snapshot = await getDocs(q);
+            const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChatRequest));
+            setAllChatRequests(requests);
+        } catch (e) {
+            console.error("Error fetching chat requests:", e);
+            setError(e);
+        } finally {
+            setLoading(false);
+        }
+    }, [firestore]);
+
+    useEffect(() => {
+        fetchChatRequests();
+    }, [fetchChatRequests]);
+    
+    const sortedChatRequests = useMemo(() => {
+        return [...allChatRequests].sort((a, b) => {
             if (a.status === 'pending' && b.status !== 'pending') return -1;
             if (a.status !== 'pending' && b.status === 'pending') return 1;
             return b.createdAt.seconds - a.createdAt.seconds;
         });
-    }, [unsortedChatRequests]);
+    }, [allChatRequests]);
 
     if (loading) {
         return (
@@ -896,7 +966,7 @@ function LiveChatTabContent() {
         )
     }
 
-    if (!chatRequests || chatRequests.length === 0) {
+    if (sortedChatRequests.length === 0) {
         return (
             <Card>
                 <CardContent className="p-8 text-center text-muted-foreground">
@@ -908,7 +978,7 @@ function LiveChatTabContent() {
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {chatRequests.map(request => {
+            {sortedChatRequests.map(request => {
                  const isPending = request.status === 'pending';
                  return (
                     <Card key={request.id} className={cn("flex flex-col", !isPending && "bg-blue-50 border-blue-200")}>
@@ -928,7 +998,7 @@ function LiveChatTabContent() {
                             <p><strong>Identifier:</strong> {request.enteredIdentifier}</p>
                         </CardContent>
                         <CardFooter>
-                            <ChatHistoryDialog request={request} />
+                            <ChatHistoryDialog request={request} onUpdate={fetchChatRequests} />
                         </CardFooter>
                     </Card>
                  )

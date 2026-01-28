@@ -266,7 +266,20 @@
             "properties": {
               "text": { "type": "string" },
               "isUser": { "type": "boolean" },
-              "timestamp": { "type": "number" }
+              "timestamp": { "type": "number" },
+              "userName": {
+                "type": "string",
+                "description": "The name of the sender (e.g., user's display name or agent's name)."
+              },
+              "attachment": {
+                "type": "object",
+                "description": "An optional attachment with the message.",
+                "properties": {
+                  "name": { "type": "string" },
+                  "type": { "type": "string" },
+                  "url": { "type": "string", "format": "uri" }
+                }
+              }
             }
           }
         },

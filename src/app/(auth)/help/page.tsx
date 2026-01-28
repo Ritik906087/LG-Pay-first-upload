@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { LifeBuoy, UserPlus, AlertTriangle, Send, ChevronLeft, Loader2, Paperclip, Image as ImageIcon, X, Clock, Volume2, VolumeX } from 'lucide-react';
 import { useLanguage } from '@/context/language-context';
 import { useUser, useFirestore, useDoc, useCollection } from '@/firebase';
-import { doc, collection, query, where, orderBy, limit, Timestamp } from 'firebase/firestore';
+import { doc, collection, query, where, orderBy, limit, Timestamp, updateDoc, arrayUnion } from 'firebase/firestore';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { helpChat, type HelpChatInput } from '@/ai/flows/help-chat-flow';
@@ -44,6 +44,7 @@ type ChatRequest = {
     id: string;
     status: 'pending' | 'active' | 'closed';
     createdAt: Timestamp;
+    chatHistory: Message[];
 };
 
 const formatTime = (seconds: number) => {
@@ -89,7 +90,6 @@ export default function HelpPage() {
 
   const chatRequestQuery = useMemo(() => {
     if (!user || !firestore) return null;
-    // Query without orderBy to avoid needing a composite index
     const q = query(
         collection(firestore, 'chatRequests'),
         where('userId', '==', user.uid),
@@ -102,19 +102,26 @@ export default function HelpPage() {
   
   const activeRequest = useMemo(() => {
       if (!activeChatRequests || activeChatRequests.length === 0) return null;
-      // Sort client-side to get the most recent request
       return [...activeChatRequests].sort((a, b) => b.createdAt.seconds - a.createdAt.seconds)[0];
   }, [activeChatRequests]);
+
+  const activeChatRequestRef = useMemo(() => {
+    if (!firestore || !activeRequest) return null;
+    return doc(firestore, 'chatRequests', activeRequest.id);
+  }, [firestore, activeRequest]);
+
+  const { data: liveChat } = useDoc<ChatRequest>(activeChatRequestRef);
 
   const isWaitingForAgent = activeRequest?.status === 'pending';
   const isAgentActive = activeRequest?.status === 'active';
 
+  const displayedMessages = isAgentActive ? liveChat?.chatHistory || messages : messages;
 
   // Load chat and sound preference from localStorage
   useEffect(() => {
     try {
         const savedMessages = localStorage.getItem(CHAT_STORAGE_KEY);
-        if (savedMessages) {
+        if (savedMessages && !isAgentActive) {
             const parsedMessages = JSON.parse(savedMessages) as Message[];
             if(parsedMessages.length > 0) {
               setMessages(parsedMessages);
@@ -129,24 +136,24 @@ export default function HelpPage() {
     } catch (error) {
         console.error("Failed to load data from storage:", error);
     }
-  }, []);
+  }, [isAgentActive]);
 
-  // Save chat to localStorage
+  // Save chat to localStorage, but only if not in an active agent chat
   useEffect(() => {
-    if (messages.length > 0 && chatStarted) {
+    if (messages.length > 0 && chatStarted && !isAgentActive) {
         try {
             localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
         } catch (error) {
             console.error("Failed to save chat to storage:", error);
         }
     }
-  }, [messages, chatStarted]);
+  }, [messages, chatStarted, isAgentActive]);
 
    // Countdown Timer Logic
   useEffect(() => {
-    if (isWaitingForAgent && activeRequest?.createdAt) {
+    if (isWaitingForAgent && activeRequest?.createdAt && !isAgentActive) {
         const createdAt = activeRequest.createdAt.toDate();
-        const expiryTime = new Date(createdAt.getTime() + 10 * 60 * 1000); // 10 minutes
+        const expiryTime = new Date(createdAt.getTime() + 10 * 60 * 1000);
 
         const interval = setInterval(() => {
             const now = new Date();
@@ -155,7 +162,6 @@ export default function HelpPage() {
             if (secondsLeft <= 0) {
                 setTimeLeft(0);
                 clearInterval(interval);
-                // Optionally handle expiry on user side
             } else {
                 setTimeLeft(secondsLeft);
             }
@@ -165,7 +171,7 @@ export default function HelpPage() {
     } else {
         setTimeLeft(null);
     }
-  }, [isWaitingForAgent, activeRequest]);
+  }, [isWaitingForAgent, activeRequest, isAgentActive]);
 
 
   useEffect(() => {
@@ -180,13 +186,15 @@ export default function HelpPage() {
         chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
     
-    const lastMessage = messages[messages.length - 1];
-    if (messages.length > previousMessagesLength.current && lastMessage && !lastMessage.isUser && isSoundOn) {
-        audioRef.current?.play().catch(e => console.error("Audio play failed:", e));
+    if (displayedMessages) {
+        const lastMessage = displayedMessages[displayedMessages.length - 1];
+        if (displayedMessages.length > previousMessagesLength.current && lastMessage && !lastMessage.isUser && isSoundOn) {
+            audioRef.current?.play().catch(e => console.error("Audio play failed:", e));
+        }
+        previousMessagesLength.current = displayedMessages.length;
     }
-    previousMessagesLength.current = messages.length;
 
-  }, [messages, isSoundOn]);
+  }, [displayedMessages, isSoundOn]);
 
 
   const handleSoundToggle = () => {
@@ -222,8 +230,8 @@ export default function HelpPage() {
     setTimeout(() => {
       setIsVerifying(false);
       setChatStarted(true);
-      if (messages.length === 0) {
-        setMessages([{ text: "Hello! How can I help you today?", isUser: false, timestamp: Date.now() }]);
+      if (messages.length === 0 && !isAgentActive) {
+        setMessages([{ text: "Hello! How can I help you today?", isUser: false, timestamp: Date.now(), userName: 'AI HELP' }]);
       }
     }, 1500);
   };
@@ -238,11 +246,25 @@ export default function HelpPage() {
       timestamp: Date.now(),
       userName: userProfile?.displayName ?? 'You'
     };
+    
+    setCurrentMessage('');
+    setAttachment(null);
+    
+    if (isAgentActive && activeRequest) {
+        const requestRef = doc(firestore, 'chatRequests', activeRequest.id);
+        try {
+            await updateDoc(requestRef, {
+                chatHistory: arrayUnion(newUserMessage)
+            });
+        } catch (error) {
+            console.error("Firestore update error:", error);
+            toast({ variant: 'destructive', title: 'Could not send message' });
+        }
+        return;
+    }
 
     const updatedMessages = [...messages, newUserMessage];
     setMessages(updatedMessages);
-    setCurrentMessage('');
-    setAttachment(null);
     setIsSending(true);
 
     try {
@@ -254,11 +276,11 @@ export default function HelpPage() {
       };
             
       const response = await helpChat(input);
-      const aiResponse: Message = { text: response, isUser: false, timestamp: Date.now() };
+      const aiResponse: Message = { text: response, isUser: false, timestamp: Date.now(), userName: 'AI HELP' };
       setMessages(prev => [...prev, aiResponse]);
     } catch (error) {
       console.error("AI chat error:", error);
-      const errorResponse: Message = { text: "Sorry, I'm having trouble connecting. Please try again later.", isUser: false, timestamp: Date.now() };
+      const errorResponse: Message = { text: "I've encountered an issue. Escalating you to a human agent now.", isUser: false, timestamp: Date.now(), userName: 'AI HELP' };
       setMessages(prev => [...prev, errorResponse]);
     } finally {
       setIsSending(false);
@@ -297,7 +319,7 @@ export default function HelpPage() {
     );
   }
 
-  if (chatStarted) {
+  if (chatStarted || isAgentActive) {
     return (
       <div className="flex flex-col h-screen bg-secondary">
         <audio ref={audioRef} src="https://firebasestorage.googleapis.com/v0/b/prototyper.appspot.com/o/message-received.mp3?alt=media&token=952473a3-34e8-4660-8451-344c3a110a3c" preload="auto"></audio>
@@ -338,11 +360,11 @@ export default function HelpPage() {
                     </CardContent>
                 </Card>
             )}
-            {messages.map((msg, index) => (
+            {displayedMessages.map((msg, index) => (
               <div key={index} className={cn("flex items-end gap-2", msg.isUser ? "justify-end" : "justify-start")}>
                 {!msg.isUser && (
                     <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-primary text-primary-foreground font-bold text-sm">LG</AvatarFallback>
+                        <AvatarFallback className="bg-primary text-primary-foreground font-bold text-sm">{msg.userName === 'JONNY' ? 'J' : 'LG'}</AvatarFallback>
                     </Avatar>
                 )}
                 <div className="flex flex-col max-w-[75%]">
