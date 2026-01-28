@@ -795,8 +795,15 @@ function ChatHistoryDialog({ request }: { request: ChatRequest }) {
 
 function LiveChatTabContent() {
     const firestore = useFirestore();
-    const chatRequestsQuery = useMemo(() => firestore ? query(collection(firestore, 'chatRequests'), where('status', '==', 'pending'), orderBy('createdAt', 'desc')) : null, [firestore]);
-    const { data: chatRequests, loading, error } = useCollection<ChatRequest>(chatRequestsQuery);
+    // We removed orderBy to avoid needing a composite index. Sorting is now done client-side.
+    const chatRequestsQuery = useMemo(() => firestore ? query(collection(firestore, 'chatRequests'), where('status', '==', 'pending')) : null, [firestore]);
+    const { data: unsortedChatRequests, loading, error } = useCollection<ChatRequest>(chatRequestsQuery);
+
+    const chatRequests = useMemo(() => {
+        if (!unsortedChatRequests) return [];
+        // Sort by creation time descending to show newest requests first
+        return [...unsortedChatRequests].sort((a, b) => b.createdAt.seconds - a.createdAt.seconds);
+    }, [unsortedChatRequests]);
 
     if (loading) {
         return (
@@ -812,9 +819,14 @@ function LiveChatTabContent() {
                 <CardHeader>
                     <CardTitle className="text-destructive">Error Fetching Chat Requests</CardTitle>
                     <CardDescription className="text-destructive/80">
-                        Could not retrieve chat data. Check security rules.
+                        Could not retrieve chat data. This can be caused by Firestore security rules or a missing database index. The original error is:
                     </CardDescription>
                 </CardHeader>
+                 <CardContent>
+                    <p className="text-xs text-destructive/80 font-mono bg-destructive/10 p-2 rounded-md break-all">
+                        {error.message}
+                    </p>
+                 </CardContent>
             </Card>
         )
     }
