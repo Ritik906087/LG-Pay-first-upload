@@ -11,7 +11,7 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { LifeBuoy, UserPlus, AlertTriangle, Send, ChevronLeft, Loader2, Paperclip, Image as ImageIcon, X, Clock } from 'lucide-react';
+import { LifeBuoy, UserPlus, AlertTriangle, Send, ChevronLeft, Loader2, Paperclip, Image as ImageIcon, X, Clock, Volume2, VolumeX } from 'lucide-react';
 import { useLanguage } from '@/context/language-context';
 import { useUser, useFirestore, useDoc, useCollection } from '@/firebase';
 import { doc, collection, query, where, orderBy, limit, Timestamp } from 'firebase/firestore';
@@ -24,6 +24,7 @@ import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 
 const CHAT_STORAGE_KEY = 'lg-pay-help-chat-history';
+const SOUND_PREF_KEY = 'lg-pay-help-sound-pref';
 
 type StorableAttachment = {
   name: string;
@@ -75,6 +76,10 @@ export default function HelpPage() {
   const [enteredIdentifier, setEnteredIdentifier] = useState('');
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
+  const [isSoundOn, setIsSoundOn] = useState(true);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const previousMessagesLength = useRef(0);
+
   const userProfileRef = useMemo(() => {
     if (!user || !firestore) return null;
     return doc(firestore, 'users', user.uid);
@@ -100,7 +105,7 @@ export default function HelpPage() {
   const isAgentActive = activeRequest?.status === 'active';
 
 
-  // Load chat from localStorage
+  // Load chat and sound preference from localStorage
   useEffect(() => {
     try {
         const savedMessages = localStorage.getItem(CHAT_STORAGE_KEY);
@@ -109,10 +114,15 @@ export default function HelpPage() {
             if(parsedMessages.length > 0) {
               setMessages(parsedMessages);
               setChatStarted(true);
+              previousMessagesLength.current = parsedMessages.length;
             }
         }
+        const savedSoundPref = localStorage.getItem(SOUND_PREF_KEY);
+        if (savedSoundPref !== null) {
+            setIsSoundOn(JSON.parse(savedSoundPref));
+        }
     } catch (error) {
-        console.error("Failed to load chat from storage:", error);
+        console.error("Failed to load data from storage:", error);
     }
   }, []);
 
@@ -159,11 +169,30 @@ export default function HelpPage() {
     }
   }, [user, userProfile]);
 
+  // Combined useEffect for scrolling and sound
   useEffect(() => {
     if (chatContainerRef.current) {
         chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
-  }, [messages]);
+    
+    const lastMessage = messages[messages.length - 1];
+    if (messages.length > previousMessagesLength.current && lastMessage && !lastMessage.isUser && isSoundOn) {
+        audioRef.current?.play().catch(e => console.error("Audio play failed:", e));
+    }
+    previousMessagesLength.current = messages.length;
+
+  }, [messages, isSoundOn]);
+
+
+  const handleSoundToggle = () => {
+    const newSoundState = !isSoundOn;
+    setIsSoundOn(newSoundState);
+    try {
+        localStorage.setItem(SOUND_PREF_KEY, JSON.stringify(newSoundState));
+    } catch (error) {
+        console.error("Failed to save sound preference:", error);
+    }
+  };
 
   const handleStartChat = () => {
     let identifier = '';
@@ -266,26 +295,33 @@ export default function HelpPage() {
   if (chatStarted) {
     return (
       <div className="flex flex-col h-screen bg-secondary">
-        <header className="flex items-center justify-between p-3 bg-white sticky top-0 z-10 border-b shadow-sm">
-           <Button asChild variant="ghost" size="icon" className="h-9 w-9">
-             <Link href={user ? "/my" : "/login"}>
-                <ChevronLeft className="h-6 w-6 text-muted-foreground" />
-             </Link>
-           </Button>
-            {isWaitingForAgent && timeLeft !== null && (
-                <div className="flex items-center gap-2 text-yellow-600">
-                    <Clock className="h-5 w-5" />
-                    <span className="font-mono font-bold text-lg">{formatTime(timeLeft)}</span>
-                </div>
-            )}
-          <div className="flex-1 flex flex-col items-center">
-            <h1 className="text-lg font-bold">{isAgentActive ? "Agent" : "LG Pay Support"}</h1>
-            <div className="flex items-center gap-1.5">
-                <div className="h-2 w-2 rounded-full bg-green-500"></div>
-                <p className="text-xs text-muted-foreground font-semibold">Online</p>
+        <audio ref={audioRef} src="https://firebasestorage.googleapis.com/v0/b/genkit-red-team.appspot.com/o/message.mp3?alt=media&token=9632d431-1504-4b53-9357-12492f02fcf4" preload="auto"></audio>
+        <header className="grid grid-cols-3 items-center p-3 bg-white sticky top-0 z-10 border-b shadow-sm">
+            <div className="flex items-center gap-2">
+                 <Button asChild variant="ghost" size="icon" className="h-9 w-9 -ml-2">
+                    <Link href={user ? "/my" : "/login"}>
+                        <ChevronLeft className="h-6 w-6 text-muted-foreground" />
+                    </Link>
+                </Button>
+                {isWaitingForAgent && timeLeft !== null && (
+                    <div className="flex items-center gap-1 text-yellow-600">
+                        <Clock className="h-4 w-4" />
+                        <span className="font-mono font-bold text-sm">{formatTime(timeLeft)}</span>
+                    </div>
+                )}
             </div>
-          </div>
-          <div className="w-9"></div>
+            <div className="flex flex-col items-center text-center">
+                <h1 className="text-lg font-bold">{isAgentActive ? "Agent" : "LG Pay Support"}</h1>
+                <div className="flex items-center gap-1.5">
+                    <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                    <p className="text-xs text-muted-foreground font-semibold">Online</p>
+                </div>
+            </div>
+            <div className="flex justify-end">
+                <Button onClick={handleSoundToggle} variant="ghost" size="icon" className="h-9 w-9">
+                    {isSoundOn ? <Volume2 className="h-5 w-5 text-muted-foreground" /> : <VolumeX className="h-5 w-5 text-muted-foreground" />}
+                </Button>
+            </div>
         </header>
         <main ref={chatContainerRef} className="flex-1 space-y-4 p-4 overflow-y-auto">
             {isWaitingForAgent && (
@@ -345,7 +381,7 @@ export default function HelpPage() {
               <div className="px-2 pt-1">
                 <div className="relative w-24 h-24">
                   {attachment.type.startsWith('image/') ? (
-                    <Image src={attachment.url} alt="preview" layout="fill" objectFit="cover" className="rounded-md" />
+                    <Image src={attachment.url} alt="preview" fill objectFit="cover" className="rounded-md" />
                   ) : (
                     <div className="w-24 h-24 bg-secondary rounded-md flex flex-col items-center justify-center text-center p-2">
                         <Paperclip className="h-6 w-6 text-muted-foreground mb-1"/>
@@ -460,3 +496,5 @@ export default function HelpPage() {
     </div>
   );
 }
+
+    
