@@ -155,12 +155,12 @@ function PaymentDetailsContent() {
         if (currentOrder.data()?.status !== 'pending_payment') return;
         setIsCancelling(true);
         try {
-            await updateDoc(orderRef, { status: 'cancelled', cancellationReason: reason });
+            await updateDoc(orderRef, { status: isAutoCancel ? 'failed' : 'cancelled', cancellationReason: reason });
             if (!isAutoCancel) {
                 toast({ title: 'Order Cancelled' });
                 router.push('/home');
             } else {
-                toast({ variant: 'destructive', title: 'Order Expired', description: 'You did not complete the payment in time.' });
+                toast({ variant: 'destructive', title: 'Order Failed', description: 'Your order expired because you did not complete payment in time.' });
                 setTimeout(() => router.push('/home'), 1000);
             }
         } catch (e: any) {

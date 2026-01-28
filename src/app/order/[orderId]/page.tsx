@@ -7,7 +7,7 @@ import { useDoc, useUser, useFirestore } from '@/firebase';
 import { doc, getDoc, updateDoc, runTransaction, Timestamp } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Loader2, CheckCircle, FileClock } from 'lucide-react';
+import { ChevronLeft, Loader2, CheckCircle, FileClock, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
@@ -39,7 +39,7 @@ function OrderStatusContent() {
     const firestore = useFirestore();
 
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
-    const [isCompleting, setIsCompleting] = useState(false);
+    const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
     const orderRef = useMemo(() => {
         if (!firestore || !user || !orderId) return null;
@@ -48,46 +48,39 @@ function OrderStatusContent() {
 
     const { data: order, loading: orderLoading } = useDoc<Order>(orderRef);
 
-    const userProfileRef = useMemo(() => {
-        if (!user || !firestore) return null;
-        return doc(firestore, 'users', user.uid);
-    }, [user, firestore]);
+    const handleOrderExpiry = async () => {
+        if (!order || !orderRef || order.status !== 'processing') return;
 
-    const handleOrderCompletion = async () => {
-        if (!order || !orderRef || !userProfileRef || !firestore || order.status !== 'processing') return;
-        setIsCompleting(true);
+        // Ensure we don't run this multiple times
+        const currentOrderSnap = await getDoc(orderRef);
+        if (currentOrderSnap.exists() && currentOrderSnap.data().status !== 'processing') {
+            return;
+        }
+
+        setIsUpdatingStatus(true);
         try {
-            await runTransaction(firestore, async (transaction) => {
-                const userProfileSnap = await transaction.get(userProfileRef);
-                if (!userProfileSnap.exists()) {
-                    throw "User profile does not exist!";
-                }
-
-                const currentBalance = userProfileSnap.data().balance || 0;
-                const newBalance = currentBalance + order.amount;
-
-                transaction.update(orderRef, { status: 'completed' });
-                transaction.update(userProfileRef, { balance: newBalance });
+            await updateDoc(orderRef, { 
+                status: 'failed',
+                cancellationReason: 'Order processing timed out.'
             });
             
             toast({
-                title: 'Order Completed!',
-                description: `₹${order.amount.toFixed(2)} has been added to your balance.`,
-                className: 'bg-green-500 text-white'
+                variant: 'destructive',
+                title: 'Order Failed',
+                description: 'The order was not processed in time.',
             });
-            // Let the UI update before redirecting
-             setTimeout(() => router.push('/home'), 500);
+            setTimeout(() => router.push('/home'), 1000);
 
         } catch (error) {
-            console.error("Order completion error:", error);
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to complete the order.' });
-            setIsCompleting(false);
+            console.error("Order expiry error:", error);
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to update the order status.' });
+            setIsUpdatingStatus(false);
         }
     };
     
     useEffect(() => {
         if (!order || order.status !== 'processing' || !order.submittedAt) {
-            if (order && order.status === 'completed') {
+            if (order && order.status !== 'processing') {
                 setTimeLeft(0);
             }
             return;
@@ -103,9 +96,7 @@ function OrderStatusContent() {
             if (secondsLeft <= 0) {
                 setTimeLeft(0);
                 clearInterval(interval);
-                if (order.status === 'processing') {
-                   handleOrderCompletion();
-                }
+                handleOrderExpiry();
             } else {
                 setTimeLeft(secondsLeft);
             }
@@ -136,8 +127,6 @@ function OrderStatusContent() {
         )
     }
 
-    const isCompleted = order.status === 'completed' || (timeLeft !== null && timeLeft <= 0);
-
     return (
         <div className="flex flex-col min-h-screen">
             <header className="flex items-center p-4 bg-white sticky top-0 z-10 border-b">
@@ -150,27 +139,41 @@ function OrderStatusContent() {
             <main className="flex-grow p-4 space-y-6">
                 <Card className="text-center overflow-hidden">
                     <CardContent className="p-6 space-y-3 flex flex-col items-center">
-                        {isCompleting || isCompleted ? (
+                        {order.status === 'completed' ? (
                             <>
                                 <CheckCircle className="h-16 w-16 text-green-500" />
                                 <h2 className="text-2xl font-bold text-green-600">Order Completed</h2>
                                 <p className="text-muted-foreground">₹{order.amount.toFixed(2)} has been added to your balance.</p>
                             </>
-                        ) : (
+                        ) : order.status === 'processing' ? (
                             <>
                                 <FileClock className="h-16 w-16 text-primary" />
                                 <h2 className="text-2xl font-bold text-primary">Processing Order</h2>
                                 <p className="text-muted-foreground">Your payment is being verified.</p>
+                            </>
+                        ) : (
+                             <>
+                                <XCircle className="h-16 w-16 text-destructive" />
+                                <h2 className="text-2xl font-bold text-destructive capitalize">{order.status}</h2>
+                                <p className="text-muted-foreground">This order could not be completed.</p>
                             </>
                         )}
                         
                     </CardContent>
                     <CardFooter className="bg-primary/10 p-4">
                          <div className="w-full text-center">
-                            <p className="text-sm text-primary font-semibold">Estimated time remaining</p>
-                            <p className="text-3xl font-mono font-bold text-primary">
-                                {timeLeft !== null ? formatTime(timeLeft) : <Loader2 className="h-8 w-8 animate-spin inline-block"/>}
-                            </p>
+                            {order.status === 'processing' ? (
+                                <>
+                                    <p className="text-sm text-primary font-semibold">Estimated time remaining</p>
+                                    <p className="text-3xl font-mono font-bold text-primary">
+                                        {timeLeft !== null ? formatTime(timeLeft) : <Loader2 className="h-8 w-8 animate-spin inline-block"/>}
+                                    </p>
+                                </>
+                            ) : order.status === 'completed' ? (
+                                 <p className="w-full text-center text-sm text-green-600 font-semibold">Processed successfully!</p>
+                            ) : (
+                                <p className="w-full text-center text-sm text-destructive font-semibold">This order is no longer active.</p>
+                            )}
                          </div>
                     </CardFooter>
                 </Card>
@@ -194,7 +197,7 @@ function OrderStatusContent() {
                         </div>
                          <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Status</span>
-                            <span className="font-semibold capitalize">{isCompleting ? 'Completing...' : order.status.replace('_', ' ')}</span>
+                            <span className="font-semibold capitalize">{isUpdatingStatus ? 'Updating...' : order.status.replace('_', ' ')}</span>
                         </div>
                          <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Screenshot</span>
