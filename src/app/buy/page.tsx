@@ -36,22 +36,28 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 
-// New configuration from the user
 const purchaseConfig = {
     "100": 5, "200": 6, "300": 7, "400": 5, "500": 6, "600": 5, "700": 4, "800": 3, "1000": 4,
     "2000": 3, "3000": 3, "4000": 5, "5000": 4, "6000": 3, "7000": 2, "8000": 3, "10000": 2
 };
 
+const removalConfig = {
+    "100": 2, "200": 3, "300": 3, "400": 2, "500": 3, "600": 4, "700": 2, "800": 1, "1000": 2,
+    "2000": 1, "3000": 1, "4000": 3, "5000": 2, "6000": 1, "7000": 1, "8000": 1, "10000": 1
+};
 
-let idCounter = 1;
-const allPurchaseOptions = Object.entries(purchaseConfig)
-  .flatMap(([amountStr, count]) => {
-    const amount = parseInt(amountStr);
-    return Array.from({ length: count }, () => ({
-      id: idCounter++,
-      amount,
-    }));
-  });
+const generateOptionsFromConfig = (config: Record<string, number>) => {
+    let idCounter = 1;
+    return Object.entries(config).flatMap(([amountStr, count]) => {
+        const amount = parseInt(amountStr);
+        return Array.from({ length: count }, () => ({
+            id: idCounter++,
+            amount,
+        }));
+    });
+};
+
+const allPurchaseOptions = generateOptionsFromConfig(purchaseConfig);
 
 
 const upiMethods = [
@@ -61,7 +67,6 @@ const upiMethods = [
 ];
 
 const PurchaseGrid = ({ onBuyClick, options, bonusPercentage }: { onBuyClick: (option: any) => void; options: any[]; bonusPercentage: number; }) => {
-  
   return (
     <div className="grid grid-cols-1 gap-3 mt-4">
       <AnimatePresence>
@@ -85,9 +90,7 @@ const PurchaseGrid = ({ onBuyClick, options, bonusPercentage }: { onBuyClick: (o
                          </div>
                          <div>
                             <p className="font-bold text-lg">₹ {option.amount.toLocaleString('en-IN')}</p>
-                            <p
-                                className="text-xs text-green-600 font-semibold"
-                            >
+                            <p className="text-xs text-green-600 font-semibold">
                                 You Get: {option.amount}+{bonusPercentage}%={totalLGB.toFixed(0)}
                             </p>
                          </div>
@@ -135,41 +138,34 @@ export default function BuyPage() {
   useEffect(() => {
     // --- REMOVAL INTERVAL ---
     const removalInterval = setInterval(() => {
-        const numToRemove = 20;
-
         setAllOptions(prevOptions => {
-            if (prevOptions.length <= numToRemove + 10) return prevOptions; 
+            if (prevOptions.length <= 20) return prevOptions;
             let currentOpts = [...prevOptions];
-            for (let i = 0; i < numToRemove; i++) {
+            for (let i = 0; i < 20; i++) {
                 if (currentOpts.length === 0) break;
                 const removeIndex = Math.floor(Math.random() * currentOpts.length);
                 currentOpts.splice(removeIndex, 1);
             }
             return currentOpts;
         });
-    }, 2000); // Runs every 2 seconds
+    }, 2000);
 
     // --- ADDITION INTERVAL ---
     const additionInterval = setInterval(() => {
-        const numToAdd = 30;
-
         setAllOptions(prevOptions => {
             let currentOpts = [...prevOptions];
-            const currentIds = new Set(currentOpts.map(o => o.id));
+            const baseOptions = generateOptionsFromConfig(purchaseConfig);
             
-            const baseOptions = allPurchaseOptions; 
-            const availableToAdd = baseOptions.filter(opt => !currentIds.has(opt.id));
-            
-            for (let i = 0; i < numToAdd && availableToAdd.length > 0; i++) {
-                const addIndex = Math.floor(Math.random() * availableToAdd.length);
-                const itemToAdd = availableToAdd.splice(addIndex, 1)[0];
+            for (let i = 0; i < 30; i++) {
+                const addIndex = Math.floor(Math.random() * baseOptions.length);
+                const itemToAdd = { ...baseOptions[addIndex], id: Math.random() }; // Ensure unique id for animation
                 
                 const insertAtIndex = Math.floor(Math.random() * (currentOpts.length + 1));
                 currentOpts.splice(insertAtIndex, 0, itemToAdd);
             }
             return currentOpts;
         });
-    }, 4000); // Runs every 4 seconds
+    }, 4000);
 
     return () => {
       clearInterval(removalInterval);
@@ -235,19 +231,15 @@ export default function BuyPage() {
   const bonusPercentage = activeTab === 'bank' ? 6 : 5;
   
   const displayedOptions = useMemo(() => {
-      const smallOptions = allOptions.filter(opt => opt.amount <= 1000);
-      const highOptions = allOptions.filter(opt => opt.amount > 1000);
-
       if (activeSubTab === 'small') {
-          return smallOptions.sort((a,b) => a.amount - b.amount);
+          return allOptions.filter(opt => opt.amount <= 1000).sort((a,b) => a.amount - b.amount);
       } else {
-          return highOptions.sort((a,b) => b.amount - a.amount);
+          return allOptions.filter(opt => opt.amount > 1000).sort((a,b) => b.amount - a.amount);
       }
   }, [allOptions, activeSubTab]);
   
   return (
     <div className="text-foreground pb-4 min-h-screen flex flex-col">
-      {/* Header */}
        <header className="flex items-center justify-between p-4 bg-white border-b">
         <Button asChild variant="ghost" size="icon" className="h-8 w-8">
           <Link href="/home">
@@ -272,36 +264,19 @@ export default function BuyPage() {
                 <span className="text-xs text-green-600 font-semibold">+6% Bonus</span>
             </TabsTrigger>
           </TabsList>
-          
-          <TabsContent value="otp-upi" className="mt-4">
-            <Tabs defaultValue="small" className="w-full" onValueChange={setActiveSubTab}>
-                <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="small">Small Amount</TabsTrigger>
-                    <TabsTrigger value="high">High Amount</TabsTrigger>
-                </TabsList>
-                <TabsContent value="small" className="mt-0">
-                    <PurchaseGrid onBuyClick={handleBuyClick} options={displayedOptions} bonusPercentage={bonusPercentage} />
-                </TabsContent>
-                <TabsContent value="high" className="mt-0">
-                    <PurchaseGrid onBuyClick={handleBuyClick} options={displayedOptions} bonusPercentage={bonusPercentage} />
-                </TabsContent>
-            </Tabs>
-          </TabsContent>
-          <TabsContent value="bank" className="mt-4">
-            <Tabs defaultValue="small" className="w-full" onValueChange={setActiveSubTab}>
-                <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="small">Small Amount</TabsTrigger>
-                    <TabsTrigger value="high">High Amount</TabsTrigger>
-                </TabsList>
-                <TabsContent value="small" className="mt-0">
-                     <PurchaseGrid onBuyClick={handleBuyClick} options={displayedOptions} bonusPercentage={bonusPercentage} />
-                </TabsContent>
-                <TabsContent value="high" className="mt-0">
-                     <PurchaseGrid onBuyClick={handleBuyClick} options={displayedOptions} bonusPercentage={bonusPercentage} />
-                </TabsContent>
-            </Tabs>
-          </TabsContent>
-
+        </Tabs>
+        
+        <Tabs defaultValue="small" className="w-full mt-4" onValueChange={setActiveSubTab}>
+            <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="small">Small Amount</TabsTrigger>
+                <TabsTrigger value="high">High Amount</TabsTrigger>
+            </TabsList>
+            <TabsContent value="small" className="mt-0">
+                <PurchaseGrid onBuyClick={handleBuyClick} options={displayedOptions} bonusPercentage={bonusPercentage} />
+            </TabsContent>
+            <TabsContent value="high" className="mt-0">
+                <PurchaseGrid onBuyClick={handleBuyClick} options={displayedOptions} bonusPercentage={bonusPercentage} />
+            </TabsContent>
         </Tabs>
       </main>
 
@@ -346,3 +321,6 @@ export default function BuyPage() {
     </div>
   );
 }
+
+
+    
