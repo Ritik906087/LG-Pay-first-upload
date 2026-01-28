@@ -19,7 +19,7 @@ export default function HomeLayout({
     { href: '/my', icon: User, label: 'My' },
   ];
 
-  const showNavBar = !pathname.startsWith('/buy/confirm');
+  const showNavBar = !pathname.startsWith('/buy');
 
   return (
     <div className="home-layout relative min-h-screen w-full font-body text-foreground">
