@@ -18,20 +18,25 @@ import { doc } from 'firebase/firestore';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { helpChat, type HelpChatInput } from '@/ai/flows/help-chat-flow';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 
-type Attachment = {
-  file: File;
-  previewUrl: string;
+const CHAT_STORAGE_KEY = 'lg-pay-help-chat-history';
+
+type StorableAttachment = {
+  name: string;
+  type: string;
+  url: string;
 };
 
 type Message = {
   text: string;
   isUser: boolean;
-  attachment?: Attachment;
+  attachment?: StorableAttachment;
+  timestamp: number;
+  userName?: string;
 };
 
 export default function HelpPage() {
@@ -40,31 +45,61 @@ export default function HelpPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   
-  // State for logged-in user
   const [uid, setUid] = useState('');
   const [uidError, setUidError] = useState('');
 
-  // State for logged-out user
   const [phone, setPhone] = useState('');
   const [phoneError, setPhoneError] = useState('');
 
-  // Common state
-  const [isVerifying, setIsVerifying] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(isVerifying);
   const [chatStarted, setChatStarted] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentMessage, setCurrentMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
-  const [attachment, setAttachment] = useState<Attachment | null>(null);
+  const [attachment, setAttachment] = useState<StorableAttachment | null>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
 
   const userProfileRef = useMemo(() => {
     if (!user || !firestore) return null;
     return doc(firestore, 'users', user.uid);
   }, [user, firestore]);
 
-  const { data: userProfile } = useDoc<{ numericId?: string }>(userProfileRef);
+  const { data: userProfile } = useDoc<{ numericId?: string, displayName?: string, photoURL?: string }>(userProfileRef);
+  
+  // Load chat from localStorage
+  useEffect(() => {
+    try {
+        const savedMessages = localStorage.getItem(CHAT_STORAGE_KEY);
+        if (savedMessages) {
+            const parsedMessages = JSON.parse(savedMessages) as Message[];
+            // Start chat if history exists
+            if(parsedMessages.length > 0) {
+              setMessages(parsedMessages);
+              setChatStarted(true);
+            }
+        }
+    } catch (error) {
+        console.error("Failed to load chat from storage:", error);
+    }
+  }, []);
+
+  // Save chat to localStorage
+  useEffect(() => {
+    if (messages.length > 0 && chatStarted) {
+        try {
+            // Avoid saving the initial state if chat was just started without history
+            if (messages.length === 1 && messages[0].text === "Hello! How can I help you today?") {
+                // Don't save this default message alone
+            } else {
+                localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+            }
+        } catch (error) {
+            console.error("Failed to save chat to storage:", error);
+        }
+    }
+  }, [messages, chatStarted]);
+
 
   useEffect(() => {
     if (user && userProfile?.numericId) {
@@ -80,14 +115,12 @@ export default function HelpPage() {
 
   const handleStartChat = () => {
     if (user) {
-        // Logged-in user logic
         if (uid.length !== 8 || !/^\d+$/.test(uid)) {
             setUidError('Please enter a valid 8-digit UID.');
             return;
         }
         setUidError('');
     } else {
-        // Logged-out user logic
         if (phone.length !== 10 || !/^[6-9]\d{9}$/.test(phone)) {
             setPhoneError('Please enter a valid 10-digit mobile number.');
             return;
@@ -99,30 +132,40 @@ export default function HelpPage() {
     setTimeout(() => {
       setIsVerifying(false);
       setChatStarted(true);
-      setMessages([{ text: "Hello! How can I help you today?", isUser: false }]);
+      // Only set initial message if there's no history
+      if (messages.length === 0) {
+        setMessages([{ text: "Hello! How can I help you today?", isUser: false, timestamp: Date.now() }]);
+      }
     }, 1500);
   };
   
   const handleSendMessage = async () => {
     if (!currentMessage.trim() && !attachment) return;
 
-    const newUserMessage: Message = { text: currentMessage, isUser: true, attachment: attachment || undefined };
+    const newUserMessage: Message = { 
+      text: currentMessage, 
+      isUser: true, 
+      attachment: attachment || undefined, 
+      timestamp: Date.now(),
+      userName: userProfile?.displayName ?? 'You'
+    };
+
     setMessages(prev => [...prev, newUserMessage]);
     setCurrentMessage('');
     setAttachment(null);
     setIsSending(true);
 
     try {
-        const input: HelpChatInput = user 
-            ? { prompt: currentMessage, uid: user.uid }
-            : { prompt: currentMessage };
+      const input: HelpChatInput = user 
+          ? { prompt: currentMessage, uid: user.uid }
+          : { prompt: currentMessage };
             
       const response = await helpChat(input);
-      const aiResponse: Message = { text: response, isUser: false };
+      const aiResponse: Message = { text: response, isUser: false, timestamp: Date.now() };
       setMessages(prev => [...prev, aiResponse]);
     } catch (error) {
       console.error("AI chat error:", error);
-      const errorResponse: Message = { text: "Sorry, I'm having trouble connecting. Please try again later.", isUser: false };
+      const errorResponse: Message = { text: "Sorry, I'm having trouble connecting. Please try again later.", isUser: false, timestamp: Date.now() };
       setMessages(prev => [...prev, errorResponse]);
     } finally {
       setIsSending(false);
@@ -140,8 +183,16 @@ export default function HelpPage() {
         });
         return;
       }
-      const previewUrl = URL.createObjectURL(file);
-      setAttachment({ file, previewUrl });
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const url = e.target?.result as string;
+        setAttachment({
+          name: file.name,
+          type: file.type,
+          url: url,
+        });
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -156,41 +207,49 @@ export default function HelpPage() {
   if (chatStarted) {
     return (
       <div className="flex flex-col h-screen bg-secondary">
-        <header className="flex items-center justify-between p-4 bg-white sticky top-0 z-10 border-b">
-           <Button asChild variant="ghost" size="icon" className="h-8 w-8">
+        <header className="flex items-center p-3 bg-white sticky top-0 z-10 border-b shadow-sm">
+           <Button asChild variant="ghost" size="icon" className="h-9 w-9">
              <Link href={user ? "/my" : "/login"}>
                 <ChevronLeft className="h-6 w-6 text-muted-foreground" />
              </Link>
            </Button>
-          <div className="flex flex-col items-center">
-            <h1 className="text-xl font-bold">LG Pay Support</h1>
-            <p className="text-xs text-green-500 font-semibold">Online</p>
+          <div className="flex-1 flex flex-col items-center -ml-9">
+            <h1 className="text-lg font-bold">LG Pay Support</h1>
+            <div className="flex items-center gap-1.5">
+                <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                <p className="text-xs text-muted-foreground font-semibold">Online</p>
+            </div>
           </div>
-          <div className="w-8"></div>
         </header>
         <main ref={chatContainerRef} className="flex-1 space-y-4 p-4 overflow-y-auto">
             {messages.map((msg, index) => (
               <div key={index} className={cn("flex items-end gap-2", msg.isUser ? "justify-end" : "justify-start")}>
                 {!msg.isUser && (
                     <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-primary text-primary-foreground">AI</AvatarFallback>
+                        <AvatarFallback className="bg-primary text-primary-foreground font-bold">LG</AvatarFallback>
                     </Avatar>
                 )}
-                <div className={cn("max-w-[75%] rounded-2xl px-3 py-2", msg.isUser ? "bg-primary text-primary-foreground rounded-br-none" : "bg-white rounded-bl-none")}>
-                  {msg.attachment && msg.attachment.file.type.startsWith('image/') && (
-                    <Image src={msg.attachment.previewUrl} alt="attachment" width={200} height={200} className="rounded-lg mb-2" />
-                  )}
-                   {msg.attachment && !msg.attachment.file.type.startsWith('image/') && (
-                    <div className="flex items-center gap-2 bg-secondary p-2 rounded-lg mb-2">
-                        <Paperclip className="h-5 w-5 text-muted-foreground" />
-                        <span className="text-sm text-secondary-foreground truncate">{msg.attachment.file.name}</span>
+                <div className="flex flex-col max-w-[75%]">
+                    <div className={cn("rounded-2xl px-3 py-2", msg.isUser ? "bg-primary text-primary-foreground rounded-br-none" : "bg-white rounded-bl-none shadow-sm")}>
+                      {msg.attachment && msg.attachment.type.startsWith('image/') && (
+                        <Image src={msg.attachment.url} alt="attachment" width={200} height={200} className="rounded-lg mb-2" />
+                      )}
+                       {msg.attachment && !msg.attachment.type.startsWith('image/') && (
+                        <div className="flex items-center gap-2 bg-secondary p-2 rounded-lg mb-2">
+                            <Paperclip className="h-5 w-5 text-muted-foreground" />
+                            <span className="text-sm text-secondary-foreground truncate">{msg.attachment.name}</span>
+                        </div>
+                      )}
+                      {msg.text && <p className="text-sm whitespace-pre-wrap">{msg.text}</p>}
                     </div>
-                  )}
-                  {msg.text && <p className="text-sm whitespace-pre-wrap">{msg.text}</p>}
+                    <p className={cn("text-xs text-muted-foreground px-1 pt-1", msg.isUser ? "text-right" : "text-left")}>
+                      {new Date(msg.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                    </p>
                 </div>
                  {msg.isUser && (
                     <Avatar className="h-8 w-8">
-                        <AvatarFallback>U</AvatarFallback>
+                        <AvatarImage src={userProfile?.photoURL} />
+                        <AvatarFallback>{userProfile?.displayName?.charAt(0) ?? 'U'}</AvatarFallback>
                     </Avatar>
                  )}
               </div>
@@ -198,9 +257,9 @@ export default function HelpPage() {
             {isSending && (
                 <div className="flex items-end gap-2 justify-start">
                     <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-primary text-primary-foreground">AI</AvatarFallback>
+                        <AvatarFallback className="bg-primary text-primary-foreground font-bold">LG</AvatarFallback>
                     </Avatar>
-                    <div className="bg-white rounded-2xl px-4 py-2 rounded-bl-none">
+                    <div className="bg-white rounded-2xl px-4 py-2 rounded-bl-none shadow-sm">
                        <p className="text-sm">Typing...</p>
                     </div>
                 </div>
@@ -210,12 +269,12 @@ export default function HelpPage() {
             {attachment && (
               <div className="px-2 pt-1">
                 <div className="relative w-24 h-24">
-                  {attachment.file.type.startsWith('image/') ? (
-                    <Image src={attachment.previewUrl} alt="preview" layout="fill" objectFit="cover" className="rounded-md" />
+                  {attachment.type.startsWith('image/') ? (
+                    <Image src={attachment.url} alt="preview" layout="fill" objectFit="cover" className="rounded-md" />
                   ) : (
                     <div className="w-24 h-24 bg-secondary rounded-md flex flex-col items-center justify-center text-center p-2">
                         <Paperclip className="h-6 w-6 text-muted-foreground mb-1"/>
-                        <p className="text-xs text-secondary-foreground truncate">{attachment.file.name}</p>
+                        <p className="text-xs text-secondary-foreground truncate">{attachment.name}</p>
                     </div>
                   )}
                   <Button
