@@ -10,17 +10,15 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { LifeBuoy, UserPlus, AlertTriangle, Send, ChevronLeft } from 'lucide-react';
+import { LifeBuoy, UserPlus, AlertTriangle, Send, ChevronLeft, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/context/language-context';
 import { useUser, useFirestore, useDoc } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
-import { Loader2 } from 'lucide-react';
 import { helpChat, type HelpChatInput } from '@/ai/flows/help-chat-flow';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
-
 
 type Message = {
   text: string;
@@ -29,10 +27,18 @@ type Message = {
 
 export default function HelpPage() {
   const { translations } = useLanguage();
-  const { user } = useUser();
+  const { user, loading: authLoading } = useUser();
   const firestore = useFirestore();
+  
+  // State for logged-in user
   const [uid, setUid] = useState('');
   const [uidError, setUidError] = useState('');
+
+  // State for logged-out user
+  const [phone, setPhone] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+
+  // Common state
   const [isVerifying, setIsVerifying] = useState(false);
   const [chatStarted, setChatStarted] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -49,10 +55,10 @@ export default function HelpPage() {
   const { data: userProfile } = useDoc<{ numericId?: string }>(userProfileRef);
 
   useEffect(() => {
-    if (userProfile?.numericId) {
+    if (user && userProfile?.numericId) {
       setUid(userProfile.numericId);
     }
-  }, [userProfile]);
+  }, [user, userProfile]);
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -60,13 +66,23 @@ export default function HelpPage() {
     }
   }, [messages]);
 
-
   const handleStartChat = () => {
-    if (uid.length !== 8 || !/^\d+$/.test(uid)) {
-      setUidError('Please enter a valid 8-digit UID.');
-      return;
+    if (user) {
+        // Logged-in user logic
+        if (uid.length !== 8 || !/^\d+$/.test(uid)) {
+            setUidError('Please enter a valid 8-digit UID.');
+            return;
+        }
+        setUidError('');
+    } else {
+        // Logged-out user logic
+        if (phone.length !== 10 || !/^[6-9]\d{9}$/.test(phone)) {
+            setPhoneError('Please enter a valid 10-digit mobile number.');
+            return;
+        }
+        setPhoneError('');
     }
-    setUidError('');
+
     setIsVerifying(true);
     setTimeout(() => {
       setIsVerifying(false);
@@ -76,7 +92,7 @@ export default function HelpPage() {
   };
   
   const handleSendMessage = async () => {
-    if (!currentMessage.trim() || !user) return;
+    if (!currentMessage.trim()) return;
 
     const newUserMessage: Message = { text: currentMessage, isUser: true };
     setMessages(prev => [...prev, newUserMessage]);
@@ -84,7 +100,11 @@ export default function HelpPage() {
     setIsSending(true);
 
     try {
-      const response = await helpChat({ prompt: currentMessage, uid: user.uid });
+        const input: HelpChatInput = user 
+            ? { prompt: currentMessage, uid: user.uid }
+            : { prompt: currentMessage };
+            
+      const response = await helpChat(input);
       const aiResponse: Message = { text: response, isUser: false };
       setMessages(prev => [...prev, aiResponse]);
     } catch (error) {
@@ -96,13 +116,20 @@ export default function HelpPage() {
     }
   };
 
+  if (authLoading) {
+    return (
+        <Card className="w-full max-w-md animate-fade-in-up rounded-2xl border-none bg-white/90 shadow-2xl shadow-primary/20 backdrop-blur-sm flex items-center justify-center h-[70vh]">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </Card>
+    );
+  }
 
   if (chatStarted) {
     return (
       <Card className="w-full max-w-md animate-fade-in-up rounded-2xl border-none bg-white/90 shadow-2xl shadow-primary/20 backdrop-blur-sm flex flex-col h-[70vh]">
         <CardHeader className="flex-row items-center justify-between border-b">
            <Button asChild variant="ghost" size="icon" className="h-8 w-8">
-             <Link href="/my">
+             <Link href={user ? "/my" : "/login"}>
                 <ChevronLeft className="h-6 w-6 text-muted-foreground" />
              </Link>
            </Button>
@@ -148,7 +175,7 @@ export default function HelpPage() {
                     onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                     disabled={isSending}
                 />
-                <Button onClick={handleSendMessage} disabled={isSending}>
+                <Button onClick={handleSendMessage} disabled={isSending || !currentMessage.trim()}>
                     {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 </Button>
             </div>
@@ -161,7 +188,7 @@ export default function HelpPage() {
     <Card className="w-full max-w-md animate-fade-in-up rounded-2xl border-none bg-white/90 shadow-2xl shadow-primary/20 backdrop-blur-sm">
       <CardHeader className="text-center relative">
         <Button asChild variant="ghost" size="icon" className="h-8 w-8 absolute left-4 top-4">
-             <Link href="/my">
+             <Link href={user ? "/my" : "/login"}>
                 <ChevronLeft className="h-6 w-6 text-muted-foreground" />
              </Link>
         </Button>
@@ -178,24 +205,46 @@ export default function HelpPage() {
           </p>
         </div>
 
-        <div className="space-y-2">
-            <label htmlFor="uid" className="font-medium">Please enter your LG Pay UID</label>
-            <Input 
-                id="uid" 
-                placeholder="Enter 8-digit UID" 
-                value={uid}
-                onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, '');
-                    if (value.length <= 8) {
-                        setUid(value);
-                    }
-                    setUidError('');
-                }}
-                maxLength={8}
-                className="text-center text-lg tracking-widest"
-            />
-            {uidError && <p className="text-sm text-destructive">{uidError}</p>}
-        </div>
+        {user ? (
+            <div className="space-y-2">
+                <label htmlFor="uid" className="font-medium">Please enter your LG Pay UID</label>
+                <Input 
+                    id="uid" 
+                    placeholder="Enter 8-digit UID" 
+                    value={uid}
+                    onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '');
+                        if (value.length <= 8) {
+                            setUid(value);
+                        }
+                        setUidError('');
+                    }}
+                    maxLength={8}
+                    className="text-center text-lg tracking-widest"
+                />
+                {uidError && <p className="text-sm text-destructive">{uidError}</p>}
+            </div>
+        ) : (
+            <div className="space-y-2">
+                <label htmlFor="phone" className="font-medium">Please enter your registered Phone Number</label>
+                <Input 
+                    id="phone" 
+                    type="tel"
+                    placeholder="Enter 10-digit mobile number" 
+                    value={phone}
+                    onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '');
+                        if (value.length <= 10) {
+                            setPhone(value);
+                        }
+                        setPhoneError('');
+                    }}
+                    maxLength={10}
+                    className="text-center text-lg tracking-widest"
+                />
+                {phoneError && <p className="text-sm text-destructive">{phoneError}</p>}
+            </div>
+        )}
 
       </CardContent>
       <CardFooter className="flex-col gap-4">
