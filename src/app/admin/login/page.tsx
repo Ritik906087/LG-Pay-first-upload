@@ -62,7 +62,7 @@ export default function AdminLoginPage() {
                 <Input
                   id="phone"
                   type="tel"
-                  placeholder="9060873927"
+                  placeholder="1234567890"
                   required
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
