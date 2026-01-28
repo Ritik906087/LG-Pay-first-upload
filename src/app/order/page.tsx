@@ -19,7 +19,7 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { useUser, useFirestore, useCollection } from '@/firebase';
-import { collection, query, where, Timestamp, orderBy } from 'firebase/firestore';
+import { collection, query, where, Timestamp, orderBy, limit } from 'firebase/firestore';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 
@@ -43,7 +43,7 @@ type SellOrder = {
   failureReason?: string;
 };
 
-const BuyTransactionCard = ({ transaction }: { transaction: Order }) => {
+const BuyTransactionCard = React.memo(({ transaction }: { transaction: Order }) => {
   const { toast } = useToast();
 
   const copyToClipboard = (text: string) => {
@@ -111,9 +111,10 @@ const BuyTransactionCard = ({ transaction }: { transaction: Order }) => {
       </CardContent>
     </Card>
   );
-};
+});
+BuyTransactionCard.displayName = 'BuyTransactionCard';
 
-const SellTransactionCard = ({ transaction }: { transaction: SellOrder }) => {
+const SellTransactionCard = React.memo(({ transaction }: { transaction: SellOrder }) => {
     const { toast } = useToast();
 
     const copyToClipboard = (text: string) => {
@@ -175,7 +176,8 @@ const SellTransactionCard = ({ transaction }: { transaction: SellOrder }) => {
         </CardContent>
         </Card>
     );
-};
+});
+SellTransactionCard.displayName = 'SellTransactionCard';
 
 
 const TransactionList = ({ orders, loading, type }: { orders: any[], loading: boolean, type: 'buy' | 'sell' }) => {
@@ -218,7 +220,9 @@ export default function TransactionPage() {
     if (!user || !firestore) return null;
     return query(
       collection(firestore, 'users', user.uid, 'orders'),
-      where('status', 'in', ['completed', 'cancelled', 'failed'])
+      where('status', 'in', ['completed', 'cancelled', 'failed']),
+      orderBy('createdAt', 'desc'),
+      limit(50)
     );
   }, [user, firestore]);
   
@@ -226,22 +230,14 @@ export default function TransactionPage() {
     if (!user || !firestore) return null;
     return query(
         collection(firestore, 'users', user.uid, 'sellOrders'),
-        where('status', 'in', ['completed', 'failed'])
+        where('status', 'in', ['completed', 'failed']),
+        orderBy('createdAt', 'desc'),
+        limit(50)
     );
   }, [user, firestore]);
 
-  const { data: unsortedBuyOrders, loading: buyLoading } = useCollection<Order>(buyOrdersQuery);
-  const { data: unsortedSellOrders, loading: sellLoading } = useCollection<SellOrder>(sellOrdersQuery);
-
-  const buyOrders = useMemo(() => {
-    if (!unsortedBuyOrders) return [];
-    return [...unsortedBuyOrders].sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
-  }, [unsortedBuyOrders]);
-
-  const sellOrders = useMemo(() => {
-    if (!unsortedSellOrders) return [];
-    return [...unsortedSellOrders].sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
-  }, [unsortedSellOrders]);
+  const { data: buyOrders, loading: buyLoading } = useCollection<Order>(buyOrdersQuery);
+  const { data: sellOrders, loading: sellLoading } = useCollection<SellOrder>(sellOrdersQuery);
   
   return (
     <div className="text-foreground min-h-screen">

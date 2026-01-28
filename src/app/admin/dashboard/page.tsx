@@ -20,7 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { collection, addDoc, doc, deleteDoc, collectionGroup, query, where, getDocs, updateDoc, Timestamp, runTransaction } from 'firebase/firestore';
+import { collection, addDoc, doc, deleteDoc, collectionGroup, query, where, getDocs, updateDoc, Timestamp, runTransaction, limit, orderBy } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import {
@@ -40,6 +40,7 @@ type UserProfile = {
     email?: string;
     phoneNumber?: string;
     photoURL?: string;
+    createdAt: Timestamp;
 };
 
 type PaymentMethod = {
@@ -101,6 +102,37 @@ const CountdownTimer = ({ expiryTimestamp }: { expiryTimestamp: Timestamp }) => 
     );
 };
 
+const UserCard = React.memo(({ user }: { user: UserProfile }) => {
+    return (
+        <Card className="flex flex-col">
+            <CardHeader className="flex-row items-center gap-4">
+                <Avatar className="h-12 w-12">
+                    <AvatarImage src={user.photoURL} alt={user.displayName} />
+                    <AvatarFallback>{user.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <div>
+                    <CardTitle className="text-base">{user.displayName}</CardTitle>
+                    <CardDescription>UID: {user.numericId}</CardDescription>
+                </div>
+            </CardHeader>
+            <CardContent className="flex-grow space-y-1">
+                <p className="text-xs text-muted-foreground">Balance</p>
+                <p className="text-xl font-bold">{(user.balance || 0).toFixed(2)} <span className="text-sm font-normal text-muted-foreground">LGB</span></p>
+                <p className="text-xs text-muted-foreground pt-2">{user.phoneNumber || 'No phone number'}</p>
+            </CardContent>
+            <CardFooter>
+                 <Button asChild className="w-full" variant="outline">
+                    <Link href={`/admin/users/${user.id}`}>
+                        <Eye className="mr-2 h-4 w-4" />
+                        View User
+                    </Link>
+                </Button>
+            </CardFooter>
+        </Card>
+    );
+});
+UserCard.displayName = 'UserCard';
+
 
 function UsersGrid({ users, loading, error }: { users: UserProfile[], loading: boolean, error: any }) {
     if (loading) {
@@ -154,31 +186,7 @@ function UsersGrid({ users, loading, error }: { users: UserProfile[], loading: b
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {users.map((user) => (
-            <Card key={user.id} className="flex flex-col">
-                <CardHeader className="flex-row items-center gap-4">
-                    <Avatar className="h-12 w-12">
-                        <AvatarImage src={user.photoURL} alt={user.displayName} />
-                        <AvatarFallback>{user.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                        <CardTitle className="text-base">{user.displayName}</CardTitle>
-                        <CardDescription>UID: {user.numericId}</CardDescription>
-                    </div>
-                </CardHeader>
-                <CardContent className="flex-grow space-y-1">
-                    <p className="text-xs text-muted-foreground">Balance</p>
-                    <p className="text-xl font-bold">{(user.balance || 0).toFixed(2)} <span className="text-sm font-normal text-muted-foreground">LGB</span></p>
-                    <p className="text-xs text-muted-foreground pt-2">{user.phoneNumber || 'No phone number'}</p>
-                </CardContent>
-                <CardFooter>
-                     <Button asChild className="w-full" variant="outline">
-                        <Link href={`/admin/users/${user.id}`}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            View User
-                        </Link>
-                    </Button>
-                </CardFooter>
-            </Card>
+                <UserCard key={user.id} user={user} />
             ))}
         </div>
     );
@@ -712,7 +720,7 @@ export default function AdminDashboardPage() {
     const firestore = useFirestore();
     const { toast } = useToast();
 
-    const usersQuery = useMemo(() => firestore ? collection(firestore, "users") : null, [firestore]);
+    const usersQuery = useMemo(() => firestore ? query(collection(firestore, "users"), orderBy('createdAt', 'desc'), limit(50)) : null, [firestore]);
     const { data: allUsers, loading, error } = useCollection<UserProfile>(usersQuery);
     
     const paymentMethodsQuery = useMemo(() => firestore ? collection(firestore, "paymentMethods") : null, [firestore]);

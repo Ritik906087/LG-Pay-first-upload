@@ -14,7 +14,7 @@ import { useDoc, useCollection, useFirestore } from '@/firebase';
 import { useParams, useRouter } from 'next/navigation';
 import { ChevronLeft, Copy, Loader2, Search, XCircle, Download, CheckCircle } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { doc, collection, query, orderBy, Timestamp } from 'firebase/firestore';
+import { doc, collection, query, orderBy, Timestamp, limit } from 'firebase/firestore';
 import {
   Table,
   TableBody,
@@ -336,11 +336,11 @@ export default function UserHistoryPage() {
     const { data: user, loading: userLoading } = useDoc<UserProfile>(userRef);
 
     // Fetch Buy Orders
-    const ordersQuery = useMemo(() => firestore && userId ? query(collection(firestore, 'users', userId, 'orders'), orderBy('createdAt', 'desc')) : null, [firestore, userId]);
+    const ordersQuery = useMemo(() => firestore && userId ? query(collection(firestore, 'users', userId, 'orders'), orderBy('createdAt', 'desc'), limit(25)) : null, [firestore, userId]);
     const { data: buyOrders, loading: ordersLoading } = useCollection<Order>(ordersQuery);
 
     // Fetch Sell Orders
-    const sellOrdersQuery = useMemo(() => firestore && userId ? query(collection(firestore, 'users', userId, 'sellOrders'), orderBy('createdAt', 'desc')) : null, [firestore, userId]);
+    const sellOrdersQuery = useMemo(() => firestore && userId ? query(collection(firestore, 'users', userId, 'sellOrders'), orderBy('createdAt', 'desc'), limit(25)) : null, [firestore, userId]);
     const { data: sellOrders, loading: sellOrdersLoading } = useCollection<SellOrder>(sellOrdersQuery);
 
     // Fetch Admin Payment Methods
