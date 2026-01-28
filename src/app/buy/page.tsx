@@ -1,8 +1,7 @@
 
-
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Card,
@@ -16,7 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { ChevronLeft, ShoppingCart } from 'lucide-react';
+import { ChevronLeft, ShoppingCart, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useUser, useFirestore } from '@/firebase';
@@ -43,29 +42,55 @@ const upiMethods = [
 ];
 
 const PurchaseGrid = ({ onBuyClick, options }: { onBuyClick: (amount: number) => void; options: typeof purchaseOptions }) => {
+  const [visibleOptions, setVisibleOptions] = useState(options);
+
+  useEffect(() => {
+    // Reset the options when the parent component changes them (e.g., switching tabs)
+    setVisibleOptions(options);
+  }, [options]);
+
+  const handleBuy = (option: (typeof purchaseOptions)[0]) => {
+    // Optimistically hide the card
+    setVisibleOptions(prev => prev.filter(o => o.id !== option.id));
+
+    // Proceed with the buy action after a short delay
+    setTimeout(() => {
+      onBuyClick(option.amount);
+    }, 100);
+  };
+
   return (
     <div className="grid grid-cols-1 gap-3 mt-4">
-      {options.map((option) => {
-        const totalLGB = option.amount + (option.amount * (option.bonus / 100));
-        return (
-          <Card key={option.id} className="rounded-xl shadow-sm overflow-hidden bg-white">
-            <div className="flex items-center justify-between p-3">
-               <div className="flex items-center gap-4">
-                   <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                      <ShoppingCart className="h-6 w-6" />
-                   </div>
-                   <div>
-                      <p className="font-bold text-lg">₹ {option.amount.toLocaleString('en-IN')}</p>
-                      <p className="text-xs text-green-600 font-semibold">You Get: {option.amount}+{option.bonus}%={totalLGB.toLocaleString('en-IN')}</p>
-                   </div>
-               </div>
-               <Button onClick={() => onBuyClick(option.amount)} className="h-10 px-6 btn-gradient font-bold rounded-lg">
-                  Buy
-               </Button>
-            </div>
-          </Card>
-        );
-      })}
+      {visibleOptions.length > 0 ? (
+        visibleOptions.map((option) => {
+          const totalLGB = option.amount + (option.amount * (option.bonus / 100));
+          return (
+            <Card key={option.id} className="rounded-xl shadow-sm overflow-hidden bg-white animate-fade-in">
+              <div className="flex items-center justify-between p-3">
+                 <div className="flex items-center gap-4">
+                     <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <ShoppingCart className="h-6 w-6" />
+                     </div>
+                     <div>
+                        <p className="font-bold text-lg">₹ {option.amount.toLocaleString('en-IN')}</p>
+                        <p className="text-xs text-green-600 font-semibold">You Get: {option.amount}+{option.bonus}%={totalLGB.toLocaleString('en-IN')}</p>
+                     </div>
+                 </div>
+                 <Button onClick={() => handleBuy(option)} className="h-10 px-6 btn-gradient font-bold rounded-lg">
+                    Buy
+                 </Button>
+              </div>
+            </Card>
+          );
+        })
+      ) : (
+        <Card className="rounded-xl shadow-sm overflow-hidden bg-white mt-4">
+            <CardContent className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center h-32">
+                <p className="font-semibold">All orders for this amount have been taken.</p>
+                <p className="text-xs mt-1">Please check other amounts or try again later.</p>
+            </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
@@ -220,3 +245,5 @@ export default function BuyPage() {
     </div>
   );
 }
+
+    
