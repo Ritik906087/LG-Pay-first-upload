@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -882,6 +883,7 @@ export default function AdminDashboardPage() {
     const router = useRouter();
     const firestore = useFirestore();
     const { toast } = useToast();
+    const [isMounted, setIsMounted] = React.useState(false);
 
     const usersQuery = useMemo(() => firestore ? query(collection(firestore, "users"), orderBy('createdAt', 'desc'), limit(50)) : null, [firestore]);
     const { data: allUsers, loading, error } = useCollection<UserProfile>(usersQuery);
@@ -890,6 +892,10 @@ export default function AdminDashboardPage() {
     const { data: paymentMethods, loading: paymentMethodsLoading } = useCollection<PaymentMethod>(paymentMethodsQuery);
 
     const [searchTerm, setSearchTerm] = useState('');
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     const handleLogout = () => {
         document.cookie = 'admin-auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
@@ -930,6 +936,23 @@ export default function AdminDashboardPage() {
             toast({ variant: 'destructive', title: 'Error deleting payment method.'});
         }
     };
+
+    if (!isMounted) {
+        return (
+            <div className="flex min-h-screen w-full flex-col">
+                <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 z-10 justify-between">
+                    <Logo className="text-2xl" />
+                    <Button onClick={handleLogout} variant="outline" size="sm">
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Logout
+                    </Button>
+                </header>
+                <main className="flex flex-1 items-center justify-center">
+                    <Loader2 className="h-12 w-12 animate-spin text-primary"/>
+                </main>
+            </div>
+        )
+    }
 
   return (
     <div className="flex min-h-screen w-full flex-col">
@@ -1056,3 +1079,5 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
+    
