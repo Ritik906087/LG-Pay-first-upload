@@ -583,5 +583,3 @@ export default function ConfirmPage() {
     </Suspense>
   )
 }
-
-    
