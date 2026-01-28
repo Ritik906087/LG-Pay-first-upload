@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useDoc, useCollection, useFirestore } from '@/firebase';
 import { useParams, useRouter } from 'next/navigation';
-import { ChevronLeft, Copy, Loader2, Search, XCircle, Download, CheckCircle } from 'lucide-react';
+import { ChevronLeft, Copy, Loader2, Search, X, Download } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { doc, collection, query, orderBy, Timestamp, limit } from 'firebase/firestore';
 import {
@@ -99,34 +99,49 @@ const CancelledReceipt = React.forwardRef<HTMLDivElement, { order: SellOrder }>(
     });
 
     return (
-        <div ref={ref} className="bg-white p-6 rounded-lg shadow-lg w-[360px] relative overflow-hidden font-sans">
-            <div className="absolute inset-0 flex items-center justify-center z-0">
-                <h1 className="text-[120px] font-bold text-gray-200/30 rotate-[-30deg] select-none">LG PAY</h1>
-            </div>
-            <div className="relative z-10">
-                <div className="text-center mb-6">
-                    <XCircle className="h-16 w-16 text-red-500 mx-auto" />
-                    <h2 className="text-xl font-semibold mt-4 text-red-600">Payment Failed</h2>
-                    <p className="text-3xl font-bold mt-2">₹{order.amount.toFixed(2)}</p>
+        <div ref={ref} className="bg-white p-6 rounded-2xl shadow-lg w-[360px] overflow-hidden relative font-sans">
+            <div className="text-center pt-2 pb-4">
+                <div className="inline-block relative h-24 w-24 rounded-full bg-red-100/80">
+                     <div className="absolute inset-2.5 rounded-full bg-white flex items-center justify-center">
+                        <div className="h-14 w-14 rounded-2xl bg-red-500 flex items-center justify-center shadow-lg shadow-red-500/40">
+                             <X className="h-8 w-8 text-white" />
+                        </div>
+                    </div>
                 </div>
 
-                <div className="space-y-3 text-sm border-t border-dashed pt-4">
-                    <div className="flex justify-between">
-                        <span className="text-gray-500">To</span>
-                        <span className="font-medium text-right">{order.withdrawalMethod.upiId}</span>
-                    </div>
-                     <div className="flex justify-between items-start">
-                        <span className="text-gray-500">Reason</span>
-                        <span className="font-medium text-right text-red-600 max-w-[70%]">{order.failureReason || 'N/A'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-gray-500">Order ID</span>
-                        <span className="font-medium font-mono text-xs">{order.orderId}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-gray-500">Date & Time</span>
-                        <span className="font-medium">{receiptDate}</span>
-                    </div>
+                <h2 className="text-lg font-extrabold mt-3 text-red-600">Payment Failed</h2>
+                <p className="text-4xl font-black mt-2">₹{order.amount.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground mt-1 max-w-[80%] mx-auto">{order.failureReason || 'Transaction could not be completed'}</p>
+            </div>
+            
+            <div className="h-2.5 my-3 -mx-6 bg-gradient-to-r from-gray-100 via-gray-50 to-gray-100"></div>
+
+            <div className="space-y-3 text-sm">
+                 <div className="flex justify-between items-center py-2 border-b border-dashed">
+                    <span className="text-muted-foreground">Status</span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-2 py-1 text-xs font-extrabold text-red-700">
+                        ● FAILED
+                    </span>
+                </div>
+                 <div className="flex justify-between items-center py-2 border-b border-dashed">
+                    <span className="text-muted-foreground">To</span>
+                    <span className="font-bold text-right">{order.withdrawalMethod.name}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-dashed">
+                    <span className="text-muted-foreground">UPI ID</span>
+                    <span className="font-bold text-right break-all">{order.withdrawalMethod.upiId}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-dashed">
+                    <span className="text-muted-foreground">Transaction ID</span>
+                    <span className="font-mono font-bold">{order.orderId}</span>
+                </div>
+                 <div className="flex justify-between items-center py-2 border-b border-dashed">
+                    <span className="text-muted-foreground">Reason</span>
+                    <span className="font-bold text-right max-w-[60%]">{order.failureReason || 'N/A'}</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                    <span className="text-muted-foreground">Date & Time</span>
+                    <span className="font-bold">{receiptDate}</span>
                 </div>
             </div>
         </div>
@@ -145,38 +160,47 @@ const SuccessfulReceipt = React.forwardRef<HTMLDivElement, { order: SellOrder }>
     });
 
     return (
-        <div ref={ref} className="bg-white p-6 rounded-lg shadow-lg w-[360px] relative overflow-hidden font-sans">
-            <div className="absolute inset-0 flex items-center justify-center z-0">
-                <h1 className="text-[120px] font-bold text-gray-200/30 rotate-[-30deg] select-none">LG PAY</h1>
-            </div>
-            <div className="relative z-10">
-                <div className="text-center mb-6">
-                    <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
-                    <h2 className="text-xl font-semibold mt-4 text-green-600">Payment Successful</h2>
-                    <p className="text-3xl font-bold mt-2">₹{order.amount.toFixed(2)}</p>
+        <div ref={ref} className="bg-white p-6 rounded-2xl shadow-lg w-[360px] overflow-hidden relative font-sans">
+            <div className="text-center pt-2 pb-4">
+                <div className="inline-block relative h-24 w-24 rounded-full bg-green-100/80">
+                     <div className="absolute inset-2.5 rounded-full bg-white flex items-center justify-center">
+                        <div className="h-14 w-14 rounded-2xl bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/40">
+                             <svg className="h-8 w-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/>
+                            </svg>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="space-y-3 text-sm border-t border-dashed pt-4">
-                    <div className="flex justify-between">
-                        <span className="text-gray-500">To</span>
-                        <span className="font-medium text-right">{order.withdrawalMethod.upiId}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-gray-500">From</span>
-                        <span className="font-medium">LG PAY ADMIN</span>
-                    </div>
-                     <div className="flex justify-between">
-                        <span className="text-gray-500">UTR Number</span>
-                        <span className="font-medium font-mono">{order.utr || 'XXXXXXXXXXXXXXXX'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-gray-500">Order ID</span>
-                        <span className="font-medium font-mono text-xs">{order.orderId}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-gray-500">Date & Time</span>
-                        <span className="font-medium">{receiptDate}</span>
-                    </div>
+                <h2 className="text-lg font-extrabold mt-3">Payment Successful</h2>
+                <p className="text-4xl font-black mt-2">₹{order.amount.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground mt-1">Transaction completed successfully</p>
+            </div>
+            
+            <div className="h-2.5 my-3 -mx-6 bg-gradient-to-r from-gray-100 via-gray-50 to-gray-100"></div>
+
+            <div className="space-y-3 text-sm">
+                 <div className="flex justify-between items-center py-2 border-b border-dashed">
+                    <span className="text-muted-foreground">Status</span>
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2 py-1 text-xs font-extrabold text-green-700">
+                        ● SUCCESS
+                    </span>
+                </div>
+                 <div className="flex justify-between items-center py-2 border-b border-dashed">
+                    <span className="text-muted-foreground">To</span>
+                    <span className="font-bold text-right">{order.withdrawalMethod.name}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-dashed">
+                    <span className="text-muted-foreground">UPI ID</span>
+                    <span className="font-bold text-right break-all">{order.withdrawalMethod.upiId}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-dashed">
+                    <span className="text-muted-foreground">Transaction ID</span>
+                    <span className="font-mono font-bold">{order.utr || 'XXXXXXXXXXXXXXXX'}</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                    <span className="text-muted-foreground">Date & Time</span>
+                    <span className="font-bold">{receiptDate}</span>
                 </div>
             </div>
         </div>
@@ -497,3 +521,5 @@ export default function UserHistoryPage() {
         </main>
     )
 }
+
+    
