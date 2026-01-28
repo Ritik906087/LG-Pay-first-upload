@@ -28,9 +28,10 @@ import Image from 'next/image';
 import Autoplay from "embla-carousel-autoplay";
 import React, { useEffect, useState } from 'react';
 import { useUser, useFirestore, useDoc, useCollection } from '@/firebase';
-import { doc, collection, query, where, Timestamp } from 'firebase/firestore';
+import { doc, collection, query, where, Timestamp, updateDoc, runTransaction, getDoc } from 'firebase/firestore';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 
 const GlassCard = ({ children, className }: { children: React.ReactNode, className?: string }) => (
@@ -84,6 +85,7 @@ const faqs = [
 
 const Countdown = ({ expiryTimestamp, onExpire }: { expiryTimestamp: Timestamp, onExpire?: () => void }) => {
     const [timeLeft, setTimeLeft] = useState('');
+    const [isExpired, setIsExpired] = useState(false);
 
     useEffect(() => {
         const expiryTime = expiryTimestamp.toDate().getTime();
@@ -95,7 +97,10 @@ const Countdown = ({ expiryTimestamp, onExpire }: { expiryTimestamp: Timestamp, 
             if (distance < 0) {
                 clearInterval(interval);
                 setTimeLeft("Expired");
-                onExpire?.();
+                if (!isExpired) {
+                    onExpire?.();
+                    setIsExpired(true);
+                }
                 return;
             }
 
@@ -105,7 +110,7 @@ const Countdown = ({ expiryTimestamp, onExpire }: { expiryTimestamp: Timestamp, 
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [expiryTimestamp, onExpire]);
+    }, [expiryTimestamp, onExpire, isExpired]);
 
     if (!timeLeft) return null;
 
@@ -121,7 +126,7 @@ const Countdown = ({ expiryTimestamp, onExpire }: { expiryTimestamp: Timestamp, 
 };
 
 
-const InProgressOrderCard = ({ order }: { order: any }) => {
+const InProgressOrderCard = ({ order, onExpire }: { order: any, onExpire: (orderId: string, type: 'buy' | 'sell') => void }) => {
     const isBuy = order.type === 'buy';
     const isSell = order.type === 'sell';
     
@@ -133,12 +138,12 @@ const InProgressOrderCard = ({ order }: { order: any }) => {
     if (isBuy) {
         if (order.status === 'pending_payment') {
             buttonText = "Complete Payment";
-            buttonLink = `/buy/confirm/${order.id}?type=${order.paymentType}`;
+            buttonLink = `/buy/confirm/${order.id}?type=${order.paymentType}&provider=${order.paymentProvider}`;
             expiryTimestamp = new Timestamp(order.createdAt.seconds + 30 * 60, order.createdAt.nanoseconds);
         } else if (order.status === 'processing') {
             buttonText = "View Status";
             buttonLink = `/order/${order.id}`;
-            if (order.submittedAt) { // Safety check for submittedAt
+            if (order.submittedAt) { 
                 expiryTimestamp = new Timestamp(order.submittedAt.seconds + 30 * 60, order.submittedAt.nanoseconds);
             }
         }
@@ -151,11 +156,6 @@ const InProgressOrderCard = ({ order }: { order: any }) => {
         }
     }
 
-    // A dummy onExpire function for the Countdown component.
-    // In a real scenario, this would trigger a refetch or state update.
-    const handleExpire = () => {};
-
-
     return (
         <Card className="bg-secondary/50">
             <CardContent className="p-3">
@@ -164,7 +164,7 @@ const InProgressOrderCard = ({ order }: { order: any }) => {
                         <p className="font-bold text-lg">₹{order.amount.toFixed(2)}</p>
                         <div className="flex items-center gap-2">
                              <p className="text-xs text-muted-foreground capitalize">{statusText}</p>
-                             {expiryTimestamp && <Countdown expiryTimestamp={expiryTimestamp} onExpire={handleExpire} />}
+                             {expiryTimestamp && <Countdown expiryTimestamp={expiryTimestamp} onExpire={() => onExpire(order.id, order.type)} />}
                         </div>
                     </div>
                     <Button asChild size="sm" className="font-bold flex-shrink-0">
@@ -184,6 +184,7 @@ export default function HomePage() {
   
   const { user } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
 
   const userProfileRef = React.useMemo(() => {
     if (!user || !firestore) return null;
@@ -220,6 +221,48 @@ export default function HomePage() {
   
   const ordersLoading = buyOrdersLoading || sellOrdersLoading;
   const hasInProgressOrders = (inProgressBuyOrders && inProgressBuyOrders.length > 0) || (inProgressSellOrders && inProgressSellOrders.length > 0);
+
+  const handleOrderExpire = async (orderId: string, type: 'buy' | 'sell') => {
+    if (!firestore || !user) return;
+
+    const collectionName = type === 'buy' ? 'orders' : 'sellOrders';
+    const orderRef = doc(firestore, 'users', user.uid, collectionName, orderId);
+
+    try {
+      await runTransaction(firestore, async (transaction) => {
+        const orderSnap = await transaction.get(orderRef);
+        if (!orderSnap.exists()) return;
+
+        const orderData = orderSnap.data();
+        const validStatusesToExpire = ['pending_payment', 'processing', 'pending'];
+        
+        if (!validStatusesToExpire.includes(orderData.status)) {
+          return;
+        }
+        
+        if (type === 'sell') {
+            const userRef = doc(firestore, 'users', user.uid);
+            const userSnap = await transaction.get(userRef);
+            if (!userSnap.exists()) throw new Error("User not found");
+            
+            transaction.update(orderRef, { status: 'failed', failureReason: 'Order automatically expired.' });
+            const newBalance = userSnap.data().balance + orderData.amount;
+            transaction.update(userRef, { balance: newBalance });
+        } else { // Buy order
+            let reason = orderData.status === 'processing' ? 'Order processing timed out.' : 'Order automatically expired.';
+            transaction.update(orderRef, {
+                status: 'failed',
+                cancellationReason: reason,
+            });
+        }
+      });
+      toast({ variant: 'destructive', title: 'Order Expired', description: `Order ${orderId} has been marked as failed.`});
+    } catch (error) {
+      console.error(`Failed to expire ${type} order ${orderId} from homepage:`, error);
+      toast({ variant: 'destructive', title: 'Error', description: `Could not update expired order.` });
+    }
+  };
+
 
   return (
     <div className="flex flex-col pb-24 text-foreground">
@@ -326,7 +369,7 @@ export default function HomePage() {
                         <TabsContent value="buy" className="p-3 space-y-3">
                            {inProgressBuyOrders && inProgressBuyOrders.length > 0 ? (
                                 inProgressBuyOrders.map((order: any) => (
-                                    <InProgressOrderCard key={order.id} order={{...order, type: 'buy'}} />
+                                    <InProgressOrderCard key={order.id} order={{...order, type: 'buy'}} onExpire={handleOrderExpire} />
                                 ))
                            ) : (
                                 <p className="text-center text-sm text-muted-foreground py-4">No buy orders in progress.</p>
@@ -335,7 +378,7 @@ export default function HomePage() {
                          <TabsContent value="sell" className="p-3 space-y-3">
                            {inProgressSellOrders && inProgressSellOrders.length > 0 ? (
                                 inProgressSellOrders.map((order: any) => (
-                                    <InProgressOrderCard key={order.id} order={{...order, type: 'sell'}} />
+                                    <InProgressOrderCard key={order.id} order={{...order, type: 'sell'}} onExpire={handleOrderExpire} />
                                 ))
                            ) : (
                                 <p className="text-center text-sm text-muted-foreground py-4">No sell orders in progress.</p>
