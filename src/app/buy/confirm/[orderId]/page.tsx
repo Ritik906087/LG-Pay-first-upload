@@ -48,7 +48,10 @@ type Order = {
     amount: number;
     status: string;
     createdAt: Timestamp;
-}
+    orderId: string;
+    paymentType: 'bank' | 'upi';
+    paymentProvider: string;
+};
 
 type UserProfile = {
     paymentMethods?: { name: string; upiId: string }[];
@@ -437,18 +440,6 @@ function PaymentDetailsContent() {
                         <CardTitle>{type === 'bank' ? 'Bank Transfer' : 'Pay via UPI'}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4 text-sm">
-                        {Object.entries(details).map(([key, value]) => (
-                            <div key={key} className="flex justify-between items-center">
-                                <span className="text-muted-foreground">{key}</span>
-                                <div className="flex items-center gap-2">
-                                    <span className="font-semibold">{value}</span>
-                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(value!)} disabled={isConfirming || isUpdatingProvider}>
-                                        <Copy className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            </div>
-                        ))}
-                        <div className="border-t border-dashed -mx-4 my-4"></div>
                         <div className="flex justify-between items-center pt-0">
                             <span className="text-muted-foreground text-base">Amount to be paid</span>
                             <div className="flex items-center gap-2">
@@ -464,8 +455,45 @@ function PaymentDetailsContent() {
                                 </Button>
                             </div>
                         </div>
+                        <div className="border-t border-dashed -mx-4 my-4"></div>
+                        {Object.entries(details).map(([key, value]) => (
+                            <div key={key} className="flex justify-between items-center">
+                                <span className="text-muted-foreground">{key}</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="font-semibold">{value}</span>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(value!)} disabled={isConfirming || isUpdatingProvider}>
+                                        <Copy className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </div>
+                        ))}
                     </CardContent>
                 </Card>
+
+                {type === 'upi' && details && order && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Scan QR to Pay</CardTitle>
+                        </CardHeader>
+                        <CardContent className="flex flex-col items-center gap-2">
+                            <Image
+                                src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(
+                                    `upi://pay?pa=${details['UPI ID']}&pn=${encodeURIComponent(details['Recipient Name'])}&am=${order.amount}&tn=${order.orderId}`
+                                )}&size=200x200&qzone=2`}
+                                width={200}
+                                height={200}
+                                alt="UPI QR Code"
+                                className="rounded-lg border p-1 bg-white"
+                            />
+                            <p className="text-sm text-muted-foreground text-center">
+                                Scan with any UPI app to pay.
+                            </p>
+                            <p className="text-xs text-muted-foreground text-center">
+                                Amount and order number will be pre-filled.
+                            </p>
+                        </CardContent>
+                    </Card>
+                )}
 
                 <Card>
                     <CardContent className="p-4 space-y-4">
