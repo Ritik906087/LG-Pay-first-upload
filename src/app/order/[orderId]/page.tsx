@@ -20,6 +20,7 @@ type Order = {
     utr: string;
     screenshotURL: string;
     submittedAt: Timestamp;
+    cancellationReason?: string;
 };
 
 const formatTime = (seconds: number) => {
@@ -126,6 +127,8 @@ function OrderStatusContent() {
             </div>
         )
     }
+    
+    const isTimeout = order.status === 'failed' && order.cancellationReason && (order.cancellationReason.includes('expired') || order.cancellationReason.includes('timed out'));
 
     return (
         <div className="flex flex-col min-h-screen">
@@ -154,7 +157,7 @@ function OrderStatusContent() {
                         ) : (
                              <>
                                 <XCircle className="h-16 w-16 text-destructive" />
-                                <h2 className="text-2xl font-bold text-destructive capitalize">{order.status}</h2>
+                                <h2 className="text-2xl font-bold text-destructive capitalize">{isTimeout ? 'Time out' : order.status.replace('_', ' ')}</h2>
                                 <p className="text-muted-foreground">This order could not be completed.</p>
                             </>
                         )}
@@ -197,7 +200,7 @@ function OrderStatusContent() {
                         </div>
                          <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Status</span>
-                            <span className="font-semibold capitalize">{isUpdatingStatus ? 'Updating...' : order.status.replace('_', ' ')}</span>
+                            <span className="font-semibold capitalize">{isUpdatingStatus ? 'Updating...' : (isTimeout ? 'Time out' : order.status.replace('_', ' '))}</span>
                         </div>
                          <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Screenshot</span>

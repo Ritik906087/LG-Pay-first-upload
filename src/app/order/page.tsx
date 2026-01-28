@@ -30,6 +30,7 @@ type Order = {
   status: 'pending_payment' | 'processing' | 'completed' | 'cancelled' | 'failed';
   utr?: string;
   createdAt: Timestamp;
+  cancellationReason?: string;
 };
 
 type SellOrder = {
@@ -39,6 +40,7 @@ type SellOrder = {
   status: 'pending' | 'processing' | 'completed' | 'failed';
   utr?: string;
   createdAt: Timestamp;
+  failureReason?: string;
 };
 
 const BuyTransactionCard = ({ transaction }: { transaction: Order }) => {
@@ -49,6 +51,8 @@ const BuyTransactionCard = ({ transaction }: { transaction: Order }) => {
       toast({ title: 'Order number copied!' });
     });
   };
+
+  const isTimeout = transaction.status === 'failed' && transaction.cancellationReason && (transaction.cancellationReason.includes('expired') || transaction.cancellationReason.includes('timed out'));
 
   const statusConfig = {
       completed: {
@@ -61,7 +65,7 @@ const BuyTransactionCard = ({ transaction }: { transaction: Order }) => {
       },
       failed: {
           style: "bg-red-100 text-red-800",
-          text: "Failed"
+          text: isTimeout ? "Time out" : "Failed"
       },
       processing: {
            style: "bg-blue-100 text-blue-800",
@@ -118,6 +122,8 @@ const SellTransactionCard = ({ transaction }: { transaction: SellOrder }) => {
         });
     };
 
+    const isTimeout = transaction.status === 'failed' && transaction.failureReason && (transaction.failureReason.includes('expired') || transaction.failureReason.includes('timed out'));
+
     const statusConfig = {
       completed: {
           style: "bg-green-100 text-green-800",
@@ -125,7 +131,7 @@ const SellTransactionCard = ({ transaction }: { transaction: SellOrder }) => {
       },
       failed: {
           style: "bg-red-100 text-red-800",
-          text: "Failed"
+          text: isTimeout ? "Time out" : "Failed"
       },
       pending: {
            style: "bg-yellow-100 text-yellow-800",

@@ -22,6 +22,7 @@ type SellOrder = {
         name: string;
         upiId: string;
     };
+    failureReason?: string;
 };
 
 const formatTime = (seconds: number) => {
@@ -76,7 +77,7 @@ function SellOrderStatusContent() {
                 const currentBalance = userProfileSnap.data().balance || 0;
                 const newBalance = currentBalance + sellOrder.amount;
                 
-                transaction.update(sellOrderRef, { status: 'failed' });
+                transaction.update(sellOrderRef, { status: 'failed', failureReason: 'Order automatically expired.' });
                 transaction.update(userProfileRef, { balance: newBalance });
             });
             
@@ -142,7 +143,9 @@ function SellOrderStatusContent() {
         );
     }
     
-    const isFailed = sellOrder.status === 'failed' || (timeLeft !== null && timeLeft <= 0);
+    const isTimeout = (sellOrder.status === 'failed' && sellOrder.failureReason && sellOrder.failureReason.includes('expired')) || (sellOrder.status === 'pending' && timeLeft !== null && timeLeft <= 0);
+
+    const isFailed = sellOrder.status === 'failed' || (sellOrder.status === 'pending' && timeLeft !== null && timeLeft <= 0);
 
     return (
         <div className="flex flex-col min-h-screen">
@@ -159,7 +162,7 @@ function SellOrderStatusContent() {
                         {isRefunding || isFailed ? (
                             <>
                                 <XCircle className="h-16 w-16 text-destructive" />
-                                <h2 className="text-2xl font-bold text-destructive">Order Failed</h2>
+                                <h2 className="text-2xl font-bold text-destructive">{isTimeout ? "Time out" : "Order Failed"}</h2>
                                 <p className="text-muted-foreground">₹{sellOrder.amount.toFixed(2)} has been refunded to your balance.</p>
                             </>
                         ) : (
@@ -204,7 +207,7 @@ function SellOrderStatusContent() {
                         </div>
                          <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Status</span>
-                            <span className="font-semibold capitalize">{isRefunding ? 'Refunding...' : sellOrder.status}</span>
+                            <span className="font-semibold capitalize">{isRefunding ? 'Refunding...' : (isTimeout ? 'Time out' : sellOrder.status)}</span>
                         </div>
                     </CardContent>
                 </Card>
