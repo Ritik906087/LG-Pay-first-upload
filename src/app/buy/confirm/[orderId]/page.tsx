@@ -159,9 +159,6 @@ function PaymentDetailsContent() {
             if (!isAutoCancel) {
                 toast({ title: 'Order Cancelled' });
                 router.push('/home');
-            } else {
-                toast({ variant: 'destructive', title: 'Order Failed', description: 'Your order expired because you did not complete payment in time.' });
-                setTimeout(() => router.push('/home'), 1000);
             }
         } catch (e: any) {
             console.error("Error cancelling order:", e);
@@ -219,7 +216,12 @@ function PaymentDetailsContent() {
     };
     
     useEffect(() => {
-        if (!order || order.status !== 'pending_payment' || !order.createdAt) {
+        if (order && order.status !== 'pending_payment') {
+            router.push(`/order/${orderId}`);
+            return;
+        }
+
+        if (!order || !order.createdAt) {
             setTimeLeft(0);
             return;
         }
@@ -682,7 +684,3 @@ export default function ConfirmPage() {
     </Suspense>
   )
 }
-
-    
-
-    
