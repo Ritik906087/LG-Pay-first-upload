@@ -56,7 +56,7 @@ const PurchaseGrid = ({ onBuyClick, options }: { onBuyClick: (amount: number) =>
                    </div>
                    <div>
                       <p className="font-bold text-lg">₹ {option.amount.toLocaleString('en-IN')}</p>
-                      <p className="text-xs text-green-600 font-semibold">You Get: {totalLGB.toLocaleString('en-IN')} LGB</p>
+                      <p className="text-xs text-green-600 font-semibold">You Get: {option.amount.toLocaleString('en-IN')}+{option.bonus}%={totalLGB.toLocaleString('en-IN')}</p>
                    </div>
                </div>
                <Button onClick={() => onBuyClick(option.amount)} className="h-10 px-6 btn-gradient font-bold rounded-lg">
