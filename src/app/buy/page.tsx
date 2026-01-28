@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Card,
@@ -142,45 +142,40 @@ export default function BuyPage() {
 
   const { data: inProgressBuyOrders } = useCollection(inProgressBuyOrdersQuery);
   
-    useEffect(() => {
-        const interval = setInterval(() => {
-            const isSmallTab = activeSubTab === 'small';
-            const setter = isSmallTab ? setSmallOptions : setHighOptions;
-            const initialOpts = isSmallTab ? memoizedSmallPurchaseOptions : memoizedHighPurchaseOptions;
-            const sortFn = isSmallTab 
-                ? (a: {amount: number}, b: {amount: number}) => a.amount - b.amount 
-                : (a: {amount: number}, b: {amount: number}) => b.amount - a.amount;
+  useEffect(() => {
+    const interval = setInterval(() => {
+        const isSmallTab = activeSubTab === 'small';
+        const setter = isSmallTab ? setSmallOptions : setHighOptions;
+        const initialOpts = isSmallTab ? memoizedSmallPurchaseOptions : memoizedHighPurchaseOptions;
+        
+        setter(currentOpts => {
+            let newOpts = [...currentOpts];
+            
+            const itemsToReplace = Math.floor(Math.random() * 2) + 2;
+            
+            const indicesToRemove = new Set<number>();
+            while (indicesToRemove.size < itemsToReplace && newOpts.length > 0) {
+                indicesToRemove.add(Math.floor(Math.random() * newOpts.length));
+            }
 
-            setter(currentOpts => {
-                let newOpts = [...currentOpts];
-                
-                const itemsToChange = Math.floor(Math.random() * 3) + 1; // 1 to 3 items
-                
-                const indicesToRemove = new Set<number>();
-                while (indicesToRemove.size < itemsToChange && newOpts.length > indicesToRemove.size) {
-                    indicesToRemove.add(Math.floor(Math.random() * newOpts.length));
+            newOpts = newOpts.filter((_, index) => !indicesToRemove.has(index));
+
+            const availableToAdd = initialOpts.filter(o => !newOpts.some(opt => opt.id === o.id));
+            
+            for (let i = 0; i < itemsToReplace && availableToAdd.length > 0; i++) {
+                const newItemIndex = Math.floor(Math.random() * availableToAdd.length);
+                const newItem = availableToAdd.splice(newItemIndex, 1)[0];
+                if (newItem) {
+                    newOpts.push(newItem);
                 }
+            }
+            
+            return newOpts;
+        });
+    }, 2000);
 
-                newOpts = newOpts.filter((_, index) => !indicesToRemove.has(index));
-
-                const availableToAdd = initialOpts.filter(o => !newOpts.find(opt => opt.id === o.id));
-                
-                for (let i = 0; i < indicesToRemove.size && availableToAdd.length > 0; i++) {
-                    const newItemIndex = Math.floor(Math.random() * availableToAdd.length);
-                    const newItem = availableToAdd.splice(newItemIndex, 1)[0];
-                    if (newItem) {
-                        newOpts.push(newItem);
-                    }
-                }
-                
-                newOpts.sort(sortFn);
-                
-                return newOpts;
-            });
-        }, 2000); // Update every 2 seconds
-
-        return () => clearInterval(interval);
-    }, [activeSubTab, memoizedSmallPurchaseOptions, memoizedHighPurchaseOptions]);
+    return () => clearInterval(interval);
+}, [activeSubTab, memoizedSmallPurchaseOptions, memoizedHighPurchaseOptions]);
 
 
   const handleBuyClick = (option: { amount: number }) => {
