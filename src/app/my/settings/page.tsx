@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 export default function SettingsPage() {
-  const { user } = useUser();
+  const { user, loading: authLoading } = useUser();
   const firestore = useFirestore();
   const storage = useStorage();
   const { toast } = useToast();
@@ -83,7 +83,11 @@ export default function SettingsPage() {
       (error) => {
         // Handle unsuccessful uploads
         console.error("Error uploading image: ", error);
-        toast({ variant: 'destructive', title: 'Upload Error', description: 'Failed to upload image. Please check permissions and network.' });
+        let description = 'Failed to upload image. Please check permissions and network.';
+        if (error.code === 'storage/unauthorized') {
+            description = 'Permission denied. Please check your storage rules.';
+        }
+        toast({ variant: 'destructive', title: 'Upload Error', description: description });
         setIsSaving(false);
       }, 
       () => {
@@ -199,5 +203,4 @@ export default function SettingsPage() {
     </div>
   );
 }
-
     
