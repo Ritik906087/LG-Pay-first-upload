@@ -221,7 +221,6 @@ export default function TransactionPage() {
     return query(
       collection(firestore, 'users', user.uid, 'orders'),
       where('status', 'in', ['completed', 'cancelled', 'failed']),
-      orderBy('createdAt', 'desc'),
       limit(50)
     );
   }, [user, firestore]);
@@ -231,13 +230,22 @@ export default function TransactionPage() {
     return query(
         collection(firestore, 'users', user.uid, 'sellOrders'),
         where('status', 'in', ['completed', 'failed']),
-        orderBy('createdAt', 'desc'),
         limit(50)
     );
   }, [user, firestore]);
 
-  const { data: buyOrders, loading: buyLoading } = useCollection<Order>(buyOrdersQuery);
-  const { data: sellOrders, loading: sellLoading } = useCollection<SellOrder>(sellOrdersQuery);
+  const { data: unsortedBuyOrders, loading: buyLoading } = useCollection<Order>(buyOrdersQuery);
+  const { data: unsortedSellOrders, loading: sellLoading } = useCollection<SellOrder>(sellOrdersQuery);
+
+  const buyOrders = useMemo(() => {
+    if (!unsortedBuyOrders) return [];
+    return [...unsortedBuyOrders].sort((a, b) => b.createdAt.seconds - a.createdAt.seconds);
+  }, [unsortedBuyOrders]);
+
+  const sellOrders = useMemo(() => {
+    if (!unsortedSellOrders) return [];
+    return [...unsortedSellOrders].sort((a, b) => b.createdAt.seconds - a.createdAt.seconds);
+  }, [unsortedSellOrders]);
   
   return (
     <div className="text-foreground min-h-screen">
@@ -286,10 +294,10 @@ export default function TransactionPage() {
               </div>
 
              <TabsContent value="buy">
-                <TransactionList orders={buyOrders || []} loading={buyLoading} type="buy"/>
+                <TransactionList orders={buyOrders} loading={buyLoading} type="buy"/>
              </TabsContent>
              <TabsContent value="sell">
-                <TransactionList orders={sellOrders || []} loading={sellLoading} type="sell"/>
+                <TransactionList orders={sellOrders} loading={sellLoading} type="sell"/>
              </TabsContent>
           </Tabs>
       </main>
