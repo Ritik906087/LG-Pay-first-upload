@@ -53,9 +53,6 @@ const allPurchaseOptions = Object.entries(purchaseConfig)
     }));
   });
 
-const smallPurchaseOptions = allPurchaseOptions.filter(opt => opt.amount <= 1000);
-const highPurchaseOptions = allPurchaseOptions.filter(opt => opt.amount > 1000);
-
 
 const upiMethods = [
     { name: "PhonePe", logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/download%20(1).png?alt=media&token=205260a4-bfcf-46dd-8dc6-5b440852f2ae" },
@@ -123,8 +120,7 @@ export default function BuyPage() {
   const [isInProgressDialogOpen, setIsInProgressDialogOpen] = useState(false);
   const [inProgressOrder, setInProgressOrder] = useState<any>(null);
   
-  const [smallOptions, setSmallOptions] = useState(() => [...smallPurchaseOptions]);
-  const [highOptions, setHighOptions] = useState(() => [...highPurchaseOptions]);
+  const [allOptions, setAllOptions] = useState(() => [...allPurchaseOptions]);
 
   const inProgressBuyOrdersQuery = useMemo(() => {
     if (!user || !firestore) return null;
@@ -139,73 +135,47 @@ export default function BuyPage() {
   useEffect(() => {
     // --- REMOVAL INTERVAL ---
     const removalInterval = setInterval(() => {
-        const numToRemove = Math.floor(Math.random() * 2) + 2; // 2 or 3
-        
-        setSmallOptions(prevOptions => {
-            if (prevOptions.length <= numToRemove) return prevOptions;
-            let currentOpts = [...prevOptions];
-            for (let i = 0; i < numToRemove; i++) {
-                const removeIndex = Math.floor(Math.random() * currentOpts.length);
-                currentOpts.splice(removeIndex, 1);
-            }
-            return currentOpts;
-        });
+        const numToRemove = 20;
 
-        setHighOptions(prevOptions => {
-            if (prevOptions.length <= numToRemove) return prevOptions;
+        setAllOptions(prevOptions => {
+            if (prevOptions.length <= numToRemove + 10) return prevOptions; 
             let currentOpts = [...prevOptions];
             for (let i = 0; i < numToRemove; i++) {
+                if (currentOpts.length === 0) break;
                 const removeIndex = Math.floor(Math.random() * currentOpts.length);
                 currentOpts.splice(removeIndex, 1);
             }
             return currentOpts;
         });
-        
     }, 2000); // Runs every 2 seconds
 
     // --- ADDITION INTERVAL ---
     const additionInterval = setInterval(() => {
-        const numToAdd = Math.floor(Math.random() * 2) + 2; // 2 or 3
+        const numToAdd = 30;
 
-        setSmallOptions(prevOptions => {
+        setAllOptions(prevOptions => {
             let currentOpts = [...prevOptions];
             const currentIds = new Set(currentOpts.map(o => o.id));
-            const availableToAdd = smallPurchaseOptions.filter(opt => !currentIds.has(opt.id));
+            
+            const baseOptions = allPurchaseOptions; 
+            const availableToAdd = baseOptions.filter(opt => !currentIds.has(opt.id));
             
             for (let i = 0; i < numToAdd && availableToAdd.length > 0; i++) {
                 const addIndex = Math.floor(Math.random() * availableToAdd.length);
                 const itemToAdd = availableToAdd.splice(addIndex, 1)[0];
                 
-                // Insert at random position
                 const insertAtIndex = Math.floor(Math.random() * (currentOpts.length + 1));
                 currentOpts.splice(insertAtIndex, 0, itemToAdd);
             }
             return currentOpts;
         });
-
-        setHighOptions(prevOptions => {
-            let currentOpts = [...prevOptions];
-            const currentIds = new Set(currentOpts.map(o => o.id));
-            const availableToAdd = highPurchaseOptions.filter(opt => !currentIds.has(opt.id));
-
-            for (let i = 0; i < numToAdd && availableToAdd.length > 0; i++) {
-                const addIndex = Math.floor(Math.random() * availableToAdd.length);
-                const itemToAdd = availableToAdd.splice(addIndex, 1)[0];
-                
-                // Insert at random position
-                const insertAtIndex = Math.floor(Math.random() * (currentOpts.length + 1));
-                currentOpts.splice(insertAtIndex, 0, itemToAdd);
-            }
-            return currentOpts;
-        });
-        
     }, 4000); // Runs every 4 seconds
 
     return () => {
       clearInterval(removalInterval);
       clearInterval(additionInterval);
     };
-  }, []); // Empty dependency array ensures this runs only once
+  }, []); 
 
 
   const handleBuyClick = (option: { amount: number }) => {
@@ -265,12 +235,15 @@ export default function BuyPage() {
   const bonusPercentage = activeTab === 'bank' ? 6 : 5;
   
   const displayedOptions = useMemo(() => {
+      const smallOptions = allOptions.filter(opt => opt.amount <= 1000);
+      const highOptions = allOptions.filter(opt => opt.amount > 1000);
+
       if (activeSubTab === 'small') {
-          return [...smallOptions].sort((a,b) => a.amount - b.amount);
+          return smallOptions.sort((a,b) => a.amount - b.amount);
       } else {
-          return [...highOptions].sort((a,b) => b.amount - a.amount);
+          return highOptions.sort((a,b) => b.amount - a.amount);
       }
-  }, [smallOptions, highOptions, activeSubTab]);
+  }, [allOptions, activeSubTab]);
   
   return (
     <div className="text-foreground pb-4 min-h-screen flex flex-col">
