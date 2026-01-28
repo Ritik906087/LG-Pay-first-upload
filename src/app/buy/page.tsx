@@ -15,11 +15,22 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 import { ChevronLeft, ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useUser, useFirestore } from '@/firebase';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection } from '@/firebase';
+import { addDoc, collection, serverTimestamp, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -68,7 +79,7 @@ const PurchaseGrid = ({ onBuyClick, options }: { onBuyClick: (option: (typeof pu
                      </div>
                      <div>
                         <p className="font-bold text-lg">₹ {option.amount.toLocaleString('en-IN')}</p>
-                        <p className="text-xs text-green-600 font-semibold">You Get: {option.amount}+{option.bonus}%={totalLGB.toLocaleString('en-IN')}</p>
+                        <p className="text-xs text-green-600 font-semibold">You Get: {option.amount}+{option.bonus}%={totalLGB}</p>
                      </div>
                  </div>
                  <Button onClick={() => onBuyClick(option)} className="h-10 px-6 btn-gradient font-bold rounded-lg">
@@ -86,9 +97,7 @@ const PurchaseGrid = ({ onBuyClick, options }: { onBuyClick: (option: (typeof pu
 export default function BuyPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('otp-upi');
-  const [activeSubTab, setActiveSubTab] = useState('small');
   
-  // State for optimistic UI updates
   const [visibleSmallUpiOptions, setVisibleSmallUpiOptions] = useState(smallPurchaseOptions);
   const [visibleHighUpiOptions, setVisibleHighUpiOptions] = useState(highPurchaseOptions);
   const [visibleSmallBankOptions, setVisibleSmallBankOptions] = useState(smallPurchaseOptions);
@@ -100,28 +109,31 @@ export default function BuyPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
 
+  const [isInProgressDialogOpen, setIsInProgressDialogOpen] = useState(false);
+  const [inProgressOrder, setInProgressOrder] = useState<any>(null);
+
+  const inProgressBuyOrdersQuery = useMemo(() => {
+    if (!user || !firestore) return null;
+    return query(
+        collection(firestore, 'users', user.uid, 'orders'),
+        where('status', 'in', ['pending_payment', 'processing'])
+    );
+  }, [user, firestore]);
+
+  const { data: inProgressBuyOrders } = useCollection(inProgressBuyOrdersQuery);
+
   const handleBuyClick = (option: (typeof purchaseOptions)[0]) => {
      if (!user || !firestore) {
       toast({ variant: 'destructive', title: 'Please log in to continue.' });
       return;
     }
 
-    // Optimistically hide the card
-    if (activeTab === 'otp-upi') {
-      if (activeSubTab === 'small') {
-        setVisibleSmallUpiOptions(prev => prev.filter(o => o.id !== option.id));
-      } else {
-        setVisibleHighUpiOptions(prev => prev.filter(o => o.id !== option.id));
-      }
-    } else { // bank tab
-       if (activeSubTab === 'small') {
-        setVisibleSmallBankOptions(prev => prev.filter(o => o.id !== option.id));
-      } else {
-        setVisibleHighBankOptions(prev => prev.filter(o => o.id !== option.id));
-      }
+    if (inProgressBuyOrders && inProgressBuyOrders.length > 0) {
+        setInProgressOrder(inProgressBuyOrders[0]);
+        setIsInProgressDialogOpen(true);
+        return;
     }
-    
-    // Set amount and open dialog
+
     setSelectedAmount(option.amount);
     setIsDialogOpen(true);
   };
@@ -148,6 +160,19 @@ export default function BuyPage() {
     } catch (error) {
       console.error('Error creating order: ', error);
       toast({ variant: 'destructive', title: 'Could not create order.' });
+    }
+  };
+  
+  const handleGoToOrder = () => {
+    if (!inProgressOrder) return;
+    let path = '';
+    if (inProgressOrder.status === 'pending_payment') {
+        path = `/buy/confirm/${inProgressOrder.id}?type=${inProgressOrder.paymentType}&provider=${inProgressOrder.paymentProvider || ''}`;
+    } else if (inProgressOrder.status === 'processing') {
+        path = `/order/${inProgressOrder.id}`;
+    }
+    if (path) {
+        router.push(path);
     }
   };
 
@@ -181,30 +206,30 @@ export default function BuyPage() {
           </TabsList>
 
           <TabsContent value="otp-upi">
-            <Tabs defaultValue="small" className="w-full mt-4" onValueChange={setActiveSubTab}>
+            <Tabs defaultValue="small" className="w-full mt-4">
                 <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="small">Small Amount</TabsTrigger>
                     <TabsTrigger value="high">High Amount</TabsTrigger>
                 </TabsList>
                 <TabsContent value="small">
-                    <PurchaseGrid onBuyClick={handleBuyClick} options={visibleSmallUpiOptions} />
+                    <PurchaseGrid onBuyClick={handleBuyClick} options={smallPurchaseOptions} />
                 </TabsContent>
                 <TabsContent value="high">
-                    <PurchaseGrid onBuyClick={handleBuyClick} options={visibleHighUpiOptions} />
+                    <PurchaseGrid onBuyClick={handleBuyClick} options={highPurchaseOptions} />
                 </TabsContent>
             </Tabs>
           </TabsContent>
           <TabsContent value="bank">
-            <Tabs defaultValue="small" className="w-full mt-4" onValueChange={setActiveSubTab}>
+            <Tabs defaultValue="small" className="w-full mt-4">
                 <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="small">Small Amount</TabsTrigger>
                     <TabsTrigger value="high">High Amount</TabsTrigger>
                 </TabsList>
                 <TabsContent value="small">
-                    <PurchaseGrid onBuyClick={handleBuyClick} options={visibleSmallBankOptions} />
+                    <PurchaseGrid onBuyClick={handleBuyClick} options={smallPurchaseOptions} />
                 </TabsContent>
                 <TabsContent value="high">
-                    <PurchaseGrid onBuyClick={handleBuyClick} options={visibleHighBankOptions} />
+                    <PurchaseGrid onBuyClick={handleBuyClick} options={highPurchaseOptions} />
                 </TabsContent>
             </Tabs>
           </TabsContent>
@@ -230,6 +255,25 @@ export default function BuyPage() {
           </div>
         </DialogContent>
       </Dialog>
+      <AlertDialog open={isInProgressDialogOpen} onOpenChange={setIsInProgressDialogOpen}>
+        <AlertDialogContent className="rounded-2xl bg-white shadow-2xl">
+          <AlertDialogHeader className="text-center items-center">
+              <AlertDialogTitle className="text-xl font-bold">Order Already In Progress</AlertDialogTitle>
+              <AlertDialogDescription className="text-muted-foreground pt-2">
+                  You can buy your order only after completing your old order, otherwise not.
+              </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2 pt-4">
+              <AlertDialogCancel className="w-full h-12 rounded-full">Cancel</AlertDialogCancel>
+              <AlertDialogAction 
+                  onClick={handleGoToOrder} 
+                  className="w-full h-12 rounded-full btn-gradient font-bold text-base"
+              >
+                  Complete
+              </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
