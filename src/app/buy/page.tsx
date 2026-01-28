@@ -32,8 +32,8 @@ const purchaseOptions = [
   { id: 6, amount: 20000, bonus: 6 },
 ];
 
-const smallPurchaseOptions = purchaseOptions.filter(o => o.amount < 5000);
-const highPurchaseOptions = purchaseOptions.filter(o => o.amount >= 5000);
+const smallPurchaseOptions = purchaseOptions.filter(o => o.amount < 5000).sort((a, b) => a.amount - b.amount);
+const highPurchaseOptions = purchaseOptions.filter(o => o.amount >= 5000).sort((a, b) => b.amount - a.amount);
 
 const upiMethods = [
     { name: "PhonePe", logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/download%20(1).png?alt=media&token=205260a4-bfcf-46dd-8dc6-5b440852f2ae" },
@@ -245,5 +245,3 @@ export default function BuyPage() {
     </div>
   );
 }
-
-    
