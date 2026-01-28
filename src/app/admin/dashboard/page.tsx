@@ -607,14 +607,10 @@ function WithdrawalsTabContent() {
         setLoading(true);
         setError(null); // Reset error on new fetch
         try {
-            // This query fetches all sell orders. We then filter for 'pending' on the client-side.
-            // This approach is used to avoid a Firestore index requirement for the collectionGroup query.
-            // It may become inefficient if there's a very large number of total sell orders.
-            const q = query(collectionGroup(firestore, 'sellOrders'));
+            const q = query(collectionGroup(firestore, 'sellOrders'), where('status', '==', 'pending'));
             const querySnapshot = await getDocs(q);
             const allOrders = querySnapshot.docs
                 .map(doc => ({ id: doc.id, ...doc.data() } as SellOrder))
-                .filter(order => order.status === 'pending')
                 .sort((a, b) => a.createdAt.seconds - b.createdAt.seconds);
             setOrders(allOrders);
         } catch (error) {
@@ -769,196 +765,6 @@ function HistoryUsersGrid({ users, loading, error }: { users: UserProfile[], loa
     );
 }
 
-function ChatHistoryDialog({ request, onUpdate }: { request: ChatRequest; onUpdate: () => void }) {
-    const firestore = useFirestore();
-    const { toast } = useToast();
-    const [isUpdating, setIsUpdating] = useState(false);
-    const [open, setOpen] = useState(false);
-    const [newMessage, setNewMessage] = useState("");
-    const [attachment, setAttachment] = useState<Attachment | null>(null);
-    const chatContentRef = useRef<HTMLDivElement>(null);
-    const adminFileInputRef = useRef<HTMLInputElement>(null);
-
-    const liveRequestRef = useMemo(() => firestore ? doc(firestore, 'chatRequests', request.id) : null, [firestore, request.id]);
-    const { data: liveRequest } = useDoc<ChatRequest>(liveRequestRef);
-
-    const isJoined = liveRequest?.status === 'active';
-    const currentRequest = liveRequest || request;
-
-    useEffect(() => {
-        if (chatContentRef.current) {
-            chatContentRef.current.scrollTop = chatContentRef.current.scrollHeight;
-        }
-    }, [liveRequest?.chatHistory]);
-
-    const handleJoinChat = async () => {
-        if (!liveRequestRef) return;
-        setIsUpdating(true);
-        try {
-            await updateDoc(liveRequestRef, { status: 'active', agentId: 'admin', agentJoinedAt: serverTimestamp() });
-            toast({ title: 'Chat Joined!', description: "You can now chat with the user." });
-            // onUpdate(); // Do not call onUpdate, so the dialog stays open
-        } catch (e) {
-            toast({ variant: 'destructive', title: 'Failed to join chat' });
-        } finally {
-            setIsUpdating(false);
-        }
-    };
-    
-    const handleCloseChat = async () => {
-        if (!liveRequestRef) return;
-        setIsUpdating(true);
-        try {
-            await updateDoc(liveRequestRef, { status: 'closed' });
-            setOpen(false);
-            toast({ title: `Chat closed` });
-            onUpdate();
-        } catch (e) {
-            toast({ variant: 'destructive', title: 'Failed to close chat' });
-        } finally {
-            setIsUpdating(false);
-        }
-    };
-    
-    const handleAdminFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            if (file.size > 10 * 1024 * 1024) { // 10MB limit
-                toast({ variant: 'destructive', title: 'File is too large', description: 'Please upload a file smaller than 10MB.' });
-                return;
-            }
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const url = e.target?.result as string;
-                setAttachment({ name: file.name, type: file.type, url });
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-    
-    const handleAdminSendMessage = async () => {
-        if (!liveRequestRef || (!newMessage.trim() && !attachment)) return;
-        
-        const message: Message = {
-            text: newMessage.trim(),
-            isUser: false,
-            timestamp: Date.now(),
-            userName: 'JONNY'
-        };
-
-        if (attachment) {
-            message.attachment = attachment;
-        }
-
-        try {
-            await updateDoc(liveRequestRef, {
-                chatHistory: arrayUnion(message)
-            });
-            setNewMessage('');
-            setAttachment(null);
-        } catch (e) {
-            console.error("Failed to send message:", e);
-            toast({ variant: 'destructive', title: 'Failed to send message' });
-        }
-    };
-
-    const expiryTimestamp = new Timestamp(currentRequest.createdAt.seconds + 10 * 60, currentRequest.createdAt.nanoseconds);
-
-    return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                <Button className={cn(
-                    "w-full font-bold",
-                    currentRequest.status === 'pending' ? "bg-green-500 hover:bg-green-600 text-white" : "bg-blue-500 hover:bg-blue-600 text-white"
-                )}>
-                    {currentRequest.status === 'pending' ? "CHAT" : "VIEW ACTIVE CHAT"}
-                </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg p-0 flex flex-col h-[90vh] sm:h-[70vh]">
-                <DialogHeader className="p-4 border-b">
-                    <DialogTitle className="flex justify-between items-center">
-                       <span>Chat with {currentRequest.userNumericId || currentRequest.enteredIdentifier}</span>
-                       <CountdownTimer expiryTimestamp={expiryTimestamp} className="text-base" />
-                    </DialogTitle>
-                     {isJoined && (
-                        <div className="flex items-center gap-1.5 text-xs text-green-600 font-semibold pt-1">
-                            <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-                            User is Online
-                        </div>
-                    )}
-                </DialogHeader>
-                <ScrollArea className="flex-1 w-full bg-secondary/50 p-4" ref={chatContentRef}>
-                    {(currentRequest.chatHistory || []).map((msg, index) => (
-                        <div key={index} className={cn("flex items-end gap-2 mb-3", msg.isUser ? "justify-end" : "justify-start")}>
-                            {!msg.isUser && (
-                                <Avatar className="h-8 w-8">
-                                    <AvatarFallback className="bg-primary text-primary-foreground font-bold text-sm">{msg.userName === 'JONNY' ? 'J' : 'LG'}</AvatarFallback>
-                                </Avatar>
-                            )}
-                            <div className="flex flex-col max-w-[80%]">
-                                <div className={cn("rounded-2xl px-3 py-2", msg.isUser ? "bg-primary text-primary-foreground rounded-br-none" : "bg-white rounded-bl-none shadow-sm")}>
-                                     {msg.attachment?.url && msg.attachment.type.startsWith('image/') ? (
-                                        <Image src={msg.attachment.url} alt={msg.attachment.name || 'attachment'} width={200} height={200} className="rounded-lg mb-2 cursor-pointer" onClick={() => window.open(msg.attachment?.url, '_blank')} />
-                                    ) : msg.attachment?.url ? (
-                                        <a href={msg.attachment.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-secondary p-2 rounded-lg mb-2">
-                                            <Paperclip className="h-5 w-5 text-muted-foreground" />
-                                            <span className="text-sm text-secondary-foreground truncate">{msg.attachment.name || 'View Attachment'}</span>
-                                        </a>
-                                    ) : null}
-                                    {msg.text && <p className="text-sm whitespace-pre-wrap">{msg.text}</p>}
-                                </div>
-                                <p className={cn("text-xs text-muted-foreground px-1 pt-1", msg.isUser ? "text-right" : "text-left")}>
-                                {new Date(msg.timestamp).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
-                                </p>
-                            </div>
-                             {msg.isUser && (
-                                <Avatar className="h-8 w-8">
-                                    <AvatarFallback>{currentRequest.userNumericId?.charAt(0) ?? 'U'}</AvatarFallback>
-                                </Avatar>
-                             )}
-                        </div>
-                    ))}
-                </ScrollArea>
-                <DialogFooter className="p-2 border-t">
-                    {isJoined ? (
-                         <div className="w-full flex flex-col gap-2">
-                             {attachment && (
-                                <div className="relative w-20 h-20 ml-2">
-                                    <Image src={attachment.url} alt="preview" fill objectFit="cover" className="rounded-md" />
-                                    <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={() => setAttachment(null)}>
-                                        <X className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            )}
-                            <div className="flex items-center gap-2">
-                                <input type="file" ref={adminFileInputRef} onChange={handleAdminFileChange} className="hidden" />
-                                <Button variant="ghost" size="icon" onClick={() => adminFileInputRef.current?.click()}>
-                                    <Paperclip className="h-5 w-5" />
-                                </Button>
-                                <Input 
-                                   placeholder="Type your message..."
-                                   value={newMessage}
-                                   onChange={e => setNewMessage(e.target.value)}
-                                   onKeyPress={e => e.key === 'Enter' && handleAdminSendMessage()}
-                                />
-                                <Button onClick={handleAdminSendMessage} disabled={!newMessage.trim() && !attachment}>
-                                   <Send className="h-4 w-4"/>
-                                </Button>
-                               <Button variant="outline" onClick={handleCloseChat} disabled={isUpdating}>Close Chat</Button>
-                            </div>
-                         </div>
-                    ) : (
-                        <Button className="w-full h-12 bg-green-600 hover:bg-green-700 text-lg" onClick={handleJoinChat} disabled={isUpdating}>
-                            {isUpdating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : "JOIN CHAT"}
-                        </Button>
-                    )}
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
-}
-
-
 function LiveChatTabContent() {
     const firestore = useFirestore();
     const [allChatRequests, setAllChatRequests] = useState<ChatRequest[]>([]);
@@ -983,7 +789,11 @@ function LiveChatTabContent() {
     }, [firestore]);
 
     useEffect(() => {
-        fetchChatRequests();
+        const interval = setInterval(() => {
+          fetchChatRequests();
+        }, 5000); // Poll every 5 seconds
+        fetchChatRequests(); // Initial fetch
+        return () => clearInterval(interval);
     }, [fetchChatRequests]);
     
     const sortedChatRequests = useMemo(() => {
@@ -1052,7 +862,14 @@ function LiveChatTabContent() {
                             <p><strong>Identifier:</strong> {request.enteredIdentifier}</p>
                         </CardContent>
                         <CardFooter>
-                            <ChatHistoryDialog request={request} onUpdate={fetchChatRequests} />
+                            <Button asChild className={cn(
+                                "w-full font-bold",
+                                isPending ? "bg-green-500 hover:bg-green-600 text-white" : "bg-blue-500 hover:bg-blue-600 text-white"
+                            )}>
+                                <Link href={`/admin/chat/${request.id}`}>
+                                    {isPending ? "CHAT" : "VIEW ACTIVE CHAT"}
+                                </Link>
+                            </Button>
                         </CardFooter>
                     </Card>
                  )

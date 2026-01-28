@@ -112,6 +112,7 @@ export default function HelpPage() {
   
   const activeRequest = useMemo(() => {
       if (!allUserChatRequests || allUserChatRequests.length === 0) return null;
+      // Sort client-side to avoid needing a composite index
       return allUserChatRequests
         .filter(req => ['pending', 'active'].includes(req.status))
         .sort((a, b) => b.createdAt.seconds - a.createdAt.seconds)[0];
@@ -250,10 +251,40 @@ export default function HelpPage() {
   
     const handleSendMessage = async () => {
         if ((!currentMessage.trim() && !attachment) || isWaitingForAgent) return;
-        setIsSending(true);
-
-        const textForPrompt = currentMessage.trim();
         
+        if (isAgentActive) {
+            // Logic for sending message to human agent
+            if (!firestore || !activeRequest) {
+                setIsSending(false);
+                return;
+            }
+            setIsSending(true);
+            const requestRef = doc(firestore, 'chatRequests', activeRequest.id);
+            const messagePayload: Message = {
+                text: currentMessage.trim(),
+                isUser: true,
+                timestamp: Date.now(),
+                userName: userProfile?.displayName || 'You',
+            };
+            if (attachment) {
+                messagePayload.attachment = attachment;
+            }
+
+            try {
+                await updateDoc(requestRef, { chatHistory: arrayUnion(messagePayload) });
+                setCurrentMessage('');
+                setAttachment(null);
+            } catch (error: any) {
+                toast({ variant: 'destructive', title: 'Could not send message', description: error.message });
+            } finally {
+                setIsSending(false);
+            }
+            return;
+        }
+
+        // Logic for sending message to AI
+        setIsSending(true);
+        const textForPrompt = currentMessage.trim();
         const messagePayload: Message = {
             text: textForPrompt,
             isUser: true,
@@ -267,23 +298,7 @@ export default function HelpPage() {
         
         setCurrentMessage('');
         setAttachment(null);
-
-        if (isAgentActive) {
-            if (!firestore || !activeRequest) {
-                setIsSending(false);
-                return;
-            }
-            const requestRef = doc(firestore, 'chatRequests', activeRequest.id);
-            try {
-                await updateDoc(requestRef, { chatHistory: arrayUnion(messagePayload) });
-            } catch (error: any) {
-                toast({ variant: 'destructive', title: 'Could not send message', description: error.message });
-            } finally {
-                setIsSending(false);
-            }
-            return;
-        }
-
+        
         const updatedMessages = [...messages, messagePayload];
         setMessages(updatedMessages);
         
@@ -296,7 +311,6 @@ export default function HelpPage() {
             };
             
             if (attachment) {
-                // Simplified for AI: just send the text part of the attachment message
                 input.prompt += ` (Attachment: ${attachment.name})`;
             }
                   
@@ -304,9 +318,7 @@ export default function HelpPage() {
             const aiResponse: Message = { text: response, isUser: false, timestamp: Date.now(), userName: 'AI HELP' };
             setMessages(prev => [...prev, aiResponse]);
         } catch (error) {
-            console.error("AI chat error, escalating to human agent:", error);
-            // Error handling is now inside the flow, which automatically creates a request
-            // The flow returns a user-friendly message in case of an error.
+            // The flow now handles the error and escalates to a human agent, returning a friendly message.
             const response = "Thank you. Your request has been submitted. A support agent will review your case and connect with you shortly.";
             const aiResponse: Message = { text: response, isUser: false, timestamp: Date.now(), userName: 'AI HELP' };
             setMessages(prev => [...prev, aiResponse]);
@@ -372,10 +384,10 @@ export default function HelpPage() {
                         <ChevronLeft className="h-6 w-6 text-muted-foreground" />
                     </Link>
                 </Button>
-                {(isWaitingForAgent || (isAgentActive && timeLeft !== null && timeLeft > 0)) && !isAgentActive && (
+                {isWaitingForAgent && !isAgentActive && timeLeft !== null && timeLeft > 0 && (
                     <div className="flex items-center gap-1 text-yellow-600">
                         <Clock className="h-4 w-4" />
-                        <span className="font-mono font-bold text-sm">{formatTime(timeLeft!)}</span>
+                        <span className="font-mono font-bold text-sm">{formatTime(timeLeft)}</span>
                     </div>
                 )}
             </div>
@@ -426,13 +438,15 @@ export default function HelpPage() {
                 <div className="flex flex-col max-w-[75%]">
                     <div className={cn("rounded-2xl px-3 py-2", msg.isUser ? "bg-primary text-primary-foreground rounded-br-none" : "bg-white rounded-bl-none shadow-sm")}>
                       {msg.attachment && msg.attachment.type.startsWith('image/') && (
-                        <Image src={msg.attachment.url} alt="attachment" width={200} height={200} className="rounded-lg mb-2" />
+                        <a href={msg.attachment.url} target="_blank" rel="noopener noreferrer">
+                            <Image src={msg.attachment.url} alt="attachment" width={200} height={200} className="rounded-lg mb-2 cursor-pointer" />
+                        </a>
                       )}
                        {msg.attachment && !msg.attachment.type.startsWith('image/') && (
-                        <div className="flex items-center gap-2 bg-secondary p-2 rounded-lg mb-2">
+                        <a href={msg.attachment.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-secondary p-2 rounded-lg mb-2 hover:bg-secondary/80 transition-colors">
                             <Paperclip className="h-5 w-5 text-muted-foreground" />
                             <span className="text-sm text-secondary-foreground truncate">{msg.attachment.name}</span>
-                        </div>
+                        </a>
                       )}
                       {msg.text && <p className="text-sm whitespace-pre-wrap">{msg.text}</p>}
                     </div>
