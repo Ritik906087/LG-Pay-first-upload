@@ -631,8 +631,8 @@ function PaymentDetailsContent() {
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
-            </Dialog>
-             <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+            </AlertDialog>
+            <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Cancel Order</DialogTitle>
@@ -691,5 +691,3 @@ export default function ConfirmPage() {
     </Suspense>
   )
 }
-
-    
