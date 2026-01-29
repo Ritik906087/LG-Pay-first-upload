@@ -33,6 +33,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from '@/components/ui/skeleton';
 
 const CHAT_STATE_STORAGE_KEY = 'lg-pay-help-chat-state';
@@ -552,17 +553,21 @@ export default function HelpPage() {
                 )}
                 <div className="flex flex-col max-w-[75%]">
                     <div className={cn("rounded-2xl px-3 py-2", msg.isUser ? "bg-primary text-primary-foreground rounded-br-none" : "bg-white rounded-bl-none shadow-sm")}>
-                      {msg.attachment && msg.attachment.type.startsWith('image/') && (
-                        <a href={msg.attachment.url} target="_blank" rel="noopener noreferrer">
-                            <Image src={msg.attachment.url} alt="attachment" width={200} height={200} className="rounded-lg mb-2 cursor-pointer" />
-                        </a>
-                      )}
-                       {msg.attachment && !msg.attachment.type.startsWith('image/') && (
+                      {msg.attachment && msg.attachment.type.startsWith('image/') ? (
+                        <Dialog>
+                            <DialogTrigger>
+                                <Image src={msg.attachment.url} alt="attachment" width={200} height={200} className="rounded-lg mb-2 cursor-pointer" />
+                            </DialogTrigger>
+                            <DialogContent>
+                                <img src={msg.attachment.url} alt="attachment" className="max-h-[80vh] w-auto object-contain rounded-md" />
+                            </DialogContent>
+                        </Dialog>
+                      ) : msg.attachment ? (
                         <a href={msg.attachment.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-secondary p-2 rounded-lg mb-2 hover:bg-secondary/80 transition-colors">
                             <Paperclip className="h-5 w-5 text-muted-foreground" />
                             <span className="text-sm text-secondary-foreground truncate">{msg.attachment.name}</span>
                         </a>
-                      )}
+                      ) : null}
                       {msg.text && <p className="text-sm whitespace-pre-wrap">{msg.text}</p>}
                     </div>
                     <p className={cn("text-xs text-muted-foreground px-1 pt-1", msg.isUser ? "text-right" : "text-left")}>
@@ -598,10 +603,10 @@ export default function HelpPage() {
                         </div>
                     )}
                     {chatStep === 'problem' && (
-                        <div className="grid grid-cols-2 gap-3 p-2">
+                         <div className="grid grid-cols-2 gap-3 p-2">
                             {problemCategories.map(p => 
-                                <Button key={p.key} onClick={() => handleProblemSelect(p.label)} variant="outline" className="bg-white h-auto justify-center text-center py-3 whitespace-normal">
-                                    <span className="mr-2 text-lg">{p.icon}</span> {p.label}
+                                <Button key={p.key} onClick={() => handleProblemSelect(p.label)} variant="outline" className="bg-white h-auto justify-center text-center py-3 whitespace-pre-wrap">
+                                    <span className="mr-2 text-lg">{p.icon}</span> <span className="flex-1 min-w-0">{p.label}</span>
                                 </Button>
                             )}
                         </div>

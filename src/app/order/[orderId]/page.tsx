@@ -12,6 +12,13 @@ import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 
 type Order = {
     id: string;
@@ -218,7 +225,23 @@ function OrderStatusContent() {
                         </div>
                          <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Screenshot</span>
-                            <a href={order.screenshotURL} target="_blank" rel="noopener noreferrer" className="text-primary underline">View</a>
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button variant="link" className="p-0 h-auto text-primary" disabled={!order.screenshotURL}>View</Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Payment Proof</DialogTitle>
+                                    </DialogHeader>
+                                    <div className="flex justify-center py-4">
+                                        <img
+                                            src={order.screenshotURL}
+                                            alt="Payment proof"
+                                            className="max-h-[70vh] w-auto object-contain rounded-md"
+                                        />
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
                         </div>
                     </CardContent>
                 </Card>

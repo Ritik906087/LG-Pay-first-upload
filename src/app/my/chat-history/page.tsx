@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo } from 'react';
@@ -15,6 +16,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 
 type Attachment = {
   name: string;
@@ -112,17 +114,21 @@ export default function ChatHistoryPage() {
                                                 )}
                                                 <div className="flex flex-col max-w-[75%]">
                                                     <div className={cn("rounded-2xl px-3 py-2", msg.isUser ? "bg-primary text-primary-foreground rounded-br-none" : "bg-white border rounded-bl-none shadow-sm")}>
-                                                        {msg.attachment && msg.attachment.type.startsWith('image/') && (
-                                                            <a href={msg.attachment.url} target="_blank" rel="noopener noreferrer">
-                                                                <Image src={msg.attachment.url} alt="attachment" width={200} height={200} className="rounded-lg mb-2 cursor-pointer" />
-                                                            </a>
-                                                        )}
-                                                        {msg.attachment && !msg.attachment.type.startsWith('image/') && (
+                                                        {msg.attachment && msg.attachment.type.startsWith('image/') ? (
+                                                            <Dialog>
+                                                                <DialogTrigger>
+                                                                    <Image src={msg.attachment.url} alt="attachment" width={200} height={200} className="rounded-lg mb-2 cursor-pointer" />
+                                                                </DialogTrigger>
+                                                                <DialogContent>
+                                                                    <img src={msg.attachment.url} alt="attachment" className="max-h-[80vh] w-auto object-contain rounded-md" />
+                                                                </DialogContent>
+                                                            </Dialog>
+                                                        ) : msg.attachment ? (
                                                             <a href={msg.attachment.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-secondary p-2 rounded-lg mb-2 hover:bg-secondary/80 transition-colors">
                                                                 <Paperclip className="h-5 w-5 text-muted-foreground" />
                                                                 <span className="text-sm text-secondary-foreground truncate">{msg.attachment.name}</span>
                                                             </a>
-                                                        )}
+                                                        ) : null}
                                                         {msg.text && <p className="text-sm whitespace-pre-wrap">{msg.text}</p>}
                                                     </div>
                                                     <p className={cn("text-xs text-muted-foreground px-1 pt-1", msg.isUser ? "text-right" : "text-left")}>

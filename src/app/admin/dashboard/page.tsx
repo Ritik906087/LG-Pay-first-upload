@@ -35,7 +35,6 @@ import {
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import Image from 'next/image';
 import { Textarea } from '@/components/ui/textarea';
 
 type UserProfile = {
@@ -931,12 +930,10 @@ function ProcessBuyConfirmationDialog({ order, onProcessed }: { order: Order, on
                             </DialogHeader>
                             <div className="flex justify-center p-4">
                                 {order.screenshotURL && (
-                                    <Image 
+                                    <img
                                         src={order.screenshotURL} 
-                                        alt="Payment proof" 
-                                        width={300} 
-                                        height={600} 
-                                        className="max-h-[70vh] w-auto object-contain"
+                                        alt="Payment proof"
+                                        className="max-h-[70vh] w-auto object-contain rounded-md"
                                     />
                                 )}
                             </div>

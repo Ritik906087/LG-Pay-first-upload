@@ -14,6 +14,7 @@ import { doc, updateDoc, Timestamp, serverTimestamp, arrayUnion } from 'firebase
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 
 type Attachment = {
   name: string;
@@ -230,7 +231,14 @@ export default function AdminChatPage() {
                         <div className="flex flex-col max-w-[80%]">
                             <div className={cn("rounded-2xl px-3 py-2", msg.isUser ? "bg-primary text-primary-foreground rounded-br-none" : "bg-white rounded-bl-none shadow-sm")}>
                                 {msg.attachment?.url && msg.attachment.type.startsWith('image/') ? (
-                                    <Image src={msg.attachment.url} alt={msg.attachment.name || 'attachment'} width={200} height={200} className="rounded-lg mb-2 cursor-pointer" onClick={() => window.open(msg.attachment?.url, '_blank')} />
+                                     <Dialog>
+                                        <DialogTrigger>
+                                            <Image src={msg.attachment.url} alt={msg.attachment.name || 'attachment'} width={200} height={200} className="rounded-lg mb-2 cursor-pointer" />
+                                        </DialogTrigger>
+                                        <DialogContent>
+                                            <img src={msg.attachment.url} alt={msg.attachment.name || 'attachment'} className="max-h-[80vh] w-auto object-contain rounded-md" />
+                                        </DialogContent>
+                                    </Dialog>
                                 ) : msg.attachment?.url ? (
                                     <a href={msg.attachment.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-secondary p-2 rounded-lg mb-2 hover:bg-secondary/80">
                                         <Paperclip className="h-5 w-5 text-muted-foreground" />
