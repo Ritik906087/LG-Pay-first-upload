@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { Suspense, useMemo, useState, useRef, useEffect } from 'react';
@@ -29,7 +30,6 @@ import {
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
-  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
@@ -296,7 +296,7 @@ function PaymentDetailsContent() {
             setPaymentFile(file);
             setPaymentFilePreview(URL.createObjectURL(file));
             toast({
-                title: 'File selected successfully!',
+                title: 'Screenshot selected!',
                 description: 'The payment proof is attached and ready to submit.',
             });
         }
@@ -308,7 +308,7 @@ function PaymentDetailsContent() {
             return;
         }
         if (!paymentFile) {
-            toast({ variant: 'destructive', title: 'Missing File', description: 'Please upload your payment proof file.' });
+            toast({ variant: 'destructive', title: 'Missing Screenshot', description: 'Please upload your payment proof screenshot.' });
             return;
         }
         if (!orderRef || !storage || !user) {
@@ -332,7 +332,7 @@ function PaymentDetailsContent() {
                 toast({
                     variant: 'destructive',
                     title: 'Upload Failed',
-                    description: `Could not upload file. Error: ${error.code}`,
+                    description: `Could not upload screenshot. Error: ${error.code}`,
                     duration: 9000,
                 });
                 setIsConfirming(false);
@@ -350,12 +350,12 @@ function PaymentDetailsContent() {
                         router.push(`/order/${orderId}`);
                     } catch (dbError) {
                         console.error("Error updating Firestore after upload: ", dbError);
-                        toast({ variant: 'destructive', title: 'Submission Failed', description: 'File uploaded, but failed to save order details.' });
+                        toast({ variant: 'destructive', title: 'Submission Failed', description: 'Screenshot uploaded, but failed to save order details.' });
                         setIsConfirming(false);
                     }
                 }).catch(urlError => {
                     console.error("Error getting download URL: ", urlError);
-                    toast({ variant: 'destructive', title: 'Submission Failed', description: 'Could not get file URL after upload.' });
+                    toast({ variant: 'destructive', title: 'Submission Failed', description: 'Could not get screenshot URL after upload.' });
                     setIsConfirming(false);
                 });
             }
@@ -535,22 +535,15 @@ function PaymentDetailsContent() {
                             <Input id="utr" placeholder="Enter 12-digit UTR number" value={utr} onChange={(e) => setUtr(e.target.value)} maxLength={12} disabled={isConfirming || isUpdatingProvider} />
                         </div>
                         <div className="space-y-2">
-                             <Label>Upload Payment Proof</Label>
-                             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" disabled={isConfirming || isUpdatingProvider} accept="image/*,application/pdf" />
+                             <Label>Upload Screenshot</Label>
+                             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" disabled={isConfirming || isUpdatingProvider} accept="image/*" />
                              <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="w-full flex items-center justify-center gap-2 border-dashed h-24" disabled={isConfirming || isUpdatingProvider}>
-                                {paymentFile && paymentFilePreview ? (
-                                    paymentFile.type.startsWith('image/') ? (
-                                        <Image src={paymentFilePreview} alt="File preview" width={80} height={80} className="object-contain h-full" />
-                                    ) : (
-                                        <div className="flex flex-col items-center justify-center text-center p-2 text-muted-foreground">
-                                            <Paperclip className="h-8 w-8 mb-1"/>
-                                            <p className="text-xs max-w-[200px] truncate">{paymentFile.name}</p>
-                                        </div>
-                                    )
+                                {paymentFilePreview ? (
+                                    <Image src={paymentFilePreview} alt="Screenshot preview" width={80} height={80} className="object-contain h-full" />
                                 ) : (
                                     <>
                                         <Upload className="h-4 w-4"/>
-                                        Click to upload file
+                                        Click to upload screenshot
                                     </>
                                 )}
                             </Button>

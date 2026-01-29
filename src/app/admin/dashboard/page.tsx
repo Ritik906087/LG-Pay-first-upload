@@ -921,9 +921,27 @@ function ProcessBuyConfirmationDialog({ order, onProcessed }: { order: Order, on
                     <p><strong>Amount:</strong> <span className="font-bold text-lg text-primary">₹{order.amount}</span></p>
                     <p><strong>User:</strong> {order.user?.displayName} (UID: {order.user?.numericId})</p>
                     <p><strong>UTR:</strong> {order.utr}</p>
-                    <Button asChild variant="outline">
-                        <a href={order.screenshotURL} target="_blank" rel="noopener noreferrer">View Payment Proof</a>
-                    </Button>
+                    <Dialog>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" disabled={!order.screenshotURL}>View Payment Proof</Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-md">
+                            <DialogHeader>
+                                <DialogTitle>Payment Proof</DialogTitle>
+                            </DialogHeader>
+                            <div className="flex justify-center p-4">
+                                {order.screenshotURL && (
+                                    <Image 
+                                        src={order.screenshotURL} 
+                                        alt="Payment proof" 
+                                        width={300} 
+                                        height={600} 
+                                        className="max-h-[70vh] w-auto object-contain"
+                                    />
+                                )}
+                            </div>
+                        </DialogContent>
+                    </Dialog>
                     <hr className="my-4"/>
                     <div>
                         <Label htmlFor="rejection-reason">Rejection Reason (if rejecting)</Label>
