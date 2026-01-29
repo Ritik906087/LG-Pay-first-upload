@@ -179,9 +179,9 @@ const HoldBalanceActionDialog = ({ userId, currentBalance, currentHoldBalance }:
                     throw new Error("User not found");
                 }
 
-                const data = userDoc.data();
-                const balance = data.balance;
-                const holdBalance = data.holdBalance;
+                const data = userDoc.data() as UserProfile;
+                const balance = Number(data.balance) || 0;
+                const holdBalance = Number(data.holdBalance) || 0;
 
                 let newBalance: number;
                 let newHoldBalance: number;

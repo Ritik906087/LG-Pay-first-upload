@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -79,7 +80,7 @@ export default function MyPage() {
     return doc(firestore, 'users', user.uid);
   }, [user, firestore]);
 
-  const { data: userProfile, loading: profileLoading } = useDoc<{ displayName: string; photoURL?: string; balance: number; numericId: string }>(userProfileRef);
+  const { data: userProfile, loading: profileLoading } = useDoc<{ displayName: string; photoURL?: string; balance: number; holdBalance: number; numericId: string }>(userProfileRef);
 
   const handleLogout = async () => {
     const auth = getAuth();
@@ -153,10 +154,10 @@ export default function MyPage() {
                     </DropdownMenu>
                  </div>
                  }
-                <div className="flex justify-between text-sm text-white/70">
+                <div className="flex justify-between text-sm text-white/70 items-center">
                     <span className="flex items-baseline gap-1">
-                      <span className="text-xs">hold</span>
-                      <span>≈ 0.00</span>
+                        <span className="text-xs">hold</span>
+                        {profileLoading ? <Skeleton className="h-4 w-10 bg-slate-700"/> : <span>≈ {(userProfile?.holdBalance || 0).toFixed(2)}</span>}
                     </span>
                     <span className="text-xs">1LG≈ 1INR</span>
                 </div>
