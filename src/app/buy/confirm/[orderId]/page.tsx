@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ChevronLeft, Copy, Upload, Loader2, Info, Paperclip } from 'lucide-react';
+import { ChevronLeft, Copy, Upload, Loader2, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useCollection, useDoc, useUser, useFirestore, useStorage } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -29,6 +29,7 @@ import {
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
+  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
@@ -599,7 +600,7 @@ function PaymentDetailsContent() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-            <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+             <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Cancel Order</DialogTitle>
