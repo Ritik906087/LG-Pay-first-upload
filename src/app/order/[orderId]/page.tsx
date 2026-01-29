@@ -22,6 +22,7 @@ type Order = {
     screenshotURL: string;
     submittedAt: Timestamp;
     cancellationReason?: string;
+    rejectionReason?: string;
 };
 
 const formatTime = (seconds: number) => {
@@ -51,11 +52,11 @@ function OrderStatusContent() {
     const { data: order, loading: orderLoading } = useDoc<Order>(orderRef);
 
     const handleOrderExpiry = async () => {
-        if (!order || !orderRef || order.status !== 'processing') return;
+        if (!order || !orderRef || order.status !== 'pending_confirmation') return;
 
         // Ensure we don't run this multiple times
         const currentOrderSnap = await getDoc(orderRef);
-        if (currentOrderSnap.exists() && currentOrderSnap.data().status !== 'processing') {
+        if (currentOrderSnap.exists() && currentOrderSnap.data().status !== 'pending_confirmation') {
             return;
         }
 
@@ -63,13 +64,13 @@ function OrderStatusContent() {
         try {
             await updateDoc(orderRef, { 
                 status: 'failed',
-                cancellationReason: 'Order processing timed out.'
+                rejectionReason: 'Order review timed out.'
             });
             
             toast({
                 variant: 'destructive',
                 title: 'Order Failed',
-                description: 'The order was not processed in time.',
+                description: 'The order was not reviewed in time.',
             });
             setTimeout(() => router.push('/home'), 1000);
 
@@ -81,8 +82,8 @@ function OrderStatusContent() {
     };
     
     useEffect(() => {
-        if (!order || order.status !== 'processing' || !order.submittedAt) {
-            if (order && order.status !== 'processing') {
+        if (!order || order.status !== 'pending_confirmation' || !order.submittedAt) {
+            if (order && order.status !== 'pending_confirmation') {
                 setTimeLeft(0);
             }
             return;
@@ -129,7 +130,7 @@ function OrderStatusContent() {
         )
     }
     
-    const isTimeout = order.status === 'failed' && order.cancellationReason && (order.cancellationReason.includes('expired') || order.cancellationReason.includes('timed out'));
+    const isTimeout = order.status === 'failed' && order.rejectionReason && (order.rejectionReason.includes('expired') || order.rejectionReason.includes('timed out'));
 
     return (
         <div className="flex flex-col min-h-screen">
@@ -149,11 +150,11 @@ function OrderStatusContent() {
                                 <h2 className="text-2xl font-bold text-green-600">Order Completed</h2>
                                 <p className="text-muted-foreground">₹{order.amount.toFixed(2)} has been added to your balance.</p>
                             </>
-                        ) : order.status === 'processing' ? (
+                        ) : order.status === 'pending_confirmation' ? (
                             <>
                                 <FileClock className="h-16 w-16 text-primary" />
-                                <h2 className="text-2xl font-bold text-primary">Processing Order</h2>
-                                <p className="text-muted-foreground">Your payment is being verified.</p>
+                                <h2 className="text-2xl font-bold text-primary">Awaiting Confirmation</h2>
+                                <p className="text-muted-foreground">Your payment is under review.</p>
                             </>
                         ) : (
                             <>
@@ -174,7 +175,7 @@ function OrderStatusContent() {
                     </CardContent>
                     <CardFooter className="bg-primary/10 p-4">
                          <div className="w-full text-center">
-                            {order.status === 'processing' ? (
+                            {order.status === 'pending_confirmation' ? (
                                 <>
                                     <p className="text-sm text-primary font-semibold">Estimated time remaining</p>
                                     <p className="text-3xl font-mono font-bold text-primary">
@@ -238,5 +239,5 @@ export default function OrderStatusPage() {
         }>
             <OrderStatusContent />
         </Suspense>
-    )
+    );
 }

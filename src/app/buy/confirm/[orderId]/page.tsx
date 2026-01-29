@@ -343,10 +343,10 @@ function PaymentDetailsContent() {
                         await updateDoc(orderRef, {
                             utr,
                             screenshotURL: downloadURL,
-                            status: 'processing',
+                            status: 'pending_confirmation',
                             submittedAt: serverTimestamp()
                         });
-                        toast({ title: 'Payment Submitted!', description: 'Your order is now processing.' });
+                        toast({ title: 'Payment Submitted!', description: 'Your proof is under review.' });
                         router.push(`/order/${orderId}`);
                     } catch (dbError) {
                         console.error("Error updating Firestore after upload: ", dbError);
@@ -536,7 +536,7 @@ function PaymentDetailsContent() {
                         </div>
                         <div className="space-y-2">
                              <Label>Upload Payment Proof</Label>
-                             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" disabled={isConfirming || isUpdatingProvider} />
+                             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" disabled={isConfirming || isUpdatingProvider} accept="image/*,application/pdf" />
                              <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="w-full flex items-center justify-center gap-2 border-dashed h-24" disabled={isConfirming || isUpdatingProvider}>
                                 {paymentFile && paymentFilePreview ? (
                                     paymentFile.type.startsWith('image/') ? (
@@ -631,7 +631,7 @@ function PaymentDetailsContent() {
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
-            </AlertDialog>
+            </Dialog>
              <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
