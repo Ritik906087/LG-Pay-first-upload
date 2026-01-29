@@ -450,7 +450,7 @@ function PaymentDetailsContent() {
                               <div className="flex justify-between items-center text-sm">
                                 <span className="text-muted-foreground">Order Number</span>
                                 <div className="flex items-center gap-2">
-                                  <span className="font-mono break-all">{order?.orderId}</span>
+                                  <span className="font-mono" style={{wordBreak: 'break-all'}}>{order?.orderId}</span>
                                   <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(order?.orderId ?? '')}><Copy className="h-4 w-4" /></Button>
                                 </div>
                              </div>
@@ -469,7 +469,7 @@ function PaymentDetailsContent() {
                             <div className="text-center w-full space-y-2">
                                 <p className="text-sm text-muted-foreground">Wallet Address</p>
                                 <div className="flex items-center gap-2 bg-secondary p-2 rounded-lg">
-                                    <p className="font-mono text-xs break-all flex-1">{details['USDT Address (TRC20)']}</p>
+                                    <p className="font-mono text-xs flex-1" style={{wordBreak: 'break-all'}}>{details['USDT Address (TRC20)']}</p>
                                     <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0" onClick={() => copyToClipboard(details['USDT Address (TRC20)']!)}><Copy className="h-4 w-4" /></Button>
                                 </div>
                                  <p className="text-sm text-muted-foreground pt-2">Network</p>
@@ -656,12 +656,21 @@ function PaymentDetailsContent() {
                                 </Button>
                             </div>
                         </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground">Order Number</span>
+                            <div className="flex items-center gap-2">
+                                <span className="font-mono" style={{wordBreak: 'break-all'}}>{order?.orderId}</span>
+                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(order?.orderId ?? '')} disabled={isConfirming || isUpdatingProvider}>
+                                    <Copy className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </div>
                         <div className="border-t border-dashed -mx-4 my-4"></div>
                         {Object.entries(details).map(([key, value]) => (
                             <div key={key} className="flex justify-between items-center">
                                 <span className="text-muted-foreground">{key}</span>
                                 <div className="flex items-center gap-2">
-                                    <span className="font-semibold break-all text-right">{value}</span>
+                                    <span className="font-semibold text-right" style={{wordBreak: 'break-all'}}>{value}</span>
                                     <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => copyToClipboard(value!)} disabled={isConfirming || isUpdatingProvider}>
                                         <Copy className="h-4 w-4" />
                                     </Button>

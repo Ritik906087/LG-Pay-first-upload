@@ -135,6 +135,10 @@ const InProgressOrderCard = ({ order, onExpire }: { order: any, onExpire: (order
     let statusText = order.status.replace('_', ' ');
     let expiryTimestamp: Timestamp | undefined;
 
+    const isUSDT = isBuy && order.paymentType === 'usdt';
+    const displayAmount = isUSDT ? (order.amount / 110).toFixed(2) : order.amount.toFixed(2);
+    const currencySymbol = isUSDT ? '$' : '₹';
+
     if (isBuy) {
         if (order.status === 'pending_payment') {
             buttonText = "Complete Payment";
@@ -162,7 +166,7 @@ const InProgressOrderCard = ({ order, onExpire }: { order: any, onExpire: (order
             <CardContent className="p-3">
                 <div className="flex items-start justify-between gap-4">
                     <div className="flex-grow space-y-1">
-                        <p className="font-bold text-lg">₹{order.amount.toFixed(2)}</p>
+                        <p className="font-bold text-lg">{currencySymbol}{displayAmount}</p>
                         <div className="flex items-center gap-2">
                              <p className="text-xs text-muted-foreground capitalize">{statusText}</p>
                              {expiryTimestamp && <Countdown expiryTimestamp={expiryTimestamp} onExpire={() => onExpire(order.id, order.type)} />}

@@ -48,7 +48,7 @@ const BuyTransactionCard = React.memo(({ transaction }: { transaction: Order }) 
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text).then(() => {
-      toast({ title: 'Order number copied!' });
+      toast({ title: 'Copied!' });
     });
   };
 
@@ -94,8 +94,20 @@ const BuyTransactionCard = React.memo(({ transaction }: { transaction: Order }) 
         <div className="space-y-2 text-sm">
            <div className="flex justify-between items-center">
             <span className="text-muted-foreground">Amount</span>
-            <span className="font-semibold text-primary">₹{transaction.amount.toFixed(2)}</span>
+            <div className="flex items-center gap-2">
+                <span className="font-semibold text-primary">₹{transaction.amount.toFixed(2)}</span>
+                <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={() => copyToClipboard(transaction.amount.toFixed(2))} />
+            </div>
           </div>
+           {transaction.utr && (
+            <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">UTR</span>
+                <div className="flex items-center gap-2">
+                    <span className="font-mono text-muted-foreground" style={{wordBreak: 'break-all'}}>{transaction.utr}</span>
+                    <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={() => copyToClipboard(transaction.utr!)} />
+                </div>
+            </div>
+          )}
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground">Time</span>
             <span className="font-mono text-muted-foreground text-xs">{transaction.createdAt.toDate().toLocaleString()}</span>
@@ -103,7 +115,7 @@ const BuyTransactionCard = React.memo(({ transaction }: { transaction: Order }) 
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground">Order Number</span>
             <div className="flex items-center gap-2">
-              <span className="font-mono text-muted-foreground break-all">{transaction.orderId}</span>
+              <span className="font-mono text-muted-foreground" style={{wordBreak: 'break-all'}}>{transaction.orderId}</span>
               <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={() => copyToClipboard(transaction.orderId)} />
             </div>
           </div>
@@ -119,7 +131,7 @@ const SellTransactionCard = React.memo(({ transaction }: { transaction: SellOrde
 
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text).then(() => {
-        toast({ title: 'Order number copied!' });
+        toast({ title: 'Copied!' });
         });
     };
 
@@ -155,11 +167,17 @@ const SellTransactionCard = React.memo(({ transaction }: { transaction: SellOrde
             <div className="space-y-2 text-sm">
             <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Amount</span>
-                <span className="font-bold text-lg">₹{transaction.amount.toFixed(2)}</span>
+                <div className="flex items-center gap-2">
+                    <span className="font-bold text-lg">₹{transaction.amount.toFixed(2)}</span>
+                    <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={() => copyToClipboard(transaction.amount.toFixed(2))} />
+                </div>
             </div>
              <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">UTR</span>
-                <span className="font-mono text-muted-foreground break-all">{transaction.utr || '---'}</span>
+                <div className="flex items-center gap-2">
+                    <span className="font-mono text-muted-foreground" style={{wordBreak: 'break-all'}}>{transaction.utr || '---'}</span>
+                    {transaction.utr && <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={() => copyToClipboard(transaction.utr!)} />}
+                </div>
             </div>
             <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Time</span>
@@ -168,7 +186,7 @@ const SellTransactionCard = React.memo(({ transaction }: { transaction: SellOrde
             <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Order Number</span>
                 <div className="flex items-center gap-2">
-                <span className="font-mono text-muted-foreground break-all">{transaction.orderId}</span>
+                <span className="font-mono text-muted-foreground" style={{wordBreak: 'break-all'}}>{transaction.orderId}</span>
                 <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={() => copyToClipboard(transaction.orderId)} />
                 </div>
             </div>
