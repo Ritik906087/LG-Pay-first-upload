@@ -13,7 +13,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useCollection, useDoc, useUser, useFirestore, useStorage } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
 import { doc, getDoc, updateDoc, serverTimestamp, collection, Timestamp } from 'firebase/firestore';
-import { ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import {
@@ -94,15 +93,13 @@ function PaymentDetailsContent() {
     const { toast } = useToast();
     const { user } = useUser();
     const firestore = useFirestore();
-    const storage = useStorage();
 
     const orderId = params.orderId as string;
     const type = searchParams.get('type');
     const provider = searchParams.get('provider');
 
     const [utr, setUtr] = useState('');
-    const [paymentFile, setPaymentFile] = useState<File | null>(null);
-    const [paymentFilePreview, setPaymentFilePreview] = useState<string | null>(null);
+    const [screenshotDataUrl, setScreenshotDataUrl] = useState<string | null>(null);
     const [isConfirming, setIsConfirming] = useState(false);
     const [isUpdatingProvider, setIsUpdatingProvider] = useState(false);
     const [isChangeDialogOpen, setIsChangeDialogOpen] = useState(false);
@@ -280,21 +277,26 @@ function PaymentDetailsContent() {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-             if (file.size > 5 * 1024 * 1024) { // 5MB limit
+            if (file.size > 950 * 1024) { // 950KB limit for Firestore data URL
                 toast({
                     variant: 'destructive',
                     title: 'File is too large',
-                    description: 'Please upload a file smaller than 5MB.'
+                    description: 'Please upload an image smaller than 950KB.'
                 });
                 if(fileInputRef.current) {
                     fileInputRef.current.value = "";
                 }
-                setPaymentFile(null);
-                setPaymentFilePreview(null);
+                setScreenshotDataUrl(null);
                 return;
             }
-            setPaymentFile(file);
-            setPaymentFilePreview(URL.createObjectURL(file));
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const url = e.target?.result as string;
+                setScreenshotDataUrl(url);
+            };
+            reader.readAsDataURL(file);
+
             toast({
                 title: 'Screenshot selected!',
                 description: 'The payment proof is attached and ready to submit.',
@@ -302,64 +304,36 @@ function PaymentDetailsContent() {
         }
     };
     
-    const handleConfirm = () => {
+    const handleConfirm = async () => {
         if (!utr || utr.length !== 12) {
             toast({ variant: 'destructive', title: 'Invalid UTR', description: 'Please provide a valid 12-digit UTR.' });
             return;
         }
-        if (!paymentFile) {
+        if (!screenshotDataUrl) {
             toast({ variant: 'destructive', title: 'Missing Screenshot', description: 'Please upload your payment proof screenshot.' });
             return;
         }
-        if (!orderRef || !storage || !user) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not initialize required services. Please try again.' });
+        if (!orderRef || !user) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Could not initialize. Please try again.' });
             return;
         }
 
         setIsConfirming(true);
 
-        const sanitizedFileName = paymentFile.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-        const filePath = `payment_proofs/${user.uid}/${orderId}/${sanitizedFileName}`;
-        const fileRef = storageRef(storage, filePath);
-        const uploadTask = uploadBytesResumable(fileRef, paymentFile);
-
-        uploadTask.on('state_changed',
-            (snapshot) => {
-                // Optional: handle progress
-            },
-            (error) => {
-                console.error("Error uploading file: ", error);
-                toast({
-                    variant: 'destructive',
-                    title: 'Upload Failed',
-                    description: `Could not upload screenshot. Error: ${error.code}`,
-                    duration: 9000,
-                });
-                setIsConfirming(false);
-            },
-            () => {
-                getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
-                    try {
-                        await updateDoc(orderRef, {
-                            utr,
-                            screenshotURL: downloadURL,
-                            status: 'pending_confirmation',
-                            submittedAt: serverTimestamp()
-                        });
-                        toast({ title: 'Payment Submitted!', description: 'Your proof is under review.' });
-                        router.push(`/order/${orderId}`);
-                    } catch (dbError) {
-                        console.error("Error updating Firestore after upload: ", dbError);
-                        toast({ variant: 'destructive', title: 'Submission Failed', description: 'Screenshot uploaded, but failed to save order details.' });
-                        setIsConfirming(false);
-                    }
-                }).catch(urlError => {
-                    console.error("Error getting download URL: ", urlError);
-                    toast({ variant: 'destructive', title: 'Submission Failed', description: 'Could not get screenshot URL after upload.' });
-                    setIsConfirming(false);
-                });
-            }
-        );
+        try {
+            await updateDoc(orderRef, {
+                utr,
+                screenshotURL: screenshotDataUrl,
+                status: 'pending_confirmation',
+                submittedAt: serverTimestamp()
+            });
+            toast({ title: 'Payment Submitted!', description: 'Your proof is under review.' });
+            router.push(`/order/${orderId}`);
+        } catch (dbError) {
+            console.error("Error updating Firestore: ", dbError);
+            toast({ variant: 'destructive', title: 'Submission Failed', description: 'Failed to save order details.' });
+            setIsConfirming(false);
+        }
     }
 
     const loading = allPaymentMethodsLoading || orderLoading || profileLoading;
@@ -538,8 +512,8 @@ function PaymentDetailsContent() {
                              <Label>Upload Screenshot</Label>
                              <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" disabled={isConfirming || isUpdatingProvider} accept="image/*" />
                              <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="w-full flex items-center justify-center gap-2 border-dashed h-24" disabled={isConfirming || isUpdatingProvider}>
-                                {paymentFilePreview ? (
-                                    <Image src={paymentFilePreview} alt="Screenshot preview" width={80} height={80} className="object-contain h-full" />
+                                {screenshotDataUrl ? (
+                                    <Image src={screenshotDataUrl} alt="Screenshot preview" width={80} height={80} className="object-contain h-full" />
                                 ) : (
                                     <>
                                         <Upload className="h-4 w-4"/>
@@ -579,7 +553,7 @@ function PaymentDetailsContent() {
                 </AlertDialog>
 
 
-                <Button onClick={handleConfirm} className="h-12 text-base font-bold bg-green-500 hover:bg-green-600 text-white" disabled={isConfirming || isUpdatingProvider}>
+                <Button onClick={handleConfirm} className="h-12 text-base font-bold bg-green-500 hover:bg-green-600 text-white" disabled={isConfirming || isUpdatingProvider || !utr || !screenshotDataUrl}>
                     {isConfirming ? <Loader2 className="h-6 w-6 animate-spin"/> : 'CONFIRM'}
                 </Button>
             </footer>
