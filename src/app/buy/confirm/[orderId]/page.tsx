@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ChevronLeft, Copy, Upload, Loader2, Info } from 'lucide-react';
+import { ChevronLeft, Copy, Upload, Loader2, Info, Paperclip } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useCollection, useDoc, useUser, useFirestore, useStorage } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -101,8 +101,8 @@ function PaymentDetailsContent() {
     const provider = searchParams.get('provider');
 
     const [utr, setUtr] = useState('');
-    const [screenshot, setScreenshot] = useState<File | null>(null);
-    const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+    const [paymentFile, setPaymentFile] = useState<File | null>(null);
+    const [paymentFilePreview, setPaymentFilePreview] = useState<string | null>(null);
     const [isConfirming, setIsConfirming] = useState(false);
     const [isUpdatingProvider, setIsUpdatingProvider] = useState(false);
     const [isChangeDialogOpen, setIsChangeDialogOpen] = useState(false);
@@ -284,17 +284,17 @@ function PaymentDetailsContent() {
                 toast({
                     variant: 'destructive',
                     title: 'File is too large',
-                    description: 'Please upload an image smaller than 5MB.'
+                    description: 'Please upload a file smaller than 5MB.'
                 });
                 if(fileInputRef.current) {
                     fileInputRef.current.value = "";
                 }
-                setScreenshot(null);
-                setScreenshotPreview(null);
+                setPaymentFile(null);
+                setPaymentFilePreview(null);
                 return;
             }
-            setScreenshot(file);
-            setScreenshotPreview(URL.createObjectURL(file));
+            setPaymentFile(file);
+            setPaymentFilePreview(URL.createObjectURL(file));
             toast({
                 title: 'File selected successfully!',
                 description: 'The payment proof is attached and ready to submit.',
@@ -307,8 +307,8 @@ function PaymentDetailsContent() {
             toast({ variant: 'destructive', title: 'Invalid UTR', description: 'Please provide a valid 12-digit UTR.' });
             return;
         }
-        if (!screenshot) {
-            toast({ variant: 'destructive', title: 'Missing Screenshot', description: 'Please upload a payment screenshot.' });
+        if (!paymentFile) {
+            toast({ variant: 'destructive', title: 'Missing File', description: 'Please upload your payment proof file.' });
             return;
         }
         if (!orderRef || !storage || !user) {
@@ -318,21 +318,21 @@ function PaymentDetailsContent() {
 
         setIsConfirming(true);
 
-        const sanitizedFileName = screenshot.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-        const screenshotPath = `screenshots/${user.uid}/${orderId}/${sanitizedFileName}`;
-        const fileRef = storageRef(storage, screenshotPath);
-        const uploadTask = uploadBytesResumable(fileRef, screenshot);
+        const sanitizedFileName = paymentFile.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+        const filePath = `payment_proofs/${user.uid}/${orderId}/${sanitizedFileName}`;
+        const fileRef = storageRef(storage, filePath);
+        const uploadTask = uploadBytesResumable(fileRef, paymentFile);
 
         uploadTask.on('state_changed',
             (snapshot) => {
                 // Optional: handle progress
             },
             (error) => {
-                console.error("Error uploading screenshot: ", error);
+                console.error("Error uploading file: ", error);
                 toast({
                     variant: 'destructive',
                     title: 'Upload Failed',
-                    description: `Could not upload screenshot. Error: ${error.code}`,
+                    description: `Could not upload file. Error: ${error.code}`,
                     duration: 9000,
                 });
                 setIsConfirming(false);
@@ -350,12 +350,12 @@ function PaymentDetailsContent() {
                         router.push(`/order/${orderId}`);
                     } catch (dbError) {
                         console.error("Error updating Firestore after upload: ", dbError);
-                        toast({ variant: 'destructive', title: 'Submission Failed', description: 'Screenshot uploaded, but failed to save order details.' });
+                        toast({ variant: 'destructive', title: 'Submission Failed', description: 'File uploaded, but failed to save order details.' });
                         setIsConfirming(false);
                     }
                 }).catch(urlError => {
                     console.error("Error getting download URL: ", urlError);
-                    toast({ variant: 'destructive', title: 'Submission Failed', description: 'Could not get screenshot URL after upload.' });
+                    toast({ variant: 'destructive', title: 'Submission Failed', description: 'Could not get file URL after upload.' });
                     setIsConfirming(false);
                 });
             }
@@ -535,15 +535,22 @@ function PaymentDetailsContent() {
                             <Input id="utr" placeholder="Enter 12-digit UTR number" value={utr} onChange={(e) => setUtr(e.target.value)} maxLength={12} disabled={isConfirming || isUpdatingProvider} />
                         </div>
                         <div className="space-y-2">
-                             <Label>Upload Screenshot</Label>
-                             <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" disabled={isConfirming || isUpdatingProvider} />
+                             <Label>Upload Payment Proof</Label>
+                             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" disabled={isConfirming || isUpdatingProvider} />
                              <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="w-full flex items-center justify-center gap-2 border-dashed h-24" disabled={isConfirming || isUpdatingProvider}>
-                                {screenshotPreview ? (
-                                    <Image src={screenshotPreview} alt="Screenshot preview" width={80} height={80} className="object-contain h-full" />
+                                {paymentFile && paymentFilePreview ? (
+                                    paymentFile.type.startsWith('image/') ? (
+                                        <Image src={paymentFilePreview} alt="File preview" width={80} height={80} className="object-contain h-full" />
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center text-center p-2 text-muted-foreground">
+                                            <Paperclip className="h-8 w-8 mb-1"/>
+                                            <p className="text-xs max-w-[200px] truncate">{paymentFile.name}</p>
+                                        </div>
+                                    )
                                 ) : (
                                     <>
                                         <Upload className="h-4 w-4"/>
-                                        Click to upload payment proof
+                                        Click to upload file
                                     </>
                                 )}
                             </Button>
@@ -684,3 +691,5 @@ export default function ConfirmPage() {
     </Suspense>
   )
 }
+
+    
