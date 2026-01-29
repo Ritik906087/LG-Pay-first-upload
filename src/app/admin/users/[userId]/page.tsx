@@ -84,6 +84,7 @@ type SellOrder = {
   utr?: string;
   withdrawalMethod: { name: string, upiId: string };
   createdAt: Timestamp;
+  completedAt?: Timestamp;
 };
 
 
@@ -276,6 +277,27 @@ export default function UserDetailsPage() {
 
     const { data: sellOrders, loading: sellOrdersLoading } = useCollection<SellOrder>(sellOrdersQuery);
 
+    const stats = React.useMemo(() => {
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        const completedBuyOrders = orders?.filter(o => o.status === 'completed') || [];
+        const completedSellOrders = sellOrders?.filter(o => o.status === 'completed') || [];
+
+        const totalBuy = completedBuyOrders.reduce((acc, order) => acc + order.amount, 0);
+        const totalSell = completedSellOrders.reduce((acc, order) => acc + order.amount, 0);
+
+        const todayBuy = completedBuyOrders
+            .filter(o => o.createdAt && o.createdAt.toDate() >= startOfToday)
+            .reduce((acc, order) => acc + order.amount, 0);
+        
+        const todaySell = completedSellOrders
+            .filter(o => o.completedAt && o.completedAt.toDate() >= startOfToday)
+            .reduce((acc, order) => acc + order.amount, 0);
+
+        return { totalBuy, totalSell, todayBuy, todaySell };
+    }, [orders, sellOrders]);
+
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text).then(() => {
           toast({ title: 'UID Copied!' });
@@ -392,9 +414,9 @@ export default function UserDetailsPage() {
                                 return (
                                     <div
                                         key={method.name}
-                                        className={`flex h-20 w-full items-center justify-between gap-4 rounded-xl px-4 py-2 text-white shadow-md ${details?.bgColor || 'bg-gray-500'}`}
+                                        className={`flex items-center justify-between gap-4 rounded-xl p-3 text-white shadow-md ${details?.bgColor || 'bg-gray-500'}`}
                                     >
-                                        <div className="flex items-center gap-4">
+                                        <div className="flex items-center gap-3">
                                             {details && (
                                                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white p-1">
                                                     <Image
@@ -406,19 +428,24 @@ export default function UserDetailsPage() {
                                                     />
                                                 </div>
                                             )}
-                                            <div>
-                                                <span className="text-lg font-semibold">{method.name}</span>
-                                                <p className="text-sm font-mono text-white/80">{method.upiId}</p>
+                                            <div className="flex-grow">
+                                                <span className="text-base font-semibold">{method.name}</span>
+                                                <p className="text-xs font-mono text-white/80">{method.upiId}</p>
                                             </div>
                                         </div>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8 text-white/80 hover:bg-white/20 hover:text-white"
-                                            onClick={() => copyUpiToClipboard(method.upiId || '')}
-                                        >
-                                            <Copy className="h-4 w-4" />
-                                        </Button>
+                                        <div className="flex flex-col items-end gap-2">
+                                            <div className="flex items-center justify-center rounded-md bg-green-500/80 px-2 py-1 text-[10px] font-bold uppercase text-white">
+                                                ACTIVATED
+                                            </div>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-7 w-7 text-white/80 hover:bg-white/20 hover:text-white"
+                                                onClick={() => copyUpiToClipboard(method.upiId || '')}
+                                            >
+                                                <Copy className="h-4 w-4" />
+                                            </Button>
+                                        </div>
                                     </div>
                                 )
                             })}
@@ -429,6 +456,31 @@ export default function UserDetailsPage() {
                             <p>No UPI accounts linked.</p>
                         </div>
                     )}
+                </CardContent>
+            </Card>
+
+            {/* User Stats Card */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>User Stats</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 gap-4 text-center md:grid-cols-4">
+                    <div className="rounded-lg bg-blue-100 p-3">
+                        <p className="text-sm font-medium text-blue-800">Total Buy</p>
+                        <p className="text-2xl font-bold text-blue-900">₹{stats.totalBuy.toFixed(2)}</p>
+                    </div>
+                    <div className="rounded-lg bg-green-100 p-3">
+                        <p className="text-sm font-medium text-green-800">Total Sell</p>
+                        <p className="text-2xl font-bold text-green-900">₹{stats.totalSell.toFixed(2)}</p>
+                    </div>
+                    <div className="rounded-lg bg-blue-100 p-3">
+                        <p className="text-sm font-medium text-blue-800">Today's Buy</p>
+                        <p className="text-2xl font-bold text-blue-900">₹{stats.todayBuy.toFixed(2)}</p>
+                    </div>
+                    <div className="rounded-lg bg-green-100 p-3">
+                        <p className="text-sm font-medium text-green-800">Today's Sell</p>
+                        <p className="text-2xl font-bold text-green-900">₹{stats.todaySell.toFixed(2)}</p>
+                    </div>
                 </CardContent>
             </Card>
 
@@ -543,3 +595,5 @@ export default function UserDetailsPage() {
         </main>
     )
 }
+
+    
