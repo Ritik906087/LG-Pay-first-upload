@@ -50,13 +50,14 @@ type UserProfile = {
 
 type PaymentMethod = {
     id: string;
-    type: 'bank' | 'upi';
+    type: 'bank' | 'upi' | 'usdt';
     bankName?: string;
     accountHolderName?: string;
     accountNumber?: string;
     ifscCode?: string;
     upiHolderName?: string;
     upiId?: string;
+    usdtWalletAddress?: string;
 }
 
 type Order = {
@@ -337,6 +338,42 @@ function UpiDetailsForm({ onAdd }: { onAdd: (details: Omit<PaymentMethod, 'id' |
     );
 }
 
+function UsdtDetailsForm({ onAdd }: { onAdd: (details: Omit<PaymentMethod, 'id' | 'type'>) => Promise<void> }) {
+    const [usdtWalletAddress, setUsdtWalletAddress] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    
+    const handleSubmit = async () => {
+        if(!usdtWalletAddress) {
+            alert('Please fill all fields');
+            return;
+        }
+        setIsLoading(true);
+        await onAdd({ usdtWalletAddress });
+        setIsLoading(false);
+        setUsdtWalletAddress('');
+    }
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Add USDT Wallet</CardTitle>
+                <CardDescription>Enter the TRC20 wallet address for USDT payments.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <div className="space-y-2">
+                    <Label htmlFor="usdt-wallet-address">USDT Address (TRC20)</Label>
+                    <Input id="usdt-wallet-address" placeholder="T..." value={usdtWalletAddress} onChange={e => setUsdtWalletAddress(e.target.value)} disabled={isLoading}/>
+                </div>
+            </CardContent>
+            <CardFooter>
+                <Button className="w-full" onClick={handleSubmit} disabled={isLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                    Add USDT Wallet
+                </Button>
+            </CardFooter>
+        </Card>
+    );
+}
+
 function PaymentMethodsList({ methods, loading, onDelete }: { methods: PaymentMethod[], loading: boolean, onDelete: (id: string) => void }) {
     if (loading) {
         return <Skeleton className="h-32 w-full mt-8"/>
@@ -348,6 +385,7 @@ function PaymentMethodsList({ methods, loading, onDelete }: { methods: PaymentMe
 
     const bankAccounts = methods.filter(m => m.type === 'bank');
     const upiAccounts = methods.filter(m => m.type === 'upi');
+    const usdtAccounts = methods.filter(m => m.type === 'usdt');
 
     return (
         <div className="mt-8 space-y-6">
@@ -380,6 +418,24 @@ function PaymentMethodsList({ methods, loading, onDelete }: { methods: PaymentMe
                                 <div className="text-sm space-y-1">
                                     <p><span className="font-semibold">Name:</span> {method.upiHolderName}</p>
                                     <p><span className="font-semibold">UPI ID:</span> {method.upiId}</p>
+                                </div>
+                                <Button variant="ghost" size="icon" onClick={() => onDelete(method.id)} className="text-destructive hover:text-destructive">
+                                    <Trash2 className="h-4 w-4"/>
+                                </Button>
+                            </Card>
+                        ))}
+                    </CardContent>
+                </Card>
+            )}
+            {usdtAccounts.length > 0 && (
+                <Card>
+                    <CardHeader><CardTitle>Saved USDT Wallets</CardTitle></CardHeader>
+                    <CardContent className="space-y-4">
+                        {usdtAccounts.map(method => (
+                             <Card key={method.id} className="p-4 bg-muted/50 flex justify-between items-start">
+                                <div className="text-sm space-y-1 break-all">
+                                    <p><span className="font-semibold">Network:</span> USDT (TRC20)</p>
+                                    <p><span className="font-semibold">Address:</span> {method.usdtWalletAddress}</p>
                                 </div>
                                 <Button variant="ghost" size="icon" onClick={() => onDelete(method.id)} className="text-destructive hover:text-destructive">
                                     <Trash2 className="h-4 w-4"/>
@@ -981,7 +1037,7 @@ function ProcessConfirmationDialog({ order, onProcessed }: { order: Order, onPro
                 ) : (
                     <div className="space-y-4 py-4 text-sm">
                         <div className="flex justify-between"><span>User:</span> <span className="font-semibold">{order.user?.displayName || 'N/A'} ({order.user?.numericId})</span></div>
-                        <div className="flex justify-between"><span>UTR:</span> <span className="font-mono">{order.utr}</span></div>
+                        <div className="flex justify-between"><span>UTR / TxHash:</span> <span className="font-mono">{order.utr}</span></div>
                         <div className="flex justify-between items-center">
                             <span>Screenshot:</span> 
                             <Dialog>
@@ -1128,7 +1184,7 @@ function ConfirmationsTabContent() {
                     <CardContent className="p-4 space-y-2 text-sm">
                         <p><strong>Amount:</strong> <span className="font-bold text-lg text-primary">₹{order.amount.toFixed(2)}</span></p>
                         <p><strong>User:</strong> {order.user?.displayName || 'N/A'} ({order.user?.numericId})</p>
-                        <p><strong>UTR:</strong> {order.utr}</p>
+                        <p><strong>UTR/TxHash:</strong> {order.utr}</p>
                     </CardContent>
                     <CardFooter>
                         <ProcessConfirmationDialog order={order} onProcessed={fetchData} />
@@ -1169,7 +1225,7 @@ function AdminDashboard() {
     const totalUsers = allUsers?.length || 0;
     const totalBalance = allUsers?.reduce((acc, user) => acc + (user.balance || 0), 0) || 0;
 
-    const handleAddMethod = async (type: 'bank' | 'upi', details: any) => {
+    const handleAddMethod = async (type: 'bank' | 'upi' | 'usdt', details: any) => {
         if (!firestore) return;
         try {
             await addDoc(collection(firestore, 'paymentMethods'), { type, ...details });
@@ -1299,7 +1355,7 @@ function AdminDashboard() {
           <TabsContent value="payment-methods" className="mt-4">
              <div className="w-full max-w-2xl mx-auto">
                 <Tabs defaultValue="bank">
-                    <TabsList className="grid w-full grid-cols-2">
+                    <TabsList className="grid w-full grid-cols-3">
                         <TabsTrigger value="bank">
                             <Landmark className="mr-2" />
                             Bank
@@ -1308,12 +1364,19 @@ function AdminDashboard() {
                             <Banknote className="mr-2" />
                             UPI
                         </TabsTrigger>
+                         <TabsTrigger value="usdt">
+                            <Wallet className="mr-2" />
+                            USDT
+                        </TabsTrigger>
                     </TabsList>
                     <TabsContent value="bank" className="mt-4">
                         <BankDetailsForm onAdd={(details) => handleAddMethod('bank', details)} />
                     </TabsContent>
                     <TabsContent value="upi" className="mt-4">
                         <UpiDetailsForm onAdd={(details) => handleAddMethod('upi', details)} />
+                    </TabsContent>
+                     <TabsContent value="usdt" className="mt-4">
+                        <UsdtDetailsForm onAdd={(details) => handleAddMethod('usdt', details)} />
                     </TabsContent>
                 </Tabs>
                 <PaymentMethodsList methods={paymentMethods || []} loading={paymentMethodsLoading} onDelete={handleDeleteMethod}/>
@@ -1353,4 +1416,5 @@ export default function AdminDashboardPage() {
 
 
     
+
 

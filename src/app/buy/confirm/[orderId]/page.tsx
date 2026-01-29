@@ -40,13 +40,14 @@ import { Textarea } from '@/components/ui/textarea';
 
 type PaymentMethod = {
     id: string;
-    type: 'bank' | 'upi';
+    type: 'bank' | 'upi' | 'usdt';
     bankName?: string;
     accountHolderName?: string;
     accountNumber?: string;
     ifscCode?: string;
     upiHolderName?: string;
     upiId?: string;
+    usdtWalletAddress?: string;
 }
 
 type Order = {
@@ -54,7 +55,7 @@ type Order = {
     status: string;
     createdAt: Timestamp;
     orderId: string;
-    paymentType: 'bank' | 'upi';
+    paymentType: 'bank' | 'upi' | 'usdt';
     paymentProvider: string;
 };
 
@@ -265,6 +266,13 @@ function PaymentDetailsContent() {
                 'UPI ID': upiAccount.upiId,
             }
         }
+        if (type === 'usdt') {
+            const usdtAccount = allPaymentMethods.find(m => m.type === 'usdt');
+            if (!usdtAccount) return null;
+            return {
+                'USDT Address (TRC20)': usdtAccount.usdtWalletAddress,
+            }
+        }
         return null;
     }, [allPaymentMethods, type]);
 
@@ -306,10 +314,19 @@ function PaymentDetailsContent() {
     };
     
     const handleConfirm = async () => {
-        if (!utr || utr.length !== 12) {
-            toast({ variant: 'destructive', title: 'Invalid UTR', description: 'Please provide a valid 12-digit UTR.' });
-            return;
+        const isUSDT = type === 'usdt';
+        if (isUSDT) {
+            if (!utr || utr.length !== 64) {
+                toast({ variant: 'destructive', title: 'Invalid Transaction Hash', description: 'Please provide a valid 64-character TxID.' });
+                return;
+            }
+        } else {
+            if (!utr || utr.length !== 12) {
+                toast({ variant: 'destructive', title: 'Invalid UTR', description: 'Please provide a valid 12-digit UTR.' });
+                return;
+            }
         }
+
         if (!screenshotDataUrl) {
             toast({ variant: 'destructive', title: 'Missing Screenshot', description: 'Please upload your payment proof screenshot.' });
             return;
@@ -413,7 +430,7 @@ function PaymentDetailsContent() {
             </header>
 
             <main className="flex-grow p-4 space-y-4">
-                {currentProviderDetails && provider && (
+                {type === 'upi' && currentProviderDetails && provider && (
                     <Card className={cn("text-white shadow-md", currentProviderDetails.bgColor)}>
                         <CardContent className="p-3 flex items-center justify-between">
                             <div className="flex items-center gap-4">
@@ -445,7 +462,7 @@ function PaymentDetailsContent() {
                 
                 <Card>
                     <CardHeader>
-                        <CardTitle>{type === 'bank' ? 'Bank Transfer' : 'Pay via UPI'}</CardTitle>
+                        <CardTitle>{type === 'bank' ? 'Bank Transfer' : type === 'usdt' ? 'USDT (TRC20) Payment' : 'Pay via UPI'}</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4 text-sm">
                         <div className="flex justify-between items-center pt-0">
@@ -468,8 +485,8 @@ function PaymentDetailsContent() {
                             <div key={key} className="flex justify-between items-center">
                                 <span className="text-muted-foreground">{key}</span>
                                 <div className="flex items-center gap-2">
-                                    <span className="font-semibold">{value}</span>
-                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(value!)} disabled={isConfirming || isUpdatingProvider}>
+                                    <span className="font-semibold break-all text-right">{value}</span>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={() => copyToClipboard(value!)} disabled={isConfirming || isUpdatingProvider}>
                                         <Copy className="h-4 w-4" />
                                     </Button>
                                 </div>
@@ -478,27 +495,31 @@ function PaymentDetailsContent() {
                     </CardContent>
                 </Card>
 
-                {type === 'upi' && details && order && (
+                {(type === 'upi' || type === 'usdt') && details && order && (
                     <Card>
                         <CardHeader>
                             <CardTitle>Scan QR to Pay</CardTitle>
                         </CardHeader>
                         <CardContent className="flex flex-col items-center gap-2">
-                            <Image
+                             <Image
                                 src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(
-                                    `upi://pay?pa=${details['UPI ID']}&pn=${encodeURIComponent(details['Recipient Name'])}&am=${order.amount}&tn=${order.orderId}`
+                                    type === 'upi' 
+                                    ? `upi://pay?pa=${details['UPI ID']}&pn=${encodeURIComponent(details['Recipient Name'])}&am=${order.amount}&tn=${order.orderId}`
+                                    : details['USDT Address (TRC20)']!
                                 )}&size=200x200&qzone=2`}
                                 width={200}
                                 height={200}
-                                alt="UPI QR Code"
+                                alt="Payment QR Code"
                                 className="rounded-lg border p-1 bg-white"
                             />
                             <p className="text-sm text-muted-foreground text-center">
-                                Scan with any UPI app to pay.
+                                Scan with any {type === 'upi' ? 'UPI app' : 'TRC20 compatible wallet'} to pay.
                             </p>
-                            <p className="text-xs text-muted-foreground text-center">
-                                Amount and order number will be pre-filled.
-                            </p>
+                             {type === 'usdt' && (
+                                <p className="text-xs text-destructive text-center mt-2">
+                                    Warning: Only send USDT on the TRC20 (Tron) network. Sending from other networks will result in loss of funds.
+                                </p>
+                            )}
                         </CardContent>
                     </Card>
                 )}
@@ -506,8 +527,8 @@ function PaymentDetailsContent() {
                 <Card>
                     <CardContent className="p-4 space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="utr">UTR / Reference Number</Label>
-                            <Input id="utr" placeholder="Enter 12-digit UTR number" value={utr} onChange={(e) => setUtr(e.target.value)} maxLength={12} disabled={isConfirming || isUpdatingProvider} />
+                            <Label htmlFor="utr">{type === 'usdt' ? 'Transaction Hash (TxID)' : 'UTR / Reference Number'}</Label>
+                            <Input id="utr" placeholder={type === 'usdt' ? 'Enter 64-character TxID' : 'Enter 12-digit UTR number'} value={utr} onChange={(e) => setUtr(e.target.value)} maxLength={type === 'usdt' ? 64 : 12} disabled={isConfirming || isUpdatingProvider} />
                         </div>
                         <div className="space-y-2">
                              <Label>Upload Screenshot</Label>

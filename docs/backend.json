@@ -73,7 +73,7 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["bank", "upi"]
+          "enum": ["bank", "upi", "usdt"]
         },
         "bankName": {
           "type": "string",
@@ -98,6 +98,10 @@
         "upiId": {
           "type": "string",
           "description": "The UPI ID."
+        },
+        "usdtWalletAddress": {
+            "type": "string",
+            "description": "The TRC20 wallet address for USDT."
         }
       },
       "required": ["type"]
@@ -122,7 +126,7 @@
         "paymentType": {
           "type": "string",
           "description": "The payment method type chosen by the user.",
-          "enum": ["bank", "upi"]
+          "enum": ["bank", "upi", "usdt"]
         },
         "paymentProvider": {
           "type": "string",
@@ -153,7 +157,7 @@
         },
         "utr": {
           "type": "string",
-          "description": "The UTR/reference number of the payment."
+          "description": "The UTR (for bank/UPI) or Transaction Hash (for crypto) of the payment."
         },
         "screenshotURL": {
           "type": "string",

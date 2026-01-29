@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
@@ -30,6 +31,7 @@ type Order = {
     submittedAt: Timestamp;
     cancellationReason?: string;
     rejectionReason?: string;
+    paymentType?: 'bank' | 'upi' | 'usdt';
 };
 
 const formatTime = (seconds: number) => {
@@ -214,7 +216,7 @@ function OrderStatusContent() {
                             <span className="font-mono text-xs">{order.orderId}</span>
                         </div>
                          <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground">UTR</span>
+                            <span className="text-muted-foreground">{order.paymentType === 'usdt' ? 'TxHash' : 'UTR'}</span>
                             <span className="font-mono">{order.utr}</span>
                         </div>
                          <div className="flex justify-between items-center">

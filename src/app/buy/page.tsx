@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { motion, AnimatePresence } from 'framer-motion';
 
-import { ChevronLeft, ShoppingCart } from 'lucide-react';
+import { ChevronLeft, ShoppingCart, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useUser, useFirestore, useCollection } from '@/firebase';
@@ -111,7 +111,7 @@ const PurchaseGrid = ({ onBuyClick, options, bonusPercentage }: { onBuyClick: (o
 
 export default function BuyPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState('otp-upi');
+  const [activeTab, setActiveTab] = useState<'otp-upi' | 'bank' | 'usdt'>('otp-upi');
   const [activeSubTab, setActiveSubTab] = useState('small');
   
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
@@ -187,32 +187,41 @@ export default function BuyPage() {
     }
 
     setSelectedAmount(option.amount);
-    setIsDialogOpen(true);
-  };
 
-  const handleUpiSelect = async (methodName: string) => {
+    if (activeTab === 'usdt') {
+        createOrder('TRC20');
+    } else {
+        setIsDialogOpen(true);
+    }
+  };
+  
+  const createOrder = async (provider: string) => {
     if (!user || !firestore || !selectedAmount) return;
-    setIsDialogOpen(false);
-    
+
     const orderId = `LGPAY${Date.now()}`;
-    const paymentType = activeTab === 'bank' ? 'bank' : 'upi';
+    const paymentType = activeTab;
 
     try {
-      const ordersRef = collection(firestore, 'users', user.uid, 'orders');
-      const newOrderRef = await addDoc(ordersRef, {
-        userId: user.uid,
-        amount: selectedAmount,
-        orderId,
-        status: 'pending_payment',
-        createdAt: serverTimestamp(),
-        paymentType: paymentType,
-        paymentProvider: methodName,
-      });
-      router.push(`/buy/confirm/${newOrderRef.id}?type=${paymentType}&provider=${methodName}`);
+        const ordersRef = collection(firestore, 'users', user.uid, 'orders');
+        const newOrderRef = await addDoc(ordersRef, {
+            userId: user.uid,
+            amount: selectedAmount,
+            orderId,
+            status: 'pending_payment',
+            createdAt: serverTimestamp(),
+            paymentType: paymentType,
+            paymentProvider: provider,
+        });
+        router.push(`/buy/confirm/${newOrderRef.id}?type=${paymentType}&provider=${provider}`);
     } catch (error) {
-      console.error('Error creating order: ', error);
-      toast({ variant: 'destructive', title: 'Could not create order.' });
+        console.error('Error creating order: ', error);
+        toast({ variant: 'destructive', title: 'Could not create order.' });
     }
+  }
+
+  const handleProviderSelect = async (methodName: string) => {
+    setIsDialogOpen(false);
+    await createOrder(methodName);
   };
   
   const handleGoToOrder = () => {
@@ -228,7 +237,7 @@ export default function BuyPage() {
     }
   };
 
-  const bonusPercentage = activeTab === 'bank' ? 6 : 5;
+  const bonusPercentage = activeTab === 'bank' ? 6 : activeTab === 'usdt' ? 7 : 5;
   
   const displayedOptions = useMemo(() => {
       if (activeSubTab === 'small') {
@@ -253,8 +262,8 @@ export default function BuyPage() {
       </header>
 
       <main className="p-4 flex-grow">
-        <Tabs defaultValue="otp-upi" className="w-full" onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2 gap-2 h-auto p-0 bg-transparent">
+        <Tabs value={activeTab} className="w-full" onValueChange={(value) => setActiveTab(value as any)}>
+          <TabsList className="grid w-full grid-cols-3 gap-2 h-auto p-0 bg-transparent">
              <TabsTrigger value="otp-upi" className="flex flex-col items-center justify-center p-3 h-auto rounded-xl border-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 transition-all space-y-1">
                 <span className="font-bold text-base text-foreground">OTP-UPI</span>
                 <span className="text-xs text-green-600 font-semibold">+5% Bonus</span>
@@ -262,6 +271,13 @@ export default function BuyPage() {
             <TabsTrigger value="bank" className="flex flex-col items-center justify-center p-3 h-auto rounded-xl border-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 transition-all space-y-1">
                 <span className="font-bold text-base text-foreground">BANK</span>
                 <span className="text-xs text-green-600 font-semibold">+6% Bonus</span>
+            </TabsTrigger>
+             <TabsTrigger value="usdt" className="flex flex-col items-center justify-center p-3 h-auto rounded-xl border-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 transition-all space-y-1">
+                <div className="flex items-center gap-2">
+                    <Wallet className="h-4 w-4 text-foreground"/>
+                    <span className="font-bold text-base text-foreground">USDT</span>
+                </div>
+                <span className="text-xs text-green-600 font-semibold">+7% Bonus</span>
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -289,7 +305,7 @@ export default function BuyPage() {
             {upiMethods.map((method) => (
                 <button 
                     key={method.name}
-                    onClick={() => handleUpiSelect(method.name)}
+                    onClick={() => handleProviderSelect(method.name)}
                     className="w-full flex items-center p-3 rounded-lg border hover:bg-secondary transition-colors"
                 >
                     <Image src={method.logo} alt={method.name} width={32} height={32} className="mr-4" />
