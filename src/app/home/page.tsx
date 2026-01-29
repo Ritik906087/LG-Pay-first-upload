@@ -140,9 +140,10 @@ const InProgressOrderCard = ({ order, onExpire }: { order: any, onExpire: (order
             buttonText = "Complete Payment";
             buttonLink = `/buy/confirm/${order.id}?type=${order.paymentType}&provider=${order.paymentProvider}`;
             expiryTimestamp = new Timestamp(order.createdAt.seconds + 30 * 60, order.createdAt.nanoseconds);
-        } else if (order.status === 'processing') {
-            buttonText = "View Status";
+        } else if (order.status === 'pending_confirmation') {
+            buttonText = "View Order";
             buttonLink = `/order/${order.id}`;
+            statusText = "Confirmation";
             if (order.submittedAt) { 
                 expiryTimestamp = new Timestamp(order.submittedAt.seconds + 30 * 60, order.submittedAt.nanoseconds);
             }
@@ -197,7 +198,7 @@ export default function HomePage() {
     if (!user || !firestore) return null;
     return query(
         collection(firestore, 'users', user.uid, 'orders'),
-        where('status', 'in', ['pending_payment', 'processing'])
+        where('status', 'in', ['pending_payment', 'pending_confirmation'])
     );
   }, [user, firestore]);
 
@@ -234,7 +235,7 @@ export default function HomePage() {
         if (!orderSnap.exists()) return;
 
         const orderData = orderSnap.data();
-        const validStatusesToExpire = ['pending_payment', 'processing', 'pending'];
+        const validStatusesToExpire = ['pending_payment', 'processing', 'pending', 'pending_confirmation'];
         
         if (!validStatusesToExpire.includes(orderData.status)) {
           return;

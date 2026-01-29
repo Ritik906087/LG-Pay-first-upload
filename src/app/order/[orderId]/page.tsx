@@ -159,8 +159,8 @@ function OrderStatusContent() {
                             </>
                         ) : order.status === 'pending_confirmation' ? (
                             <>
-                                <FileClock className="h-16 w-16 text-primary" />
-                                <h2 className="text-2xl font-bold text-primary">Awaiting Confirmation</h2>
+                                <FileClock className="h-16 w-16 text-green-600" />
+                                <h2 className="text-2xl font-bold text-green-600">Confirmation</h2>
                                 <p className="text-muted-foreground">Your payment is under review.</p>
                             </>
                         ) : (
@@ -180,12 +180,12 @@ function OrderStatusContent() {
                         )}
                         
                     </CardContent>
-                    <CardFooter className="bg-primary/10 p-4">
+                    <CardFooter className={cn("p-4", order.status === 'pending_confirmation' ? 'bg-green-100' : 'bg-primary/10')}>
                          <div className="w-full text-center">
                             {order.status === 'pending_confirmation' ? (
                                 <>
-                                    <p className="text-sm text-primary font-semibold">Estimated time remaining</p>
-                                    <p className="text-3xl font-mono font-bold text-primary">
+                                    <p className="text-sm text-green-800 font-semibold">Estimated time remaining</p>
+                                    <p className="text-3xl font-mono font-bold text-green-600">
                                         {timeLeft !== null ? formatTime(timeLeft) : <Loader2 className="h-8 w-8 animate-spin inline-block"/>}
                                     </p>
                                 </>
