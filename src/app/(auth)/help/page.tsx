@@ -34,7 +34,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-const CHAT_STORAGE_KEY = 'lg-pay-help-chat-history';
+const CHAT_STATE_STORAGE_KEY = 'lg-pay-help-chat-state';
 const SOUND_PREF_KEY = 'lg-pay-help-sound-pref';
 
 type Attachment = {
@@ -190,36 +190,48 @@ export default function HelpPage() {
   const displayedMessages = isAgentActive ? liveChat?.chatHistory || messages : messages;
   const prevMessagesCount = useRef(displayedMessages?.length ?? 0);
 
-  // Load chat and sound preference from localStorage
+  // Load chat state and sound preference from localStorage
   useEffect(() => {
     try {
-        const savedMessages = localStorage.getItem(CHAT_STORAGE_KEY);
-        if (savedMessages && !isAgentActive) {
-            const parsedMessages = JSON.parse(savedMessages) as Message[];
-            if(parsedMessages.length > 0) {
-              setMessages(parsedMessages);
-              setChatStarted(true);
+        const savedStateJSON = localStorage.getItem(CHAT_STATE_STORAGE_KEY);
+        if (savedStateJSON && !isAgentActive) {
+            const savedState = JSON.parse(savedStateJSON);
+            if (savedState.chatStarted) {
+                setMessages(savedState.messages || []);
+                setChatStep(savedState.chatStep || 'welcome');
+                setEnteredIdentifier(savedState.enteredIdentifier || '');
+                setChatStarted(true);
+                autoUnlockAudio();
             }
         }
+
         const savedSoundPref = localStorage.getItem(SOUND_PREF_KEY);
         if (savedSoundPref !== null) {
             setIsSoundOn(JSON.parse(savedSoundPref));
         }
     } catch (error) {
         console.error("Failed to load data from storage:", error);
+        localStorage.removeItem(CHAT_STATE_STORAGE_KEY);
     }
   }, [isAgentActive]);
 
-  // Save chat to localStorage, but only if not in an active agent chat
+  // Save chat state to localStorage, but only if not in an active agent chat
   useEffect(() => {
-    if (messages.length > 0 && chatStarted && !isAgentActive && chatStep !== 'escalating') {
+    if (chatStarted && !isAgentActive && chatStep !== 'escalating') {
         try {
-            localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+            const stateToSave = {
+                messages,
+                chatStep,
+                enteredIdentifier,
+                chatStarted,
+            };
+            localStorage.setItem(CHAT_STATE_STORAGE_KEY, JSON.stringify(stateToSave));
         } catch (error) {
-            console.error("Failed to save chat to storage:", error);
+            console.error("Failed to save chat state to storage:", error);
         }
     }
-  }, [messages, chatStarted, isAgentActive, chatStep]);
+  }, [messages, chatStep, enteredIdentifier, chatStarted, isAgentActive]);
+
 
    // Countdown Timer Logic
   useEffect(() => {
@@ -334,7 +346,7 @@ export default function HelpPage() {
         enteredIdentifier: enteredIdentifier,
         chatHistory: newMessages,
     });
-    localStorage.removeItem(CHAT_STORAGE_KEY);
+    localStorage.removeItem(CHAT_STATE_STORAGE_KEY);
   }
 
   const handleOkAfterEscalation = () => {
@@ -429,7 +441,7 @@ export default function HelpPage() {
             setChatStarted(false);
             setMessages([]);
             setChatStep('welcome');
-            localStorage.removeItem(CHAT_STORAGE_KEY);
+            localStorage.removeItem(CHAT_STATE_STORAGE_KEY);
         } catch (error: any) {
             toast({ variant: 'destructive', title: 'Could not close chat', description: error.message });
         }
