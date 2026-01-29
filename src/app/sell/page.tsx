@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -26,6 +27,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 type UserProfile = {
   id: string;
   balance: number;
+  holdBalance: number;
   numericId: string;
   phoneNumber: string;
   paymentMethods?: { name: string; upiId: string }[];
@@ -274,3 +276,5 @@ export default function SellPage() {
     </div>
   );
 }
+
+    

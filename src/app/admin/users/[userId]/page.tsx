@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import {
@@ -12,10 +13,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { useDoc, useCollection } from '@/firebase';
 import { useParams } from 'next/navigation';
-import { Wallet, ChevronLeft, Copy } from 'lucide-react';
+import { Wallet, ChevronLeft, Copy, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { doc, updateDoc, collection, query, orderBy, Timestamp } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, orderBy, Timestamp, runTransaction } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
 import {
   Table,
@@ -60,6 +61,7 @@ type UserProfile = {
     displayName: string;
     numericId: string;
     balance: number;
+    holdBalance: number;
     email?: string;
     phoneNumber?: string;
     photoURL?: string;
@@ -150,6 +152,103 @@ const BalanceActionDialog = ({ userId, currentBalance }: { userId: string, curre
     )
 }
 
+const HoldBalanceActionDialog = ({ userId, currentBalance, currentHoldBalance }: { userId: string, currentBalance: number, currentHoldBalance: number }) => {
+    const [amount, setAmount] = useState('');
+    const [action, setAction] = useState<'add' | 'remove'>('add');
+    const [open, setOpen] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const firestore = useFirestore();
+    const { toast } = useToast();
+
+    const handleUpdateHoldBalance = async () => {
+        const value = parseFloat(amount);
+        if (isNaN(value) || value <= 0) {
+            toast({ variant: 'destructive', title: 'Invalid Amount' });
+            return;
+        }
+
+        if (!firestore || !userId) return;
+        setIsLoading(true);
+
+        const userRef = doc(firestore, 'users', userId);
+
+        try {
+            await runTransaction(firestore, async (transaction) => {
+                const userDoc = await transaction.get(userRef);
+                if (!userDoc.exists()) {
+                    throw new Error("User not found");
+                }
+
+                const data = userDoc.data();
+                const balance = data.balance;
+                const holdBalance = data.holdBalance;
+
+                let newBalance: number;
+                let newHoldBalance: number;
+
+                if (action === 'add') {
+                    if (balance < value) {
+                        throw new Error("Insufficient main balance to put on hold.");
+                    }
+                    newBalance = balance - value;
+                    newHoldBalance = holdBalance + value;
+                } else { // remove
+                    if (holdBalance < value) {
+                        throw new Error("Insufficient hold balance to release.");
+                    }
+                    newBalance = balance + value;
+                    newHoldBalance = holdBalance - value;
+                }
+                
+                transaction.update(userRef, { balance: newBalance, holdBalance: newHoldBalance });
+            });
+
+            toast({ title: 'Hold Balance Updated' });
+            setOpen(false);
+            setAmount('');
+        } catch (error: any) {
+            console.error("Hold balance update error: ", error);
+            toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+
+    return (
+         <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button>Manage Hold</Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Manage Hold Balance</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <p className="text-sm text-muted-foreground">Current Main Balance: <span className="font-bold text-foreground">{(currentBalance || 0).toFixed(2)}</span></p>
+                    <p className="text-sm text-muted-foreground">Current Hold Balance: <span className="font-bold text-foreground">{(currentHoldBalance || 0).toFixed(2)}</span></p>
+                     <div className="flex items-center gap-4">
+                        <Label>Action</Label>
+                        <Button variant={action === 'add' ? 'default' : 'outline'} onClick={() => setAction('add')}>Add to Hold</Button>
+                        <Button variant={action === 'remove' ? 'default' : 'outline'} onClick={() => setAction('remove')}>Remove from Hold</Button>
+                    </div>
+                    <div>
+                        <Label htmlFor="amount">Amount</Label>
+                        <Input id="amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="e.g., 100" />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setOpen(false)} disabled={isLoading}>Cancel</Button>
+                    <Button onClick={handleUpdateHoldBalance} disabled={isLoading}>
+                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Confirm
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
 export default function UserDetailsPage() {
     const params = useParams();
     const userId = params.userId as string;
@@ -227,7 +326,7 @@ export default function UserDetailsPage() {
 
             <div className="grid gap-4 md:grid-cols-3">
                 {/* Profile Card */}
-                <Card className="md:col-span-1">
+                <Card>
                     <CardHeader className="flex flex-col items-center text-center">
                          <Avatar className="h-24 w-24 border-4 border-primary/20">
                             <AvatarImage src={user.photoURL} alt={user.displayName} />
@@ -245,15 +344,30 @@ export default function UserDetailsPage() {
                 </Card>
 
                 {/* Balance Card */}
-                <Card className="md:col-span-2">
+                <Card>
                     <CardHeader>
                         <CardTitle>User Balance</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="text-4xl font-bold">{(Number(user.balance) || 0).toFixed(2)} <span className="text-lg text-muted-foreground">LGB</span></div>
+                        <p className="text-sm text-muted-foreground">This is the user's available balance for transactions.</p>
                     </CardContent>
                     <CardFooter>
                          <BalanceActionDialog userId={userId} currentBalance={Number(user.balance) || 0} />
+                    </CardFooter>
+                </Card>
+                
+                {/* Hold Balance Card */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Hold Balance</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="text-4xl font-bold">{(Number(user.holdBalance) || 0).toFixed(2)} <span className="text-lg text-muted-foreground">LGB</span></div>
+                         <p className="text-sm text-muted-foreground">This balance is frozen and cannot be used by the user.</p>
+                    </CardContent>
+                    <CardFooter>
+                         <HoldBalanceActionDialog userId={userId} currentBalance={Number(user.balance) || 0} currentHoldBalance={Number(user.holdBalance) || 0} />
                     </CardFooter>
                 </Card>
             </div>
@@ -288,7 +402,23 @@ export default function UserDetailsPage() {
                                     <TableCell>{order.utr || 'N/A'}</TableCell>
                                     <TableCell>
                                         {order.screenshotURL ? (
-                                            <a href={order.screenshotURL} target="_blank" rel="noopener noreferrer" className="text-primary underline">View</a>
+                                            <Dialog>
+                                                <DialogTrigger asChild>
+                                                    <Button variant="link" className="p-0 h-auto text-primary">View</Button>
+                                                </DialogTrigger>
+                                                <DialogContent>
+                                                    <DialogHeader>
+                                                        <DialogTitle>Payment Proof</DialogTitle>
+                                                    </DialogHeader>
+                                                    <div className="flex justify-center py-4">
+                                                        <img
+                                                            src={order.screenshotURL}
+                                                            alt="Payment proof"
+                                                            className="max-h-[70vh] w-auto object-contain rounded-md"
+                                                        />
+                                                    </div>
+                                                </DialogContent>
+                                            </Dialog>
                                         ): 'N/A'}
                                     </TableCell>
                                     <TableCell className="text-right font-mono text-xs">{order.createdAt.toDate().toLocaleString()}</TableCell>
@@ -404,3 +534,5 @@ export default function UserDetailsPage() {
         </main>
     )
 }
+
+    

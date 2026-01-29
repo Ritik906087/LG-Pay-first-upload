@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -130,6 +131,7 @@ export function RegisterForm() {
           numericId: numericId,
           phoneNumber: values.phone,
           balance: 0.00, // Initial balance
+          holdBalance: 0.00, // Initial hold balance
           createdAt: serverTimestamp(),
           displayName: `User${values.phone.slice(-4)}`
         });
@@ -380,3 +382,5 @@ export function RegisterForm() {
     </Form>
   );
 }
+
+    

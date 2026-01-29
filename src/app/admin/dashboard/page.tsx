@@ -42,6 +42,7 @@ type UserProfile = {
     displayName: string;
     numericId: string;
     balance: number;
+    holdBalance: number;
     email?: string;
     phoneNumber?: string;
     photoURL?: string;
@@ -714,250 +715,6 @@ function WithdrawalsTabContent() {
     );
 }
 
-function BuyConfirmationsTabContent() {
-    const firestore = useFirestore();
-    const [searchTerm, setSearchTerm] = useState('');
-    const [allOrders, setAllOrders] = useState<Order[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<any>(null);
-
-    const fetchBuyConfirmations = useCallback(async () => {
-        if (!firestore) return;
-        setLoading(true);
-        setError(null);
-        try {
-            // Fetch all orders and filter client-side to avoid index requirement.
-            const q = query(collectionGroup(firestore, 'orders'));
-            const querySnapshot = await getDocs(q);
-
-            const pendingDocs = querySnapshot.docs.filter(doc => doc.data().status === 'pending_confirmation');
-            
-            const fetchedOrders: Order[] = [];
-            
-            // Pre-fetch all users to avoid multiple reads inside a loop
-            const usersSnapshot = await getDocs(collection(firestore, 'users'));
-            const usersData = new Map<string, UserProfile>();
-            usersSnapshot.forEach(doc => {
-                usersData.set(doc.id, { id: doc.id, ...doc.data() } as UserProfile);
-            });
-
-            for (const doc of pendingDocs) {
-                const orderData = doc.data() as Order;
-                orderData.id = doc.id;
-                
-                const userRef = doc.ref.parent.parent;
-                if (userRef && usersData.has(userRef.id)) {
-                    orderData.user = usersData.get(userRef.id);
-                }
-                fetchedOrders.push(orderData);
-            }
-            setAllOrders(fetchedOrders);
-        } catch (error) {
-            console.error("Error fetching buy confirmations:", error);
-            setError(error);
-        } finally {
-            setLoading(false);
-        }
-    }, [firestore]);
-
-    useEffect(() => {
-        fetchBuyConfirmations();
-    }, [fetchBuyConfirmations]);
-
-    const filteredOrders = useMemo(() => {
-        const sortedOrders = allOrders.sort((a, b) => a.createdAt.seconds - b.createdAt.seconds);
-
-        if (!searchTerm) return sortedOrders;
-        const lowercasedTerm = searchTerm.toLowerCase();
-        return sortedOrders.filter(order =>
-            order.orderId.toLowerCase().includes(lowercasedTerm) ||
-            order.user?.numericId?.toLowerCase().includes(lowercasedTerm)
-        );
-    }, [allOrders, searchTerm]);
-
-    if (error) {
-        return (
-            <Card className="bg-destructive/10">
-                <CardHeader>
-                    <CardTitle className="text-destructive">Error Fetching Buy Confirmations</CardTitle>
-                    <CardDescription className="text-destructive/80">
-                        Could not retrieve data. This might be due to Firestore security rules or a missing index.
-                    </CardDescription>
-                </CardHeader>
-                 <CardContent>
-                    <p className="text-xs text-destructive/80 font-mono bg-destructive/10 p-2 rounded-md break-all">
-                        {error.message}
-                    </p>
-                 </CardContent>
-            </Card>
-        )
-    }
-
-    return (
-        <div className="space-y-4">
-            <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input
-                    placeholder="Search by Order ID or User UID..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 max-w-sm"
-                />
-            </div>
-
-            {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-48 w-full" />)}
-                </div>
-            ) : filteredOrders.length === 0 ? (
-                <Card>
-                    <CardContent className="p-8 text-center text-muted-foreground">
-                        No buy orders awaiting confirmation.
-                    </CardContent>
-                </Card>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredOrders.map(order => (
-                        <Card key={order.id} className="flex flex-col">
-                            <CardHeader>
-                                <CardTitle>₹{order.amount.toFixed(2)}</CardTitle>
-                                <CardDescription>{order.user?.displayName || 'Unknown User'} (UID: {order.user?.numericId})</CardDescription>
-                            </CardHeader>
-                            <CardContent className="flex-grow text-sm space-y-2">
-                                <p><strong>Order ID:</strong> <span className="font-mono text-xs">{order.orderId}</span></p>
-                                <p><strong>UTR:</strong> {order.utr || 'N/A'}</p>
-                                <p><strong>Proof:</strong> <a href={order.screenshotURL} target="_blank" rel="noopener noreferrer" className="text-primary underline">View Proof</a></p>
-                            </CardContent>
-                            <CardFooter className="p-4 pt-0">
-                                <ProcessBuyConfirmationDialog order={order} onProcessed={fetchBuyConfirmations} />
-                            </CardFooter>
-                        </Card>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-}
-
-function ProcessBuyConfirmationDialog({ order, onProcessed }: { order: Order, onProcessed: () => void }) {
-    const [open, setOpen] = useState(false);
-    const [isConfirming, setIsConfirming] = useState(false);
-    const [isRejecting, setIsRejecting] = useState(false);
-    const [rejectionReason, setRejectionReason] = useState('');
-    const firestore = useFirestore();
-    const { toast } = useToast();
-
-    const handleConfirm = async () => {
-        if (!firestore) return;
-        setIsConfirming(true);
-        const userRef = doc(firestore, 'users', order.userId);
-        const orderRef = doc(firestore, 'users', order.userId, 'orders', order.id);
-
-        try {
-            await runTransaction(firestore, async (transaction) => {
-                const userDoc = await transaction.get(userRef);
-                const orderDoc = await transaction.get(orderRef);
-                if (!userDoc.exists() || !orderDoc.exists()) {
-                    throw new Error("User or Order not found");
-                }
-                if (orderDoc.data().status !== 'pending_confirmation') {
-                    throw new Error("Order is not awaiting confirmation.");
-                }
-                
-                const currentBalance = userDoc.data().balance || 0;
-                const newBalance = currentBalance + order.amount;
-                
-                transaction.update(userRef, { balance: newBalance });
-                transaction.update(orderRef, { status: 'completed' });
-            });
-            toast({ title: 'Payment Confirmed!', description: `₹${order.amount} added to user's balance.` });
-            setOpen(false);
-            onProcessed();
-        } catch (e: any) {
-            console.error("Failed to confirm buy order:", e);
-            toast({ variant: 'destructive', title: 'Error', description: e.message });
-        } finally {
-            setIsConfirming(false);
-        }
-    };
-    
-    const handleReject = async () => {
-        if (!rejectionReason.trim()) {
-            toast({ variant: 'destructive', title: 'Reason Required', description: 'Please provide a reason for rejection.' });
-            return;
-        }
-        setIsRejecting(true);
-        const orderRef = doc(firestore, 'users', order.userId, 'orders', order.id);
-        try {
-            await updateDoc(orderRef, {
-                status: 'failed',
-                rejectionReason: rejectionReason,
-            });
-            toast({ title: 'Payment Rejected' });
-            setOpen(false);
-            onProcessed();
-        } catch (e: any) {
-            console.error("Failed to reject buy order:", e);
-            toast({ variant: 'destructive', title: 'Error', description: e.message });
-        } finally {
-            setIsRejecting(false);
-        }
-    };
-
-    return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                <Button className="w-full">Process</Button>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Process Buy Order</DialogTitle>
-                    <DialogDescription>
-                       Review payment proof and confirm or reject the transaction.
-                    </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                    <p><strong>Amount:</strong> <span className="font-bold text-lg text-primary">₹{order.amount}</span></p>
-                    <p><strong>User:</strong> {order.user?.displayName} (UID: {order.user?.numericId})</p>
-                    <p><strong>UTR:</strong> {order.utr}</p>
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <Button variant="outline" disabled={!order.screenshotURL}>View Payment Proof</Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-md">
-                            <DialogHeader>
-                                <DialogTitle>Payment Proof</DialogTitle>
-                            </DialogHeader>
-                            <div className="flex justify-center p-4">
-                                {order.screenshotURL && (
-                                    <img
-                                        src={order.screenshotURL} 
-                                        alt="Payment proof"
-                                        className="max-h-[70vh] w-auto object-contain rounded-md"
-                                    />
-                                )}
-                            </div>
-                        </DialogContent>
-                    </Dialog>
-                    <hr className="my-4"/>
-                    <div>
-                        <Label htmlFor="rejection-reason">Rejection Reason (if rejecting)</Label>
-                        <Textarea id="rejection-reason" value={rejectionReason} onChange={e => setRejectionReason(e.target.value)} placeholder="e.g., UTR not matching, amount incorrect" />
-                    </div>
-                </div>
-                <DialogFooter className="grid grid-cols-2 gap-2">
-                    <Button variant="destructive" onClick={handleReject} disabled={isRejecting || isConfirming || !rejectionReason.trim()}>
-                        {isRejecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Reject'}
-                    </Button>
-                    <Button className="bg-green-600 hover:bg-green-700" onClick={handleConfirm} disabled={isConfirming || isRejecting}>
-                        {isConfirming ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Confirm Payment'}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
-    );
-}
-
 function HistoryUsersGrid({ users, loading, error }: { users: UserProfile[], loading: boolean, error: any }) {
     if (loading) {
         return (
@@ -1205,7 +962,7 @@ function AdminDashboard() {
       </header>
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-7 md:w-auto md:inline-flex">
+          <TabsList className="grid w-full grid-cols-6 md:w-auto md:inline-flex">
             <TabsTrigger value="dashboard">
                 <LayoutDashboard className="mr-2" />
                 Dashboard
@@ -1217,10 +974,6 @@ function AdminDashboard() {
              <TabsTrigger value="withdrawals">
                 <Banknote className="mr-2"/>
                 Withdrawals
-            </TabsTrigger>
-            <TabsTrigger value="buy-confirmations">
-                <CheckCircle className="mr-2"/>
-                Buy Confirm
             </TabsTrigger>
             <TabsTrigger value="live-chat">
                 <MessageSquare className="mr-2"/>
@@ -1277,9 +1030,6 @@ function AdminDashboard() {
           </TabsContent>
            <TabsContent value="withdrawals" className="mt-4">
                 <WithdrawalsTabContent />
-            </TabsContent>
-            <TabsContent value="buy-confirmations" className="mt-4">
-                <BuyConfirmationsTabContent />
             </TabsContent>
             <TabsContent value="live-chat" className="mt-4">
               <LiveChatTabContent />
@@ -1350,5 +1100,8 @@ export default function AdminDashboardPage() {
     return <AdminDashboard />;
 }
     
+
+    
+
 
     

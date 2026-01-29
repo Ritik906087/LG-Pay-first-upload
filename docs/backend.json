@@ -36,6 +36,10 @@
           "type": "number",
           "description": "The user's account balance."
         },
+        "holdBalance": {
+          "type": "number",
+          "description": "The user's balance that is on hold and cannot be used."
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time",
@@ -60,7 +64,7 @@
           }
         }
       },
-      "required": ["uid", "numericId", "balance", "createdAt", "phoneNumber"]
+      "required": ["uid", "numericId", "balance", "holdBalance", "createdAt", "phoneNumber"]
     },
     "AdminPaymentMethod": {
       "title": "Admin Payment Method",
@@ -165,6 +169,10 @@
           "type": "string",
           "format": "date-time",
           "description": "Timestamp when the user submitted payment proof."
+        },
+        "verificationResult": {
+            "type": "string",
+            "description": "Result from the AI payment verification flow."
         }
       },
       "required": ["userId", "amount", "status", "createdAt", "orderId"]
@@ -341,3 +349,5 @@
     }
   }
 }
+
+    
