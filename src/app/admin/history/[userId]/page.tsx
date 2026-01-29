@@ -84,9 +84,9 @@ type AdminPaymentMethod = {
 }
 
 const DetailItem = ({ label, value }: { label: string, value?: string | number }) => (
-    <div className="flex justify-between items-center py-2 border-b border-dashed">
-        <span className="text-sm text-muted-foreground">{label}</span>
-        <span className="text-sm font-semibold text-right">{value || 'N/A'}</span>
+    <div className="flex justify-between items-start gap-4 py-2 border-b border-dashed">
+        <span className="text-sm text-muted-foreground shrink-0">{label}</span>
+        <span className="text-sm font-semibold text-right break-all">{value || 'N/A'}</span>
     </div>
 );
 
@@ -125,7 +125,7 @@ const CancelledReceipt = React.forwardRef<HTMLDivElement, { order: SellOrder }>(
                     </div>
                     <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">Order ID</span>
-                        <span className="font-mono font-bold">{order.orderId}</span>
+                        <span className="font-mono font-bold break-all">{order.orderId}</span>
                     </div>
                      <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">Reason</span>
@@ -177,11 +177,11 @@ const SuccessfulReceipt = React.forwardRef<HTMLDivElement, { order: SellOrder }>
                     </div>
                     <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">UTR Number</span>
-                        <span className="font-mono font-bold">{order.utr || 'N/A'}</span>
+                        <span className="font-mono font-bold break-all">{order.utr || 'N/A'}</span>
                     </div>
                     <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">Order ID</span>
-                        <span className="font-mono font-bold">{order.orderId}</span>
+                        <span className="font-mono font-bold break-all">{order.orderId}</span>
                     </div>
                     <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">Date & Time</span>
@@ -302,7 +302,7 @@ const PaymentDetailsDialog = ({ order, orderType, adminPaymentMethods }: { order
                     <DialogHeader>
                         <DialogTitle>Order Details</DialogTitle>
                         <DialogDescription>
-                            Order ID: {order.orderId}
+                            Order ID: <span className="break-all">{order.orderId}</span>
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-2 max-h-[60vh] overflow-y-auto">
@@ -453,7 +453,7 @@ export default function UserHistoryPage() {
                         <TableBody>
                             {filteredBuyOrders && filteredBuyOrders.length > 0 ? filteredBuyOrders.map(order => (
                                 <TableRow key={order.id}>
-                                    <TableCell className="font-mono text-xs">{order.orderId}</TableCell>
+                                    <TableCell className="font-mono text-xs break-all">{order.orderId}</TableCell>
                                     <TableCell>₹{order.amount.toFixed(2)}</TableCell>
                                     <TableCell className="capitalize">{order.status.replace('_', ' ')}</TableCell>
                                     <TableCell className="text-xs">{order.createdAt.toDate().toLocaleDateString()}</TableCell>
@@ -487,7 +487,7 @@ export default function UserHistoryPage() {
                         <TableBody>
                             {filteredSellOrders && filteredSellOrders.length > 0 ? filteredSellOrders.map(order => (
                                 <TableRow key={order.id}>
-                                    <TableCell className="font-mono text-xs">{order.orderId}</TableCell>
+                                    <TableCell className="font-mono text-xs break-all">{order.orderId}</TableCell>
                                     <TableCell>₹{order.amount.toFixed(2)}</TableCell>
                                     <TableCell className="capitalize">{order.status}</TableCell>
                                     <TableCell className="text-xs">{order.createdAt.toDate().toLocaleDateString()}</TableCell>

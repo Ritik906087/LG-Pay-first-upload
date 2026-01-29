@@ -486,7 +486,7 @@ const PaymentReceipt = React.forwardRef<HTMLDivElement, { order: SellOrder; utr:
                     </div>
                     <div className="flex justify-between">
                         <span className="text-gray-500">Order ID</span>
-                        <span className="font-medium font-mono text-xs">{order.orderId}</span>
+                        <span className="font-medium font-mono text-xs break-all">{order.orderId}</span>
                     </div>
                     <div className="flex justify-between">
                         <span className="text-gray-500">Date & Time</span>
@@ -616,7 +616,7 @@ function ProcessWithdrawalDialog({ order, onProcessed }: { order: SellOrder, onP
                     <DialogHeader>
                         <DialogTitle>Process Withdrawal</DialogTitle>
                         <div className="flex justify-between items-center text-sm pt-2">
-                            <CardDescription>Order ID: {order.orderId}</CardDescription>
+                            <CardDescription>Order ID: <span className="break-all">{order.orderId}</span></CardDescription>
                             <CountdownTimer expiryTimestamp={new Timestamp(order.createdAt.seconds + 30 * 60, order.createdAt.nanoseconds)} />
                         </div>
                     </DialogHeader>
@@ -1037,7 +1037,7 @@ function ProcessConfirmationDialog({ order, onProcessed }: { order: Order, onPro
                 ) : (
                     <div className="space-y-4 py-4 text-sm">
                         <div className="flex justify-between"><span>User:</span> <span className="font-semibold">{order.user?.displayName || 'N/A'} ({order.user?.numericId})</span></div>
-                        <div className="flex justify-between"><span>UTR / TxHash:</span> <span className="font-mono">{order.utr}</span></div>
+                        <div className="flex justify-between items-start gap-2"><span>UTR / TxHash:</span> <span className="font-mono text-right break-all">{order.utr}</span></div>
                         <div className="flex justify-between items-center">
                             <span>Screenshot:</span> 
                             <Dialog>
@@ -1184,7 +1184,7 @@ function ConfirmationsTabContent() {
                     <CardContent className="p-4 space-y-2 text-sm">
                         <p><strong>Amount:</strong> <span className="font-bold text-lg text-primary">₹{order.amount.toFixed(2)}</span></p>
                         <p><strong>User:</strong> {order.user?.displayName || 'N/A'} ({order.user?.numericId})</p>
-                        <p><strong>UTR/TxHash:</strong> {order.utr}</p>
+                        <p className="flex items-start gap-2"><strong>UTR/TxHash:</strong> <span className="text-right break-all">{order.utr}</span></p>
                     </CardContent>
                     <CardFooter>
                         <ProcessConfirmationDialog order={order} onProcessed={fetchData} />
@@ -1416,5 +1416,6 @@ export default function AdminDashboardPage() {
 
 
     
+
 
 

@@ -103,7 +103,7 @@ const BuyTransactionCard = React.memo(({ transaction }: { transaction: Order }) 
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground">Order Number</span>
             <div className="flex items-center gap-2">
-              <span className="font-mono text-muted-foreground">{transaction.orderId}</span>
+              <span className="font-mono text-muted-foreground break-all">{transaction.orderId}</span>
               <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={() => copyToClipboard(transaction.orderId)} />
             </div>
           </div>
@@ -159,7 +159,7 @@ const SellTransactionCard = React.memo(({ transaction }: { transaction: SellOrde
             </div>
              <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">UTR</span>
-                <span className="font-mono text-muted-foreground">{transaction.utr || '---'}</span>
+                <span className="font-mono text-muted-foreground break-all">{transaction.utr || '---'}</span>
             </div>
             <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Time</span>
@@ -168,7 +168,7 @@ const SellTransactionCard = React.memo(({ transaction }: { transaction: SellOrde
             <div className="flex justify-between items-center">
                 <span className="text-muted-foreground">Order Number</span>
                 <div className="flex items-center gap-2">
-                <span className="font-mono text-muted-foreground">{transaction.orderId}</span>
+                <span className="font-mono text-muted-foreground break-all">{transaction.orderId}</span>
                 <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={() => copyToClipboard(transaction.orderId)} />
                 </div>
             </div>

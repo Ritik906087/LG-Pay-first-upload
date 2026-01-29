@@ -210,7 +210,7 @@ function SellOrderStatusContent() {
                         )}
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Order ID</span>
-                            <span className="font-mono text-xs">{sellOrder.orderId}</span>
+                            <span className="font-mono text-xs break-all">{sellOrder.orderId}</span>
                         </div>
                          <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Status</span>

@@ -450,7 +450,7 @@ function PaymentDetailsContent() {
                               <div className="flex justify-between items-center text-sm">
                                 <span className="text-muted-foreground">Order Number</span>
                                 <div className="flex items-center gap-2">
-                                  <span className="font-mono">{order?.orderId}</span>
+                                  <span className="font-mono break-all">{order?.orderId}</span>
                                   <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(order?.orderId ?? '')}><Copy className="h-4 w-4" /></Button>
                                 </div>
                              </div>

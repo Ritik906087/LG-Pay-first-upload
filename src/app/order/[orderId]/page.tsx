@@ -213,11 +213,11 @@ function OrderStatusContent() {
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Order ID</span>
-                            <span className="font-mono text-xs">{order.orderId}</span>
+                            <span className="font-mono text-xs break-all">{order.orderId}</span>
                         </div>
                          <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">{order.paymentType === 'usdt' ? 'TxHash' : 'UTR'}</span>
-                            <span className="font-mono">{order.utr}</span>
+                            <span className="font-mono break-all">{order.utr}</span>
                         </div>
                          <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Status</span>
