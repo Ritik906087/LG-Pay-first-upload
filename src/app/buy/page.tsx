@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import {
   Card,
   CardContent,
+  CardHeader,
+  CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -27,13 +29,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { motion, AnimatePresence } from 'framer-motion';
 
-import { ChevronLeft, ShoppingCart, Wallet } from 'lucide-react';
+import { ChevronLeft, ShoppingCart, Wallet, ArrowDownUp, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useUser, useFirestore, useCollection } from '@/firebase';
 import { addDoc, collection, serverTimestamp, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 
 const purchaseConfig = {
@@ -108,6 +112,100 @@ const PurchaseGrid = ({ onBuyClick, options, bonusPercentage }: { onBuyClick: (o
   );
 };
 
+const UsdtPurchaseForm = ({ onBuyClick, bonusPercentage }: { onBuyClick: (option: { amount: number }) => void, bonusPercentage: number }) => {
+    const { toast } = useToast();
+    const [usdtAmount, setUsdtAmount] = useState('5');
+    
+    const lgbAmount = useMemo(() => {
+        const numValue = parseFloat(usdtAmount);
+        if (!isNaN(numValue) && numValue > 0) {
+            return numValue * 110;
+        }
+        return 0;
+    }, [usdtAmount]);
+    
+    const finalLgbAmount = lgbAmount + (lgbAmount * (bonusPercentage / 100));
+
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        if (/^\d*\.?\d*$/.test(value)) {
+            setUsdtAmount(value);
+        }
+    };
+
+    const handleRecharge = () => {
+        const amount = parseFloat(usdtAmount);
+        if (isNaN(amount) || amount < 5) {
+            toast({
+                variant: 'destructive',
+                title: 'Invalid Amount',
+                description: 'Minimum deposit amount is 5 USDT.',
+            });
+            return; 
+        }
+        setIsProcessing(true);
+        onBuyClick({ amount: lgbAmount }); 
+    };
+
+    return (
+        <div className="space-y-4 pt-4">
+            <div className="flex justify-between items-center text-sm font-semibold px-2">
+                <span>Main Network: TRC-20</span>
+                <span className="text-primary">1 USDT = 110 LGB</span>
+            </div>
+
+            <Card className="bg-green-500/10 border-green-500 shadow-none">
+                <CardContent className="p-4">
+                    <Label htmlFor="usdt-amount" className="text-sm text-green-900/80">Deposit amount (minimum 5 USDT)</Label>
+                    <div className="flex items-center gap-2 mt-1">
+                        <Image src="https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/usdt-logo.png?alt=media&token=16c8f93a-832a-43c2-8419-2479e394f451" width={28} height={28} alt="USDT" />
+                        <Input 
+                            id="usdt-amount"
+                            type="number"
+                            placeholder="5"
+                            value={usdtAmount}
+                            onChange={handleAmountChange}
+                            className="bg-transparent border-none text-3xl font-bold text-green-900 focus-visible:ring-0 p-0 h-auto shadow-none"
+                        />
+                    </div>
+                </CardContent>
+            </Card>
+
+            <div className="flex justify-center items-center my-2">
+                 <div className="bg-background rounded-full p-1 border-2 border-primary/50 shadow-md z-10">
+                    <ArrowDownUp className="h-5 w-5 text-primary"/>
+                 </div>
+            </div>
+            
+            <Card className="bg-yellow-500/10 border-yellow-500 shadow-none">
+                <CardContent className="p-4">
+                    <Label htmlFor="lgb-amount" className="text-sm text-yellow-900/80">Recharge quantity</Label>
+                     <div className="flex items-baseline gap-2 mt-1">
+                        <span className="font-bold text-3xl text-yellow-900">{lgbAmount.toFixed(0)}</span>
+                        <span className="font-semibold text-yellow-900/90">LGB</span>
+                    </div>
+                    {bonusPercentage > 0 && <p className="text-xs text-green-600 font-semibold mt-1">You Get: {lgbAmount.toFixed(0)} + {bonusPercentage}% = {finalLgbAmount.toFixed(0)} LGB</p>}
+                </CardContent>
+            </Card>
+
+            <Button onClick={handleRecharge} disabled={isProcessing} className="w-full h-12 text-lg font-bold bg-yellow-400 hover:bg-yellow-500 text-yellow-900 rounded-full shadow-lg shadow-yellow-500/20">
+                {isProcessing ? <Loader2 className="animate-spin" /> : "Recharge"}
+            </Button>
+            
+            <Card className="bg-secondary/50 shadow-none">
+                <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2"><Wallet className="h-5 w-5 text-primary" />LG Pay Wallet Exchange Rate</CardTitle>
+                </CardHeader>
+                <CardContent className="text-xs text-muted-foreground">
+                    Please ensure that the amount of USDT you pay matches the amount stated in your order. Otherwise, the order will not be processed and no refund will be issued.
+                </CardContent>
+            </Card>
+        </div>
+    );
+};
+
 
 export default function BuyPage() {
   const router = useRouter();
@@ -136,7 +234,6 @@ export default function BuyPage() {
   const { data: inProgressBuyOrders } = useCollection(inProgressBuyOrdersQuery);
   
   useEffect(() => {
-    // --- REMOVAL INTERVAL ---
     const removalInterval = setInterval(() => {
         setAllOptions(prevOptions => {
             if (prevOptions.length <= 20) return prevOptions;
@@ -150,7 +247,6 @@ export default function BuyPage() {
         });
     }, 2000);
 
-    // --- ADDITION INTERVAL ---
     const additionInterval = setInterval(() => {
         setAllOptions(prevOptions => {
             let currentOpts = [...prevOptions];
@@ -158,7 +254,7 @@ export default function BuyPage() {
             
             for (let i = 0; i < 30; i++) {
                 const addIndex = Math.floor(Math.random() * baseOptions.length);
-                const itemToAdd = { ...baseOptions[addIndex], id: Math.random() }; // Ensure unique id for animation
+                const itemToAdd = { ...baseOptions[addIndex], id: Math.random() }; 
                 
                 const insertAtIndex = Math.floor(Math.random() * (currentOpts.length + 1));
                 currentOpts.splice(insertAtIndex, 0, itemToAdd);
@@ -282,18 +378,22 @@ export default function BuyPage() {
           </TabsList>
         </Tabs>
         
-        <Tabs defaultValue="small" className="w-full mt-4" onValueChange={setActiveSubTab}>
-            <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="small">Small Amount</TabsTrigger>
-                <TabsTrigger value="high">High Amount</TabsTrigger>
-            </TabsList>
-            <TabsContent value="small" className="mt-0">
-                <PurchaseGrid onBuyClick={handleBuyClick} options={displayedOptions} bonusPercentage={bonusPercentage} />
-            </TabsContent>
-            <TabsContent value="high" className="mt-0">
-                <PurchaseGrid onBuyClick={handleBuyClick} options={displayedOptions} bonusPercentage={bonusPercentage} />
-            </TabsContent>
-        </Tabs>
+        {activeTab === 'usdt' ? (
+             <UsdtPurchaseForm onBuyClick={handleBuyClick} bonusPercentage={bonusPercentage} />
+        ) : (
+            <Tabs defaultValue="small" className="w-full mt-4" onValueChange={setActiveSubTab}>
+                <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="small">Small Amount</TabsTrigger>
+                    <TabsTrigger value="high">High Amount</TabsTrigger>
+                </TabsList>
+                <TabsContent value="small" className="mt-0">
+                    <PurchaseGrid onBuyClick={handleBuyClick} options={displayedOptions} bonusPercentage={bonusPercentage} />
+                </TabsContent>
+                <TabsContent value="high" className="mt-0">
+                    <PurchaseGrid onBuyClick={handleBuyClick} options={displayedOptions} bonusPercentage={bonusPercentage} />
+                </TabsContent>
+            </Tabs>
+        )}
       </main>
 
        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
@@ -337,6 +437,3 @@ export default function BuyPage() {
     </div>
   );
 }
-
-
-    

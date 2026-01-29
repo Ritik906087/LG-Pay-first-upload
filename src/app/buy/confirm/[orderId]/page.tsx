@@ -115,6 +115,8 @@ function PaymentDetailsContent() {
     const [otherReason, setOtherReason] = useState('');
     const [isCancelling, setIsCancelling] = useState(false);
 
+    const isUSDT = type === 'usdt';
+
     const cancellationReasons = [
         "I don't want to continue payment",
         "Want to use another payment method",
@@ -286,7 +288,7 @@ function PaymentDetailsContent() {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            if (file.size > 950 * 1024) { // 950KB limit for Firestore data URL
+            if (file.size > 950 * 1024) { 
                 toast({
                     variant: 'destructive',
                     title: 'File is too large',
@@ -314,9 +316,8 @@ function PaymentDetailsContent() {
     };
     
     const handleConfirm = async () => {
-        const isUSDT = type === 'usdt';
         if (isUSDT) {
-            if (!utr || utr.length !== 64) {
+            if (!utr || utr.length < 64) {
                 toast({ variant: 'destructive', title: 'Invalid Transaction Hash', description: 'Please provide a valid 64-character TxID.' });
                 return;
             }
@@ -325,12 +326,12 @@ function PaymentDetailsContent() {
                 toast({ variant: 'destructive', title: 'Invalid UTR', description: 'Please provide a valid 12-digit UTR.' });
                 return;
             }
+            if (!screenshotDataUrl) {
+                toast({ variant: 'destructive', title: 'Missing Screenshot', description: 'Please upload your payment proof screenshot.' });
+                return;
+            }
         }
-
-        if (!screenshotDataUrl) {
-            toast({ variant: 'destructive', title: 'Missing Screenshot', description: 'Please upload your payment proof screenshot.' });
-            return;
-        }
+        
         if (!orderRef || !user) {
             toast({ variant: 'destructive', title: 'Error', description: 'Could not initialize. Please try again.' });
             return;
@@ -339,12 +340,17 @@ function PaymentDetailsContent() {
         setIsConfirming(true);
 
         try {
-            await updateDoc(orderRef, {
+            const updateData: any = {
                 utr,
-                screenshotURL: screenshotDataUrl,
                 status: 'pending_confirmation',
                 submittedAt: serverTimestamp()
-            });
+            };
+
+            if (!isUSDT) {
+                updateData.screenshotURL = screenshotDataUrl;
+            }
+
+            await updateDoc(orderRef, updateData);
             toast({ title: 'Payment Submitted!', description: 'Your proof is under review.' });
             router.push(`/order/${orderId}`);
         } catch (dbError) {
@@ -527,23 +533,25 @@ function PaymentDetailsContent() {
                 <Card>
                     <CardContent className="p-4 space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="utr">{type === 'usdt' ? 'Transaction Hash (TxID)' : 'UTR / Reference Number'}</Label>
-                            <Input id="utr" placeholder={type === 'usdt' ? 'Enter 64-character TxID' : 'Enter 12-digit UTR number'} value={utr} onChange={(e) => setUtr(e.target.value)} maxLength={type === 'usdt' ? 64 : 12} disabled={isConfirming || isUpdatingProvider} />
+                            <Label htmlFor="utr">{isUSDT ? 'Transaction Hash (TxID)' : 'UTR / Reference Number'}</Label>
+                            <Input id="utr" placeholder={isUSDT ? 'Enter 64-character TxID' : 'Enter 12-digit UTR number'} value={utr} onChange={(e) => setUtr(e.target.value)} maxLength={isUSDT ? 64 : 12} disabled={isConfirming || isUpdatingProvider} />
                         </div>
-                        <div className="space-y-2">
-                             <Label>Upload Screenshot</Label>
-                             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" disabled={isConfirming || isUpdatingProvider} accept="image/*" />
-                             <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="w-full flex items-center justify-center gap-2 border-dashed h-24" disabled={isConfirming || isUpdatingProvider}>
-                                {screenshotDataUrl ? (
-                                    <Image src={screenshotDataUrl} alt="Screenshot preview" width={80} height={80} className="object-contain h-full" />
-                                ) : (
-                                    <>
-                                        <Upload className="h-4 w-4"/>
-                                        Click to upload screenshot
-                                    </>
-                                )}
-                            </Button>
-                        </div>
+                        {!isUSDT && (
+                            <div className="space-y-2">
+                                 <Label>Upload Screenshot</Label>
+                                 <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" disabled={isConfirming || isUpdatingProvider} accept="image/*" />
+                                 <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="w-full flex items-center justify-center gap-2 border-dashed h-24" disabled={isConfirming || isUpdatingProvider}>
+                                    {screenshotDataUrl ? (
+                                        <Image src={screenshotDataUrl} alt="Screenshot preview" width={80} height={80} className="object-contain h-full" />
+                                    ) : (
+                                        <>
+                                            <Upload className="h-4 w-4"/>
+                                            Click to upload screenshot
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </main>
@@ -575,7 +583,7 @@ function PaymentDetailsContent() {
                 </AlertDialog>
 
 
-                <Button onClick={handleConfirm} className="h-12 text-base font-bold bg-green-500 hover:bg-green-600 text-white" disabled={isConfirming || isUpdatingProvider || !utr || !screenshotDataUrl}>
+                <Button onClick={handleConfirm} className="h-12 text-base font-bold bg-green-500 hover:bg-green-600 text-white" disabled={isConfirming || isUpdatingProvider || !utr || (!screenshotDataUrl && !isUSDT)}>
                     {isConfirming ? <Loader2 className="h-6 w-6 animate-spin"/> : 'CONFIRM'}
                 </Button>
             </footer>
