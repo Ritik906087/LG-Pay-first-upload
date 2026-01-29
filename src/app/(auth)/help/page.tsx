@@ -33,6 +33,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Skeleton } from '@/components/ui/skeleton';
 
 const CHAT_STATE_STORAGE_KEY = 'lg-pay-help-chat-state';
 const SOUND_PREF_KEY = 'lg-pay-help-sound-pref';
@@ -160,7 +161,7 @@ export default function HelpPage() {
     return doc(firestore, 'users', user.uid);
   }, [user, firestore]);
 
-  const { data: userProfile } = useDoc<{ numericId?: string, displayName?: string, photoURL?: string }>(userProfileRef);
+  const { data: userProfile, loading: profileLoading } = useDoc<{ numericId?: string, displayName?: string, photoURL?: string }>(userProfileRef);
 
   const allUserChatRequestsQuery = useMemo(() => {
     if (!user || !firestore) return null;
@@ -569,6 +570,8 @@ export default function HelpPage() {
                     </p>
                 </div>
                  {msg.isUser && (
+                    profileLoading ? 
+                    <Skeleton className="h-8 w-8 rounded-full" /> :
                     <Avatar className="h-8 w-8">
                         <AvatarImage src={userProfile?.photoURL} />
                         <AvatarFallback>{userProfile?.displayName?.charAt(0) ?? 'U'}</AvatarFallback>
@@ -597,7 +600,7 @@ export default function HelpPage() {
                     {chatStep === 'problem' && (
                         <div className="grid grid-cols-2 gap-3 p-2">
                             {problemCategories.map(p => 
-                                <Button key={p.key} onClick={() => handleProblemSelect(p.label)} variant="outline" className="bg-white h-auto justify-start py-3">
+                                <Button key={p.key} onClick={() => handleProblemSelect(p.label)} variant="outline" className="bg-white h-auto justify-center text-center py-3 whitespace-normal">
                                     <span className="mr-2 text-lg">{p.icon}</span> {p.label}
                                 </Button>
                             )}
