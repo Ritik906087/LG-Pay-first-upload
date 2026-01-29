@@ -369,11 +369,8 @@ export default function BuyPage() {
                 <span className="text-xs text-green-600 font-semibold">+6% Bonus</span>
             </TabsTrigger>
              <TabsTrigger value="usdt" className="flex flex-col items-center justify-center p-3 h-auto rounded-xl border-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 transition-all space-y-1">
-                <div className="flex items-center gap-2">
-                    <Wallet className="h-4 w-4 text-foreground"/>
-                    <span className="font-bold text-base text-foreground">USDT</span>
-                </div>
-                <span className="text-xs text-green-600 font-semibold">+7% Bonus</span>
+                <span className="font-bold text-base text-foreground">USDT</span>
+                <span className="text-xs text-green-600 font-semibold">1$ = 110₹</span>
             </TabsTrigger>
           </TabsList>
         </Tabs>
