@@ -282,6 +282,12 @@ export default function UserDetailsPage() {
         });
     };
 
+    const copyUpiToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text).then(() => {
+          toast({ title: 'UPI ID Copied!' });
+        });
+    };
+
     if (loading) {
         return (
             <div className="flex flex-col gap-4 p-4 md:gap-8 md:p-8">
@@ -371,6 +377,60 @@ export default function UserDetailsPage() {
                     </CardFooter>
                 </Card>
             </div>
+
+            {/* Linked UPIs Card */}
+            <Card>
+                <CardHeader>
+                    <CardTitle>Linked UPI Accounts</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    {user.paymentMethods && user.paymentMethods.length > 0 ? (
+                        <div className="space-y-3">
+                            {user.paymentMethods.map((method) => {
+                                const details = paymentMethodDetails[method.name];
+                                if (!details) return null;
+                                return (
+                                    <div
+                                        key={method.name}
+                                        className={`flex h-20 w-full items-center justify-between gap-4 rounded-xl px-4 py-2 text-white shadow-md ${details?.bgColor || 'bg-gray-500'}`}
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            {details && (
+                                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white p-1">
+                                                    <Image
+                                                        src={details.logo}
+                                                        alt={`${method.name} logo`}
+                                                        width={32}
+                                                        height={32}
+                                                        className="object-contain"
+                                                    />
+                                                </div>
+                                            )}
+                                            <div>
+                                                <span className="text-lg font-semibold">{method.name}</span>
+                                                <p className="text-sm font-mono text-white/80">{method.upiId}</p>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-white/80 hover:bg-white/20 hover:text-white"
+                                            onClick={() => copyUpiToClipboard(method.upiId || '')}
+                                        >
+                                            <Copy className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center h-24 text-center text-muted-foreground">
+                            <Wallet className="h-8 w-8 opacity-50 mb-2" />
+                            <p>No UPI accounts linked.</p>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
             {/* Buy Order History */}
             <Card>
@@ -480,59 +540,6 @@ export default function UserDetailsPage() {
                     </Table>
                 </CardContent>
             </Card>
-
-
-             {/* Linked UPIs Card */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Linked UPI Accounts</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    {user.paymentMethods && user.paymentMethods.length > 0 ? (
-                        <div className="space-y-3">
-                            {user.paymentMethods.map((method) => {
-                                const details = paymentMethodDetails[method.name];
-                                if (!details) return null;
-                                return (
-                                    <div
-                                        key={method.name}
-                                        className={`flex h-20 w-full items-center justify-between gap-4 rounded-xl px-4 py-2 text-white shadow-md ${details?.bgColor || 'bg-gray-500'}`}
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            {details && (
-                                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white p-1">
-                                                    <Image
-                                                        src={details.logo}
-                                                        alt={`${method.name} logo`}
-                                                        width={32}
-                                                        height={32}
-                                                        className="object-contain"
-                                                    />
-                                                </div>
-                                            )}
-                                            <div>
-                                                <span className="text-lg font-semibold">{method.name}</span>
-                                                <p className="text-sm font-mono text-white/80">{method.upiId}</p>
-                                            </div>
-                                        </div>
-                                        <div className="flex items-center justify-center rounded-md bg-green-500/80 px-3 py-1.5 text-xs font-bold uppercase text-white">
-                                            ACTIVATED
-                                        </div>
-                                    </div>
-                                )
-                            })}
-                        </div>
-                    ) : (
-                        <div className="flex flex-col items-center justify-center h-24 text-center text-muted-foreground">
-                            <Wallet className="h-8 w-8 opacity-50 mb-2" />
-                            <p>No UPI accounts linked.</p>
-                        </div>
-                    )}
-                </CardContent>
-            </Card>
-
         </main>
     )
 }
-
-    
