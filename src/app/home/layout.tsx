@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, ListOrdered, Gift, User } from 'lucide-react';
+import { Home, ListOrdered, UserPlus, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { Loader } from '@/components/ui/loader';
@@ -22,7 +22,7 @@ export default function HomeLayout({
   const navItems = [
     { href: '/home', icon: Home, label: 'Home' },
     { href: '/order', icon: ListOrdered, label: 'Order' },
-    { href: '/invite', icon: Gift, label: 'Invite' },
+    { href: '/invite', icon: UserPlus, label: 'Invite' },
     { href: '/my', icon: User, label: 'My' },
   ];
 

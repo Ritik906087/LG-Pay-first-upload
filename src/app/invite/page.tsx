@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import {
   Card,
   CardContent,
@@ -40,8 +41,8 @@ export default function InvitePage() {
       <main className="space-y-4 p-4">
         <GlassCard>
             <CardContent className="p-4 space-y-4">
-                <div className="rounded-lg overflow-hidden">
-                    <Image src="https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/file_000000002968720686f855daed13e880.png?alt=media&token=c4dece97-7dee-41c4-bac7-6c1f9f186fb6" width={400} height={150} alt="Invite friends" className="w-full" />
+                <div className="flex justify-center rounded-lg overflow-hidden">
+                    <Image src="https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/file_000000002968720686f855daed13e880.png?alt=media&token=c4dece97-7dee-41c4-bac7-6c1f9f186fb6" width={240} height={90} alt="Invite friends" />
                 </div>
                 <h3 className="font-bold text-center">Invite friends to join LG Pay, rewards credited instantly</h3>
                 
@@ -58,12 +59,12 @@ export default function InvitePage() {
 
                 <p className="text-xs text-center text-yellow-700 bg-yellow-100 p-2 rounded-md">Note: The more your team trades, the more you earn. Bonuses are credited instantly.</p>
                 <Button className="w-full btn-gradient rounded-full font-semibold">Invite Now</Button>
-                <Button variant="ghost" className="w-full text-muted-foreground">View Invitation Data</Button>
+                <Button asChild variant="ghost" className="w-full text-muted-foreground">
+                  <Link href="/my/team">View Invitation Data</Link>
+                </Button>
             </CardContent>
         </GlassCard>
       </main>
     </div>
   );
 }
-
-    
