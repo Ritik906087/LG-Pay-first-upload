@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useDoc } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Loader } from '@/components/ui/loader';
-import { doc, runTransaction, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, runTransaction, collection, addDoc, serverTimestamp, query, where, getDocs, limit } from 'firebase/firestore';
 
 
 const GlassCard = ({
@@ -37,6 +37,7 @@ export default function NewUserRewardsPage() {
     const [claimedUserRewards, setClaimedUserRewards] = useState<string[]>([]);
     const [claiming, setClaiming] = useState<string | null>(null);
     const [dataLoading, setDataLoading] = useState(true);
+    const [hasCompletedFirstOrder, setHasCompletedFirstOrder] = useState(false);
 
     const newuserTasks = [
         { id: 'nu1', title: 'Registration reward', reward: 20, action: 'claim' },
@@ -44,6 +45,7 @@ export default function NewUserRewardsPage() {
         { id: 'nu3', title: 'Connect PhonePe', reward: 10, action: "connect" },
         { id: 'nu4', title: 'Connect Paytm', reward: 10, action: "connect" },
         { id: 'nu5', title: 'Connect MobiKwik', reward: 10, action: "connect" },
+        { id: 'nu6', title: 'Buy first order', reward: 30, action: 'buy' },
     ];
 
     const userProfileRef = useMemo(() => {
@@ -53,16 +55,38 @@ export default function NewUserRewardsPage() {
 
     const { data: userProfile, loading: profileLoading } = useDoc<{ balance: number, paymentMethods?: { name: string }[], claimedUserRewards?: string[] }>(userProfileRef);
 
-    const fetchClaimedRewards = useCallback(() => {
-        if (userProfile) {
-            setClaimedUserRewards(userProfile.claimedUserRewards || []);
+    const fetchTaskData = useCallback(async () => {
+        if (!user || !firestore) {
+            setDataLoading(false);
+            return;
         }
-        setDataLoading(false);
-    }, [userProfile]);
+        setDataLoading(true);
+        try {
+            if (userProfile) {
+                setClaimedUserRewards(userProfile.claimedUserRewards || []);
+            }
 
-    useEffect(() => {
-        fetchClaimedRewards();
-    }, [fetchClaimedRewards]);
+            const ordersQuery = query(
+                collection(firestore, 'users', user.uid, 'orders'),
+                where('status', '==', 'completed'),
+                limit(1)
+            );
+            const ordersSnapshot = await getDocs(ordersQuery);
+            setHasCompletedFirstOrder(!ordersSnapshot.empty);
+
+        } catch (error) {
+            console.error("Error fetching task data:", error);
+            toast({ variant: 'destructive', title: "Could not load tasks" });
+        } finally {
+            setDataLoading(false);
+        }
+    }, [user, firestore, userProfile, toast]);
+
+     useEffect(() => {
+        if (!profileLoading) {
+            fetchTaskData();
+        }
+    }, [profileLoading, fetchTaskData]);
 
     const handleClaimNewUserReward = async (taskId: string, reward: number, taskTitle: string) => {
         if (!user || !firestore || !userProfileRef) return;
@@ -139,11 +163,23 @@ export default function NewUserRewardsPage() {
                             let buttonAction = () => {};
                             let buttonDisabled = false;
                             let useLink = false;
+                            let linkHref = '';
                             let isClaimable = false;
 
                             if (isClaimed) {
                                 buttonContent = 'Claimed';
                                 buttonDisabled = true;
+                            } else if (task.action === 'buy') {
+                                if (hasCompletedFirstOrder) {
+                                    buttonContent = 'Claim';
+                                    buttonAction = () => handleClaimNewUserReward(task.id, task.reward, task.title);
+                                    buttonDisabled = claiming === task.id;
+                                    isClaimable = true;
+                                } else {
+                                    buttonContent = 'Buy';
+                                    useLink = true;
+                                    linkHref = '/buy';
+                                }
                             } else if (task.action === 'connect') {
                                 if(isUpiConnected) {
                                     buttonContent = 'Claim';
@@ -153,6 +189,7 @@ export default function NewUserRewardsPage() {
                                 } else {
                                     buttonContent = 'Connect';
                                     useLink = true;
+                                    linkHref = '/my/collection';
                                 }
                             } else if (task.action === 'join') {
                                 buttonContent = 'Join';
@@ -185,7 +222,7 @@ export default function NewUserRewardsPage() {
                                     <p className="flex-1 font-medium text-sm">{task.title}</p>
                                     <p className="font-bold text-base text-green-600 mr-2">₹ {task.reward}</p>
                                     {useLink ? (
-                                        <Link href={'/my/collection'} passHref>
+                                        <Link href={linkHref} passHref>
                                            {finalButton}
                                         </Link>
                                     ) : finalButton}

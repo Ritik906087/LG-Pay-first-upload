@@ -65,7 +65,6 @@ const actionItems = [
 ]
 
 const listItems = [
-    { icon: Gift, label: "New User reward", href: "/my/new-user-rewards" },
     { icon: HelpCircle, label: "Help Center", href: "/help" },
     { icon: Globe, label: "Language" },
 ]
@@ -83,7 +82,7 @@ export default function MyPage() {
     return doc(firestore, 'users', user.uid);
   }, [user, firestore]);
 
-  const { data: userProfile, loading: profileLoading } = useDoc<{ displayName: string; photoURL?: string; balance: number; holdBalance: number; numericId: string }>(userProfileRef);
+  const { data: userProfile, loading: profileLoading } = useDoc<{ displayName: string; photoURL?: string; balance: number; holdBalance: number; numericId: string; claimedUserRewards?: string[] }>(userProfileRef);
 
   const handleLogout = async () => {
     const auth = getAuth();
@@ -98,6 +97,9 @@ export default function MyPage() {
       toast({ title: 'Logout failed', variant: 'destructive' });
     }
   };
+
+  const totalNewUserTasks = 6;
+  const showNewUserRewardButton = !profileLoading && (!userProfile?.claimedUserRewards || userProfile.claimedUserRewards.length < totalNewUserTasks);
 
 
   return (
@@ -210,6 +212,17 @@ export default function MyPage() {
         {/* List Items */}
         <GlassCard>
             <CardContent className="p-2">
+                {showNewUserRewardButton && (
+                  <Link href="/my/new-user-rewards" key="new-user-rewards">
+                    <div className="flex items-center justify-between p-3 rounded-lg hover:bg-secondary cursor-pointer">
+                      <div className="flex items-center gap-3">
+                        <Gift className="h-5 w-5 text-muted-foreground" />
+                        <span className="font-medium">New User reward</span>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-gray-400" />
+                    </div>
+                  </Link>
+                )}
                 {listItems.map(item => {
                     const content = (
                         <div className="flex items-center justify-between p-3 rounded-lg hover:bg-secondary cursor-pointer">
