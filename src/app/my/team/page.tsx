@@ -5,8 +5,10 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { ChevronLeft, RefreshCw, X, Users as UsersIcon } from 'lucide-react';
+import { ChevronLeft, RefreshCw, X, Users as UsersIcon, Wallet, UserPlus } from 'lucide-react';
 import Link from 'next/link';
+import { Card, CardContent } from '@/components/ui/card';
+import { cn } from '@/lib/utils';
 
 type Agent = {
   uid: string;
@@ -35,18 +37,32 @@ const dummyAgentsLv2: Agent[] = [
 
 
 const AgentItem = ({ agent }: { agent: Agent }) => (
-    <div className="flex items-center gap-4 p-4">
-        <Avatar className="h-12 w-12">
+    <div className="flex items-center gap-4 p-4 border-b last:border-b-0">
+        <Avatar className="h-12 w-12 border-2 border-primary/20">
             <AvatarImage src={agent.photoURL} alt={`Avatar for UID ${agent.uid}`} />
             <AvatarFallback className="bg-primary/10 text-primary">
                 <UsersIcon className="h-6 w-6" />
             </AvatarFallback>
         </Avatar>
         <div className="grid grid-cols-2 flex-1 text-sm gap-x-4 gap-y-1">
-            <p><span className="text-muted-foreground">UID:</span> {agent.uid}</p>
-            <p><span className="text-muted-foreground">Rebate:</span> {agent.rebate}</p>
-            <p><span className="text-muted-foreground">Online:</span> {agent.online ? 'yes' : 'no'}</p>
-            <p><span className="text-muted-foreground">Subordinates:</span> {agent.subordinates}</p>
+            <p className="font-semibold col-span-2">UID: {agent.uid}</p>
+            <p className="text-muted-foreground"><span className="font-medium text-green-600">{agent.rebate}</span> Rebate</p>
+            <p className="text-muted-foreground"><span className="font-medium text-primary">{agent.subordinates}</span> Subordinates</p>
+        </div>
+         <div className={cn("text-xs font-semibold px-2 py-1 rounded-full", agent.online ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-500")}>
+            {agent.online ? 'Online' : 'Offline'}
+        </div>
+    </div>
+);
+
+const StatCard = ({ title, value, icon: Icon, colorClass }: { title: string, value: string | number, icon: React.ElementType, colorClass: string }) => (
+    <div className="flex items-center gap-3">
+        <div className={cn("p-2 rounded-full", colorClass)}>
+            <Icon className="h-5 w-5 text-white" />
+        </div>
+        <div>
+            <p className="text-sm text-muted-foreground">{title}</p>
+            <p className="font-bold text-lg">{value}</p>
         </div>
     </div>
 );
@@ -81,24 +97,33 @@ export default function TeamCenterPage() {
         </div>
       </header>
 
-      <main className="flex-grow">
+      <main className="flex-grow p-4 space-y-4">
+        <Card className="bg-white">
+            <CardContent className="grid grid-cols-2 gap-y-6 p-4">
+                <StatCard title="Total rebate" value="₹522" icon={Wallet} colorClass="bg-primary" />
+                <StatCard title="Today's rebate" value="₹0" icon={Wallet} colorClass="bg-accent" />
+                <StatCard title="Team size" value="10" icon={UsersIcon} colorClass="bg-green-500" />
+                <StatCard title="New members today" value="0" icon={UserPlus} colorClass="bg-orange-500" />
+            </CardContent>
+        </Card>
+
         <Tabs defaultValue="lv1" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-white rounded-none border-b">
-            <TabsTrigger value="lv1" className="text-base data-[state=active]:font-bold data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none bg-transparent text-muted-foreground p-3">Agent Lv1</TabsTrigger>
-            <TabsTrigger value="lv2" className="text-base data-[state=active]:font-bold data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-primary rounded-none bg-transparent text-muted-foreground p-3">Agent Lv2</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 bg-white rounded-lg border">
+            <TabsTrigger value="lv1" className="text-base data-[state=active]:font-bold data-[state=active]:shadow-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md bg-transparent text-muted-foreground p-2.5">Team L1</TabsTrigger>
+            <TabsTrigger value="lv2" className="text-base data-[state=active]:font-bold data-[state=active]:shadow-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md bg-transparent text-muted-foreground p-2.5">Team L2</TabsTrigger>
           </TabsList>
-          <TabsContent value="lv1" className="bg-white mt-0">
+          <TabsContent value="lv1" className="bg-white mt-4 rounded-lg border">
             {dummyAgentsLv1.length > 0 ? (
-                <div className="divide-y">
+                <div>
                     {dummyAgentsLv1.map((agent) => <AgentItem key={agent.uid} agent={agent} />)}
                 </div>
             ) : (
                 <p className="text-center text-muted-foreground p-8">No Level 1 agents found.</p>
             )}
           </TabsContent>
-          <TabsContent value="lv2" className="bg-white mt-0">
+          <TabsContent value="lv2" className="bg-white mt-4 rounded-lg border">
              {dummyAgentsLv2.length > 0 ? (
-                <div className="divide-y">
+                <div>
                     {dummyAgentsLv2.map((agent) => <AgentItem key={agent.uid} agent={agent} />)}
                 </div>
             ) : (
