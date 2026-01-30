@@ -23,7 +23,8 @@ import {
   HelpCircle,
   Users,
   Globe,
-  ChevronDown
+  ChevronDown,
+  Award,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -120,7 +121,7 @@ export default function MyPage() {
                 </Avatar>
                 <div>
                   <h2 className="text-lg font-bold">{profileLoading ? <Skeleton className="h-5 w-24" /> : (userProfile?.displayName || '...')}</h2>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer" onClick={() => copyToClipboard(userProfile?.numericId)}>
                     {profileLoading ? <Skeleton className="h-4 w-20 mt-1" /> : <><span>UID:{userProfile?.numericId || '...'}</span><Copy className="h-3 w-3" /></>}
                   </div>
                 </div>
@@ -166,12 +167,14 @@ export default function MyPage() {
 
         {/* Reward/Team Center */}
         <div className="grid grid-cols-2 gap-4">
-            <GlassCard>
-                <CardContent className="flex items-center justify-center gap-2 p-3">
-                    <Star className="h-5 w-5 text-yellow-400"/>
-                    <span className="font-semibold">Reward Card</span>
-                </CardContent>
-            </GlassCard>
+            <Link href="/rewards" className="block">
+              <GlassCard>
+                  <CardContent className="flex items-center justify-center gap-2 p-3">
+                      <Award className="h-5 w-5 text-yellow-400"/>
+                      <span className="font-semibold">Reward</span>
+                  </CardContent>
+              </GlassCard>
+            </Link>
             <Link href="/my/team" className="block">
               <GlassCard>
                   <CardContent className="flex items-center justify-center gap-2 p-3">
