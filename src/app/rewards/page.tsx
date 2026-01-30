@@ -83,7 +83,54 @@ const EmptyState = ({ message }: { message: string }) => (
     </div>
 )
 
+
+const TaskItem = ({ title, reward, progress, goal, buttonState = 'default' }: { title: string, reward: number, progress: number, goal: number, buttonState?: 'default' | 'claimed' | 'claimable' }) => (
+    <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
+        <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-full">
+                <Gift className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-grow">
+                <p className="font-semibold text-sm">{title}</p>
+                <div className="flex items-center gap-2 mt-1">
+                    <Progress value={(progress / goal) * 100} className="h-1.5 w-20" />
+                    <p className="text-xs text-muted-foreground font-mono">{progress}/{goal}</p>
+                </div>
+            </div>
+        </div>
+        <div className="flex items-center gap-3">
+             <p className="font-bold text-lg text-green-600">₹{reward}</p>
+             {buttonState === 'claimable' ? (
+                 <Button size="sm" className="btn-gradient font-bold w-20">Claim</Button>
+             ) : buttonState === 'claimed' ? (
+                <Button size="sm" variant="outline" className="w-20" disabled>Claimed</Button>
+             ) : (
+                <Button size="sm" variant="outline" className="w-20">Go</Button>
+             )}
+        </div>
+    </div>
+);
+
+
 export default function RewardsPage() {
+
+  const orderCountTasks = [
+    { id: 'oc1', title: 'Complete 1 Order', reward: 2, goal: 1, progress: 1, buttonState: 'claimable' },
+    { id: 'oc2', title: 'Complete 5 Orders', reward: 10, goal: 5, progress: 3, buttonState: 'default' },
+    { id: 'oc3', title: 'Complete 10 Orders', reward: 20, goal: 10, progress: 3, buttonState: 'default' },
+    { id: 'oc4', title: 'Complete 20 Orders', reward: 60, goal: 20, progress: 3, buttonState: 'default' },
+  ];
+  
+  const orderAmountTasks = [
+    { id: 'oa1', title: 'Single order of ₹500', reward: 10, goal: 500, progress: 500, buttonState: 'claimed' },
+    { id: 'oa2', title: 'Single order of ₹1,000', reward: 25, goal: 1000, progress: 600, buttonState: 'claimable' },
+    { id: 'oa3', title: 'Single order of ₹2,000', reward: 50, goal: 2000, progress: 600, buttonState: 'default' },
+    { id: 'oa4', title: 'Single order of ₹3,000', reward: 70, goal: 3000, progress: 600, buttonState: 'default' },
+    { id: 'oa5', title: 'Single order of ₹5,000', reward: 100, goal: 5000, progress: 600, buttonState: 'default' },
+    { id: 'oa6', title: 'Single order of ₹10,000', reward: 200, goal: 10000, progress: 600, buttonState: 'default' },
+  ];
+
+
   return (
     <div className="min-h-screen text-foreground pb-24">
       {/* Header */}
@@ -178,10 +225,7 @@ export default function RewardsPage() {
           <TabsContent value="task" className="space-y-4">
             <GlassCard>
                 <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <CardTitle className="text-lg font-bold">VIP Tasks</CardTitle>
-                        <Button variant="link" className="text-yellow-500 p-0 h-auto">VIP Zone ▸</Button>
-                    </div>
+                    <CardTitle className="text-lg font-bold">VIP Tasks</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <EmptyState message="No VIP tasks available right now." />
@@ -191,8 +235,19 @@ export default function RewardsPage() {
                 <CardHeader>
                     <CardTitle className="text-lg font-bold">Daily Tasks</CardTitle>
                 </CardHeader>
-                <CardContent>
-                     <EmptyState message="No daily tasks available. Check back tomorrow!" />
+                <CardContent className="space-y-4">
+                    <div>
+                        <h3 className="font-semibold text-muted-foreground mb-2 text-sm">Based on number of orders</h3>
+                        <div className="space-y-2">
+                            {orderCountTasks.map(task => <TaskItem key={task.id} {...task} />)}
+                        </div>
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-muted-foreground mb-2 text-sm">Based on order amount</h3>
+                        <div className="space-y-2">
+                            {orderAmountTasks.map(task => <TaskItem key={task.id} {...task} />)}
+                        </div>
+                    </div>
                 </CardContent>
             </GlassCard>
              <GlassCard>
