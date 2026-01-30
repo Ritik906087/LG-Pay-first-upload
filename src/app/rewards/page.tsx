@@ -27,7 +27,7 @@ import { cn } from '@/lib/utils';
 import { useUser, useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Loader } from '@/components/ui/loader';
-import { doc, collection, query, where, Timestamp, runTransaction, getDocs, arrayUnion, getDoc } from 'firebase/firestore';
+import { doc, collection, query, where, Timestamp, runTransaction, getDocs, arrayUnion, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 
 
 const GlassCard = ({
@@ -90,31 +90,49 @@ const EmptyState = ({ message }: { message: string }) => (
 )
 
 
-const TaskItem = ({ title, reward, progress, goal, buttonState = 'default', onClaim, isClaiming }: { title: string, reward: number, progress: number, goal: number, buttonState?: 'default' | 'claimed' | 'claimable', onClaim: () => void, isClaiming: boolean }) => (
-    <div className="flex items-start gap-3 p-3 bg-secondary/50 rounded-lg">
-        <div className="shrink-0 p-2 bg-primary/10 rounded-full mt-0.5">
-            <Gift className="h-5 w-5 text-primary" />
-        </div>
-        <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm leading-tight">{title}</p>
-            <div className="flex items-center gap-2 mt-1">
-                <Progress value={Math.min((progress / goal) * 100, 100)} className="h-1.5 w-20" />
-                <p className="text-xs text-muted-foreground font-mono">{Math.min(progress, goal)}/{goal}</p>
-            </div>
-        </div>
-        <div className="flex flex-col items-end gap-1 shrink-0">
-             <p className="font-bold text-base text-green-600 whitespace-nowrap">₹ {reward}</p>
-              <Button
+const TaskItem = ({ title, reward, progress, goal, buttonState = 'default', onClaim, isClaiming }: { title: string, reward: number, progress: number, goal: number, buttonState?: 'default' | 'claimed' | 'claimable', onClaim: () => void, isClaiming: boolean }) => {
+
+    const renderButton = () => {
+        if (buttonState === 'default') {
+            return (
+                <Button asChild size="sm" className="font-bold h-7 text-xs px-4">
+                    <Link href="/buy">Buy</Link>
+                </Button>
+            );
+        }
+
+        return (
+            <Button
                 size="sm"
                 className={cn("font-bold h-7 text-xs px-4", buttonState === 'claimable' && 'btn-gradient')}
                 disabled={buttonState !== 'claimable' || isClaiming}
                 onClick={onClaim}
             >
-                {isClaiming ? <Loader size="xs" /> : (buttonState === 'claimed' ? 'Claimed' : (buttonState === 'claimable' ? 'Claim' : 'Go'))}
+                {isClaiming ? <Loader size="xs" /> : (buttonState === 'claimed' ? 'Claimed' : 'Claim')}
             </Button>
+        );
+    };
+    
+    return (
+        <div className="flex items-start gap-3 p-3 bg-secondary/50 rounded-lg">
+            <div className="shrink-0 p-2 bg-primary/10 rounded-full mt-0.5">
+                <Gift className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm leading-tight">{title}</p>
+                <div className="flex items-center gap-2 mt-1">
+                    <Progress value={Math.min((progress / goal) * 100, 100)} className="h-1.5 w-20" />
+                    <p className="text-xs text-muted-foreground font-mono">{Math.min(progress, goal)}/{goal}</p>
+                </div>
+            </div>
+            <div className="flex flex-col items-end gap-1 shrink-0">
+                <p className="font-bold text-base text-green-600 whitespace-nowrap">₹ {reward}</p>
+                {renderButton()}
+            </div>
         </div>
-    </div>
-);
+    );
+};
+
 
 const orderCountTasks = [
     { id: 'oc1', title: 'Complete 1 order', reward: 2, goal: 1 },
@@ -157,7 +175,6 @@ const DailyTasksSection = () => {
         const todayTimestamp = Timestamp.fromDate(today);
 
         try {
-            // Fetch today's orders and filter for completed ones on the client
             const ordersQuery = query(
                 collection(firestore, 'users', user.uid, 'orders'),
                 where('createdAt', '>=', todayTimestamp)
@@ -176,7 +193,6 @@ const DailyTasksSection = () => {
             });
             setStats({ count: orderCount, maxAmount });
 
-            // Fetch today's claimed rewards
             const rewardDocRef = doc(firestore, 'users', user.uid, 'dailyRewards', getTodayDateString());
             const rewardDoc = await getDoc(rewardDocRef);
             if (rewardDoc.exists()) {
@@ -196,19 +212,20 @@ const DailyTasksSection = () => {
         fetchData();
     }, [fetchData]);
 
-    const handleClaim = async (taskId: string, reward: number) => {
+    const handleClaim = async (taskId: string, reward: number, taskTitle: string) => {
         if (!user || !firestore) return;
         setClaimingTaskId(taskId);
 
         const userRef = doc(firestore, 'users', user.uid);
         const rewardDocRef = doc(firestore, 'users', user.uid, 'dailyRewards', getTodayDateString());
+        const transactionsRef = collection(firestore, 'users', user.uid, 'transactions');
 
         try {
             await runTransaction(firestore, async (transaction) => {
                 const userDoc = await transaction.get(userRef);
                 if (!userDoc.exists()) throw new Error("User not found");
 
-                const rewardDoc = await getDoc(rewardDocRef); // Use getDoc inside transaction for consistency
+                const rewardDoc = await getDoc(rewardDocRef); 
                 const alreadyClaimed = rewardDoc.exists() && (rewardDoc.data().claimedTaskIds || []).includes(taskId);
                 if (alreadyClaimed) {
                     throw new Error("Reward already claimed.");
@@ -224,8 +241,15 @@ const DailyTasksSection = () => {
                 }
             });
 
+            await addDoc(transactionsRef, {
+                userId: user.uid,
+                amount: reward,
+                description: `Daily Task: ${taskTitle}`,
+                createdAt: serverTimestamp()
+            });
+
             toast({ title: "Reward Claimed!", description: `₹${reward} has been added to your balance.` });
-            await fetchData(); // Refetch data to update UI
+            await fetchData();
         } catch (error: any) {
             console.error("Claim reward error:", error);
             toast({ variant: 'destructive', title: error.message || 'Failed to claim reward.' });
@@ -246,7 +270,7 @@ const DailyTasksSection = () => {
                     {...task}
                     progress={progress}
                     buttonState={buttonState}
-                    onClaim={() => handleClaim(task.id, task.reward)}
+                    onClaim={() => handleClaim(task.id, task.reward, task.title)}
                     isClaiming={claimingTaskId === task.id}
                 />
             );

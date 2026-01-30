@@ -316,6 +316,31 @@
       },
       "required": ["enteredIdentifier", "status", "createdAt", "chatHistory"]
     },
+    "RewardTransaction": {
+      "title": "Reward Transaction",
+      "description": "A record of a reward granted to a user, e.g., from daily tasks.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who received the reward."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of the reward in LGB."
+        },
+        "description": {
+          "type": "string",
+          "description": "A description of why the reward was given (e.g., 'Daily Task: Complete 5 orders')."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the reward was claimed."
+        }
+      },
+      "required": ["userId", "amount", "description", "createdAt"]
+    },
     "DailyReward": {
       "title": "Daily Reward",
       "description": "Tracks rewards claimed by a user on a specific day. The document ID should be in YYYY-MM-DD format.",
@@ -364,6 +389,12 @@
         "$ref": "#/entities/SellOrder"
       },
       "description": "Stores user orders to sell LGB."
+    },
+    "/users/{userId}/transactions/{transactionId}": {
+        "schema": {
+            "$ref": "#/entities/RewardTransaction"
+        },
+        "description": "Stores miscellaneous user transactions, such as claimed rewards."
     },
     "/chatRequests/{requestId}": {
       "schema": {

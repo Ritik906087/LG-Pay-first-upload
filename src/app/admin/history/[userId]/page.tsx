@@ -72,6 +72,13 @@ type SellOrder = {
   failureReason?: string;
 };
 
+type RewardTransaction = {
+    id: string;
+    description: string;
+    amount: number;
+    createdAt: Timestamp;
+}
+
 type AdminPaymentMethod = {
     id: string;
     type: 'bank' | 'upi';
@@ -353,6 +360,10 @@ export default function UserHistoryPage() {
     const sellOrdersQuery = useMemo(() => firestore && userId ? query(collection(firestore, 'users', userId, 'sellOrders'), orderBy('createdAt', 'desc'), limit(25)) : null, [firestore, userId]);
     const { data: sellOrders, loading: sellOrdersLoading } = useCollection<SellOrder>(sellOrdersQuery);
 
+    // Fetch Reward Transactions
+    const transactionsQuery = useMemo(() => firestore && userId ? query(collection(firestore, 'users', userId, 'transactions'), orderBy('createdAt', 'desc'), limit(50)) : null, [firestore, userId]);
+    const { data: rewardTransactions, loading: rewardsLoading } = useCollection<RewardTransaction>(transactionsQuery);
+
     // Fetch Admin Payment Methods
     const paymentMethodsQuery = useMemo(() => firestore ? collection(firestore, "paymentMethods") : null, [firestore]);
     const { data: adminPaymentMethods, loading: paymentMethodsLoading } = useCollection<AdminPaymentMethod>(paymentMethodsQuery);
@@ -375,7 +386,7 @@ export default function UserHistoryPage() {
         });
     };
 
-    const loading = userLoading || ordersLoading || sellOrdersLoading || paymentMethodsLoading;
+    const loading = userLoading || ordersLoading || sellOrdersLoading || paymentMethodsLoading || rewardsLoading;
 
      if (loading) {
         return (
@@ -498,6 +509,34 @@ export default function UserHistoryPage() {
                             )) : (
                                 <TableRow>
                                     <TableCell colSpan={5} className="h-24 text-center">No sell orders found.</TableCell>
+                                </TableRow>
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader><CardTitle>Reward History</CardTitle></CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Description</TableHead>
+                                <TableHead>Amount</TableHead>
+                                <TableHead className="text-right">Date</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {rewardTransactions && rewardTransactions.length > 0 ? rewardTransactions.map(tx => (
+                                <TableRow key={tx.id}>
+                                    <TableCell>{tx.description}</TableCell>
+                                    <TableCell>₹{tx.amount.toFixed(2)}</TableCell>
+                                    <TableCell className="text-right text-xs">{tx.createdAt.toDate().toLocaleString()}</TableCell>
+                                </TableRow>
+                            )) : (
+                                <TableRow>
+                                    <TableCell colSpan={3} className="h-24 text-center">No reward transactions found.</TableCell>
                                 </TableRow>
                             )}
                         </TableBody>
