@@ -47,6 +47,7 @@ type UserProfile = {
     email?: string;
     phoneNumber?: string;
     photoURL?: string;
+    inviterUid?: string;
 };
 
 type PaymentMethod = {
@@ -974,15 +975,63 @@ function ProcessConfirmationDialog({ order, onProcessed }: { order: Order, onPro
 
         try {
             await runTransaction(firestore, async (transaction) => {
-                const userDoc = await transaction.get(userRef);
-                if (!userDoc.exists()) {
+                const buyerDoc = await transaction.get(userRef);
+                if (!buyerDoc.exists()) {
                     throw new Error("User not found to update balance.");
                 }
-                const newBalance = (userDoc.data().balance || 0) + order.amount;
+
+                // 1. Update buyer's balance and order status
+                const newBalance = (buyerDoc.data().balance || 0) + order.amount;
                 transaction.update(userRef, { balance: newBalance });
                 transaction.update(orderRef, { status: 'completed' });
+
+                const buyerData = buyerDoc.data() as UserProfile;
+
+                // 2. Handle Level 1 Inviter Bonus
+                if (buyerData.inviterUid) {
+                    const l1InviterRef = doc(firestore, 'users', buyerData.inviterUid);
+                    const l1InviterDoc = await transaction.get(l1InviterRef);
+
+                    if (l1InviterDoc.exists()) {
+                        const l1Bonus = order.amount * 0.01;
+                        const l1NewBalance = (l1InviterDoc.data().balance || 0) + l1Bonus;
+                        transaction.update(l1InviterRef, { balance: l1NewBalance });
+
+                        // Create reward transaction for L1 inviter
+                        const l1RewardTxRef = doc(collection(firestore, 'users', buyerData.inviterUid, 'transactions'));
+                        transaction.set(l1RewardTxRef, {
+                            userId: buyerData.inviterUid,
+                            amount: l1Bonus,
+                            description: `Level 1 bonus from user ${order.user?.numericId || order.userId}`,
+                            createdAt: serverTimestamp()
+                        });
+
+                        const l1InviterData = l1InviterDoc.data() as UserProfile;
+
+                        // 3. Handle Level 2 Inviter Bonus
+                        if (l1InviterData.inviterUid) {
+                            const l2InviterRef = doc(firestore, 'users', l1InviterData.inviterUid);
+                            const l2InviterDoc = await transaction.get(l2InviterRef);
+                            
+                            if (l2InviterDoc.exists()) {
+                                const l2Bonus = order.amount * 0.005;
+                                const l2NewBalance = (l2InviterDoc.data().balance || 0) + l2Bonus;
+                                transaction.update(l2InviterRef, { balance: l2NewBalance });
+
+                                // Create reward transaction for L2 inviter
+                                const l2RewardTxRef = doc(collection(firestore, 'users', l1InviterData.inviterUid, 'transactions'));
+                                transaction.set(l2RewardTxRef, {
+                                    userId: l1InviterData.inviterUid,
+                                    amount: l2Bonus,
+                                    description: `Level 2 bonus from user ${order.user?.numericId || order.userId}`,
+                                    createdAt: serverTimestamp()
+                                });
+                            }
+                        }
+                    }
+                }
             });
-            toast({ title: "Payment Approved!", description: `${order.amount} LGB added to user's balance.`});
+            toast({ title: "Payment Approved!", description: `${order.amount} LGB added to user's balance. Bonuses have been distributed.`});
             setOpen(false);
             onProcessed();
         } catch (e: any) {
@@ -1433,3 +1482,6 @@ export default function AdminDashboardPage() {
 
 
 
+
+
+    

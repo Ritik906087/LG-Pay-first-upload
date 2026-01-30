@@ -25,7 +25,7 @@ import { useLanguage } from "@/context/language-context";
 import { cn } from "@/lib/utils";
 import { createUserWithEmailAndPassword, getAuth, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult, fetchSignInMethodsForEmail } from "firebase/auth";
 import { useFirestore } from "@/firebase";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, collection, query, where, getDocs, limit } from "firebase/firestore";
 import { useRouter } from "next/navigation";
 
 
@@ -123,10 +123,23 @@ export function RegisterForm() {
       const user = userCredential.user;
 
       if (user && firestore) {
-        // 3. Create a user profile document in Firestore
+        // 3. Find inviter if invitation code is provided
+        let inviterUid: string | null = null;
+        if (values.invitationCode) {
+            const inviterQuery = query(collection(firestore, "users"), where("numericId", "==", values.invitationCode), limit(1));
+            const inviterSnapshot = await getDocs(inviterQuery);
+            if (!inviterSnapshot.empty) {
+                inviterUid = inviterSnapshot.docs[0].id;
+            } else {
+                toast({ variant: "destructive", title: "Invalid Invitation Code", description: "The invitation code you entered is not valid."});
+            }
+        }
+        
+        // 4. Create a user profile document in Firestore
         const userRef = doc(firestore, "users", user.uid);
         const numericId = Math.floor(10000000 + Math.random() * 90000000).toString();
-        await setDoc(userRef, {
+        
+        const userData: any = {
           uid: user.uid,
           numericId: numericId,
           phoneNumber: values.phone,
@@ -134,7 +147,13 @@ export function RegisterForm() {
           holdBalance: 0.00, // Initial hold balance
           createdAt: serverTimestamp(),
           displayName: `User${values.phone.slice(-4)}`
-        });
+        };
+
+        if (inviterUid) {
+            userData.inviterUid = inviterUid;
+        }
+
+        await setDoc(userRef, userData);
       }
 
       toast({
@@ -382,5 +401,7 @@ export function RegisterForm() {
     </Form>
   );
 }
+
+    
 
     

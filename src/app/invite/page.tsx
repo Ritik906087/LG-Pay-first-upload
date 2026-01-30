@@ -44,21 +44,19 @@ export default function InvitePage() {
                     <Image src="https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/file_000000002968720686f855daed13e880.png?alt=media&token=c4dece97-7dee-41c4-bac7-6c1f9f186fb6" width={400} height={150} alt="Invite friends" className="w-full" />
                 </div>
                 <h3 className="font-bold text-center">Invite friends to join LG Pay, rewards credited instantly</h3>
-                <ul className="space-y-3 text-sm text-muted-foreground">
-                    <li className="flex items-start gap-3">
-                        <Clipboard className="h-4 w-4 mt-0.5 shrink-0 text-yellow-500" />
-                        <span>Click "Invite Now" to share your exclusive link or poster.</span>
-                    </li>
-                    <li className="flex items-start gap-3">
-                        <Users className="h-4 w-4 mt-0.5 shrink-0 text-yellow-500" />
-                        <span>Friends register via the link or QR code and complete their first trade.</span>
-                    </li>
-                     <li className="flex items-start gap-3">
-                        <Gift className="h-4 w-4 mt-0.5 shrink-0 text-yellow-500" />
-                        <span>Invited users can unlock exclusive tasks and get extra rewards.</span>
-                    </li>
-                </ul>
-                <p className="text-xs text-center text-yellow-700 bg-yellow-100 p-2 rounded-md">Note: Reach LV3 (VIP) to unlock extra rewards and rebates.</p>
+                
+                <div className="space-y-4 text-sm text-foreground">
+                    <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+                        <h4 className="font-bold text-primary">Level 1 Agents (Lv 1)</h4>
+                        <p className="mt-1 text-primary/80">These are friends you invite directly. When they buy LGB, you get a <span className="font-bold">+1%</span> bonus!</p>
+                    </div>
+                    <div className="p-4 rounded-lg bg-accent/10 border border-accent/20">
+                        <h4 className="font-bold text-accent">Level 2 Agents (Lv 2)</h4>
+                        <p className="mt-1 text-accent/80">These are friends invited by your Level 1 friends. When they buy LGB, you still get a <span className="font-bold">+0.5%</span> bonus!</p>
+                    </div>
+                </div>
+
+                <p className="text-xs text-center text-yellow-700 bg-yellow-100 p-2 rounded-md">Note: The more your team trades, the more you earn. Bonuses are credited instantly.</p>
                 <Button className="w-full btn-gradient rounded-full font-semibold">Invite Now</Button>
                 <Button variant="ghost" className="w-full text-muted-foreground">View Invitation Data</Button>
             </CardContent>
@@ -67,3 +65,5 @@ export default function InvitePage() {
     </div>
   );
 }
+
+    
