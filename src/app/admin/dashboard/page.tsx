@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useCollection, useDoc, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { LogOut, Users, LayoutDashboard, Wallet, Eye, Search, Landmark, Banknote, Trash2, Loader2, Clock, History, CheckCircle, Download, XCircle, MessageSquare, Send, Paperclip, X, FileClock, AlertCircle } from 'lucide-react';
+import { LogOut, Users, LayoutDashboard, Wallet, Eye, Search, Landmark, Banknote, Trash2, Clock, History, CheckCircle, Download, XCircle, MessageSquare, Send, Paperclip, X, FileClock, AlertCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -36,6 +36,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from '@/components/ui/textarea';
+import { Loader } from '@/components/ui/loader';
 
 type UserProfile = {
     id: string;
@@ -288,7 +289,7 @@ function BankDetailsForm({ onAdd }: { onAdd: (details: Omit<PaymentMethod, 'id' 
             </CardContent>
             <CardFooter>
                 <Button className="w-full" onClick={handleSubmit} disabled={isLoading}>
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                    {isLoading && <Loader size="xs" className="mr-2"/>}
                     Add Bank Account
                 </Button>
             </CardFooter>
@@ -330,7 +331,7 @@ function UpiDetailsForm({ onAdd }: { onAdd: (details: Omit<PaymentMethod, 'id' |
             </CardContent>
             <CardFooter>
                 <Button className="w-full" onClick={handleSubmit} disabled={isLoading}>
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                    {isLoading && <Loader size="xs" className="mr-2"/>}
                     Add UPI ID
                 </Button>
             </CardFooter>
@@ -366,7 +367,7 @@ function UsdtDetailsForm({ onAdd }: { onAdd: (details: Omit<PaymentMethod, 'id' 
             </CardContent>
             <CardFooter>
                 <Button className="w-full" onClick={handleSubmit} disabled={isLoading}>
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                    {isLoading && <Loader size="xs" className="mr-2"/>}
                     Add USDT Wallet
                 </Button>
             </CardFooter>
@@ -645,19 +646,19 @@ function ProcessWithdrawalDialog({ order, onProcessed }: { order: SellOrder, onP
                              <div className="flex gap-2 justify-end">
                                 <Button variant="ghost" onClick={() => setShowRejectionUI(false)} disabled={isRejecting}>Back</Button>
                                 <Button variant="destructive" onClick={handleReject} disabled={isRejecting || !rejectionReason.trim()}>
-                                    {isRejecting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                    {isRejecting && <Loader size="xs" className="mr-2"/>}
                                     Confirm Rejection
                                 </Button>
                              </div>
                         ) : (
                             <div className="flex gap-2 justify-end">
                                 <Button variant="outline" className="text-primary border-primary" onClick={handleDownloadImage} disabled={isDownloading || isConfirming}>
-                                    {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Download className="mr-2 h-4 w-4" />}
+                                    {isDownloading ? <Loader size="xs" className="mr-2"/> : <Download className="mr-2 h-4 w-4" />}
                                     Receipt
                                 </Button>
                                 <Button variant="destructive" onClick={() => setShowRejectionUI(true)} disabled={isConfirming}>Reject</Button>
                                 <Button className="bg-green-600 hover:bg-green-700" onClick={handleConfirm} disabled={isConfirming || !utr || utr.length !== 12}>
-                                    {isConfirming && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                    {isConfirming && <Loader size="xs" className="mr-2"/>}
                                     Confirm
                                 </Button>
                             </div>
@@ -1068,7 +1069,7 @@ function ProcessConfirmationDialog({ order, onProcessed }: { order: Order, onPro
                         <>
                             <Button variant="ghost" onClick={() => setShowRejectionUI(false)} disabled={isRejecting}>Back</Button>
                             <Button variant="destructive" onClick={handleReject} disabled={isRejecting || !rejectionReason.trim()}>
-                                {isRejecting && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                {isRejecting && <Loader size="xs" className="mr-2"/>}
                                 Confirm Rejection
                             </Button>
                         </>
@@ -1076,7 +1077,7 @@ function ProcessConfirmationDialog({ order, onProcessed }: { order: Order, onPro
                         <>
                            <Button variant="destructive" onClick={() => setShowRejectionUI(true)} disabled={isApproving}>Reject</Button>
                             <Button className="bg-green-600 hover:bg-green-700" onClick={handleApprove} disabled={isApproving}>
-                                {isApproving && <Loader2 className="mr-2 h-4 w-4 animate-spin"/>}
+                                {isApproving && <Loader size="xs" className="mr-2"/>}
                                 Approve
                             </Button>
                         </>
@@ -1402,7 +1403,7 @@ export default function AdminDashboardPage() {
                     <Logo className="text-2xl" />
                 </header>
                 <main className="flex flex-1 items-center justify-center">
-                    <Loader2 className="h-12 w-12 animate-spin text-primary"/>
+                    <Loader size="md"/>
                 </main>
             </div>
         )
@@ -1416,6 +1417,7 @@ export default function AdminDashboardPage() {
 
 
     
+
 
 
 

@@ -20,7 +20,6 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
   History,
-  Loader2,
   Clock,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -32,6 +31,7 @@ import { doc, collection, query, where, Timestamp, updateDoc, runTransaction, ge
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import { Loader } from '@/components/ui/loader';
 
 
 const GlassCard = ({ children, className }: { children: React.ReactNode, className?: string }) => (
@@ -362,7 +362,7 @@ export default function HomePage() {
         <GlassCard>
             {ordersLoading ? (
                 <CardContent className="p-4 flex items-center justify-center min-h-[120px]">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    <Loader size="md" />
                 </CardContent>
             ) : hasInProgressOrders ? (
                 <Tabs defaultValue="buy">

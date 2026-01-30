@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, ListOrdered, Award, User, Loader2 } from 'lucide-react';
+import { Home, ListOrdered, Award, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
+import { Loader } from '@/components/ui/loader';
 
 export default function HomeLayout({
   children,
@@ -29,7 +30,7 @@ export default function HomeLayout({
     return (
       <div className="home-layout md:bg-gray-200">
         <div className="relative mx-auto flex min-h-screen w-full flex-col items-center justify-center bg-background md:max-w-md md:shadow-lg">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Loader size="md" />
         </div>
       </div>
     );

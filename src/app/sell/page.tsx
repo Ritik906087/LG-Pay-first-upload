@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ChevronLeft, Info, Loader2, Wallet } from 'lucide-react';
+import { ChevronLeft, Info, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useUser, useFirestore, useDoc } from '@/firebase';
@@ -23,6 +23,7 @@ import { doc, addDoc, collection, serverTimestamp, runTransaction } from 'fireba
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Loader } from '@/components/ui/loader';
 
 type UserProfile = {
   id: string;
@@ -270,7 +271,7 @@ export default function SellPage() {
             onClick={handleSell}
             disabled={isSelling || !isAmountValid || !amount || !selectedUpi}
         >
-          {isSelling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Sell Now'}
+          {isSelling ? <Loader size="sm" className="mr-2" /> : 'Sell Now'}
         </Button>
       </CardFooter>
     </div>

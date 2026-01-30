@@ -5,7 +5,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { useDoc, useFirestore } from '@/firebase';
 import { useParams, useRouter } from 'next/navigation';
-import { Loader2, Clock, Send, Paperclip, X, ChevronLeft } from 'lucide-react';
+import { Clock, Send, Paperclip, X, ChevronLeft } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Loader } from '@/components/ui/loader';
 
 type Attachment = {
   name: string;
@@ -176,7 +177,7 @@ export default function AdminChatPage() {
     if (loading) {
         return (
             <div className="flex h-screen w-full items-center justify-center">
-                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                <Loader size="md" />
             </div>
         );
     }
@@ -290,7 +291,7 @@ export default function AdminChatPage() {
                     </div>
                 ) : (
                     <Button className="w-full h-12 bg-green-600 hover:bg-green-700 text-lg" onClick={handleJoinChat} disabled={isUpdating}>
-                        {isUpdating ? <Loader2 className="mr-2 h-5 w-5 animate-spin"/> : "JOIN CHAT"}
+                        {isUpdating ? <Loader size="sm" className="mr-2"/> : "JOIN CHAT"}
                     </Button>
                 )}
             </footer>

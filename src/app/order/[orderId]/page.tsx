@@ -8,7 +8,7 @@ import { useDoc, useUser, useFirestore } from '@/firebase';
 import { doc, getDoc, updateDoc, runTransaction, Timestamp } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Loader2, CheckCircle, FileClock, XCircle, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, CheckCircle, FileClock, XCircle, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
@@ -20,6 +20,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { Loader } from '@/components/ui/loader';
 
 type Order = {
     id: string;
@@ -188,7 +189,7 @@ function OrderStatusContent() {
                                 <>
                                     <p className="text-sm text-green-800 font-semibold">Estimated time remaining</p>
                                     <p className="text-3xl font-mono font-bold text-green-600">
-                                        {timeLeft !== null ? formatTime(timeLeft) : <Loader2 className="h-8 w-8 animate-spin inline-block"/>}
+                                        {timeLeft !== null ? formatTime(timeLeft) : <Loader size="md" className="inline-block"/>}
                                     </p>
                                 </>
                             ) : order.status === 'completed' ? (
@@ -259,7 +260,7 @@ export default function OrderStatusPage() {
     return (
         <Suspense fallback={
             <div className="flex items-center justify-center min-h-screen">
-                <Loader2 className="h-8 w-8 animate-spin"/>
+                <Loader size="md"/>
             </div>
         }>
             <OrderStatusContent />

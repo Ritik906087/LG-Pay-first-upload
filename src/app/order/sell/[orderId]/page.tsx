@@ -7,11 +7,12 @@ import { useDoc, useUser, useFirestore } from '@/firebase';
 import { doc, runTransaction, Timestamp } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Loader2, FileClock, XCircle, AlertTriangle } from 'lucide-react';
+import { ChevronLeft, FileClock, XCircle, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { Loader } from '@/components/ui/loader';
 
 type SellOrder = {
     id: string;
@@ -184,7 +185,7 @@ function SellOrderStatusContent() {
                          <div className="w-full text-center">
                             <p className="text-sm text-primary font-semibold">Time remaining to process</p>
                             <p className="text-3xl font-mono font-bold text-primary">
-                                {timeLeft !== null ? formatTime(timeLeft) : <Loader2 className="h-8 w-8 animate-spin inline-block"/>}
+                                {timeLeft !== null ? formatTime(timeLeft) : <Loader size="md" className="inline-block"/>}
                             </p>
                          </div>
                     </CardFooter>
@@ -232,7 +233,7 @@ export default function SellOrderStatusPage() {
     return (
         <Suspense fallback={
             <div className="flex items-center justify-center min-h-screen">
-                <Loader2 className="h-8 w-8 animate-spin"/>
+                <Loader size="md"/>
             </div>
         }>
             <SellOrderStatusContent />

@@ -3,7 +3,7 @@
 
 import React, { useState, useMemo, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Copy, Loader2, Camera } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Copy, Camera } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useFirestore, useDoc, useStorage } from '@/firebase';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -13,6 +13,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Loader } from '@/components/ui/loader';
 
 export default function SettingsPage() {
   const { user, loading: authLoading } = useUser();
@@ -134,7 +135,7 @@ export default function SettingsPage() {
                     {userProfile?.displayName?.charAt(0) || 'A'}
                   </AvatarFallback>
                 </Avatar>
-                {isSaving && <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full"><Loader2 className="h-6 w-6 animate-spin text-white" /></div> }
+                {isSaving && <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full"><Loader size="sm" /></div> }
                 {!isSaving && <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-primary"><Camera className="h-3 w-3 text-white"/></div>}
               </div>
               <ChevronRight className="h-5 w-5 text-muted-foreground" />
@@ -191,7 +192,7 @@ export default function SettingsPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsNameDialogOpen(false)} disabled={isSaving}>Cancel</Button>
             <Button onClick={handleNameChange} disabled={isSaving}>
-              {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isSaving && <Loader size="xs" className="mr-2" />}
               Save changes
             </Button>
           </DialogFooter>

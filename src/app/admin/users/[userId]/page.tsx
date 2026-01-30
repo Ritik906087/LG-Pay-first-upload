@@ -13,7 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useDoc, useCollection } from '@/firebase';
 import { useParams } from 'next/navigation';
-import { Wallet, ChevronLeft, Copy, Loader2 } from 'lucide-react';
+import { Wallet, ChevronLeft, Copy } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { doc, updateDoc, collection, query, orderBy, Timestamp, runTransaction } from 'firebase/firestore';
@@ -40,6 +40,7 @@ import { useToast } from "@/hooks/use-toast";
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { Loader } from '@/components/ui/loader';
 
 const paymentMethodDetails: { [key: string]: { logo: string; bgColor: string } } = {
   PhonePe: {
@@ -241,7 +242,7 @@ const HoldBalanceActionDialog = ({ userId, currentBalance, currentHoldBalance }:
                 <DialogFooter>
                     <Button variant="outline" onClick={() => setOpen(false)} disabled={isLoading}>Cancel</Button>
                     <Button onClick={handleUpdateHoldBalance} disabled={isLoading}>
-                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                         {isLoading && <Loader size="xs" className="mr-2" />}
                         Confirm
                     </Button>
                 </DialogFooter>

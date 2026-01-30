@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Loader2 } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from "firebase/auth";
 import { useUser, useFirestore, useDoc } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
+import { Loader } from "@/components/ui/loader";
 
 
 type PaymentMethod = {
@@ -316,7 +317,7 @@ export default function CollectionPage() {
                     onClick={handleSendOtp}
                     disabled={isOtpSending || countdown > 0}
                   >
-                    {isOtpSending ? <Loader2 className="h-4 w-4 animate-spin" /> : (countdown > 0 ? `${countdown}s` : (otpSent ? "Resend" : "Send"))}
+                    {isOtpSending ? <Loader size="xs" /> : (countdown > 0 ? `${countdown}s` : (otpSent ? "Resend" : "Send"))}
                   </Button>
                 </div>
               </div>
@@ -339,7 +340,7 @@ export default function CollectionPage() {
                 className="w-full h-12 rounded-full btn-gradient font-bold text-base"
                 disabled={isLinking || !otpSent || !otp || !upiId}
               >
-                {isLinking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isLinking && <Loader size="xs" className="mr-2" />}
                 Link
               </Button>
             </DialogFooter>

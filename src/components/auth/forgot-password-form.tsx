@@ -13,11 +13,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { KeyRound, Phone, ShieldCheck, Loader2 } from "lucide-react";
+import { KeyRound, Phone, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/language-context";
+import { Loader } from "@/components/ui/loader";
 
 type Step = "phone" | "reset";
 
@@ -122,7 +123,7 @@ export function ForgotPasswordForm() {
               )}
             />
             <Button type="submit" className="w-full btn-gradient rounded-full font-semibold" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isLoading && <Loader size="xs" className="mr-2" />}
               {isLoading ? translations.sending : translations.sendResetCode}
             </Button>
           </form>
@@ -206,7 +207,7 @@ export function ForgotPasswordForm() {
               )}
             />
             <Button type="submit" className="w-full btn-gradient rounded-full font-semibold" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isLoading && <Loader size="xs" className="mr-2" />}
               {isLoading ? translations.resetting : translations.resetPassword}
             </Button>
           </form>

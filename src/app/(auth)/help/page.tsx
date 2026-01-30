@@ -11,7 +11,7 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { LifeBuoy, UserPlus, AlertTriangle, Send, ChevronLeft, Loader2, Paperclip, Image as ImageIcon, X, Clock, Volume2, VolumeX, Sparkles, History } from 'lucide-react';
+import { LifeBuoy, UserPlus, AlertTriangle, Send, ChevronLeft, Paperclip, Image as ImageIcon, X, Clock, Volume2, VolumeX, Sparkles, History } from 'lucide-react';
 import { useLanguage } from '@/context/language-context';
 import { useUser, useFirestore, useDoc, useCollection } from '@/firebase';
 import { doc, collection, query, where, orderBy, limit, Timestamp, updateDoc, arrayUnion } from 'firebase/firestore';
@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from '@/components/ui/skeleton';
+import { Loader } from '@/components/ui/loader';
 
 const CHAT_STATE_STORAGE_KEY = 'lg-pay-help-chat-state';
 const SOUND_PREF_KEY = 'lg-pay-help-sound-pref';
@@ -475,7 +476,7 @@ export default function HelpPage() {
   if (authLoading || (user && chatRequestsLoading)) {
     return (
       <div className="flex items-center justify-center h-screen bg-secondary">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader size="md" />
       </div>
     );
   }
@@ -539,7 +540,7 @@ export default function HelpPage() {
         </header>
          {isWaitingForAgent && !isAgentActive && chatStep === 'chatting' && (
             <div className="p-3 bg-blue-100 border-b border-blue-200 text-center text-sm text-blue-800 font-semibold flex items-center justify-center gap-2 sticky top-[69px] z-10">
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader size="xs" />
                 Connecting you to an agent... Please wait.
             </div>
         )}
@@ -656,7 +657,7 @@ export default function HelpPage() {
                     disabled={inputDisabled}
                 />
                 <Button onClick={handleSendMessage} disabled={inputDisabled || (!currentMessage.trim() && !attachment)} className="btn-gradient rounded-full w-12 h-12">
-                    {isSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                    {isSending ? <Loader size="sm" /> : <Send className="h-5 w-5" />}
                 </Button>
             </div>
         </footer>
@@ -735,7 +736,7 @@ export default function HelpPage() {
         </CardContent>
         <CardFooter className="flex-col gap-4">
           <Button onClick={handleStartChat} className="w-full font-semibold btn-gradient rounded-full" disabled={isVerifying}>
-            {isVerifying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isVerifying && <Loader size="xs" className="mr-2" />}
             {isVerifying ? 'Verifying...' : 'Start the chat'}
           </Button>
           <p className="text-xs text-muted-foreground">Powered by LG Pay</p>

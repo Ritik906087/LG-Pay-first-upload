@@ -3,7 +3,7 @@
 
 import React, { useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, MessageSquare, Loader2, Paperclip } from 'lucide-react';
+import { ChevronLeft, MessageSquare, Paperclip } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useFirestore, useCollection, useDoc } from '@/firebase';
 import { collection, query, where, orderBy, Timestamp, doc } from 'firebase/firestore';
@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Loader } from '@/components/ui/loader';
 
 type Attachment = {
   name: string;
@@ -85,7 +86,7 @@ export default function ChatHistoryPage() {
             <main className="flex-grow p-4">
                 {loading ? (
                     <div className="flex items-center justify-center pt-20">
-                        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                        <Loader size="md" />
                     </div>
                 ) : !closedChats || closedChats.length === 0 ? (
                     <div className="flex flex-col items-center justify-center pt-20 text-center text-muted-foreground">

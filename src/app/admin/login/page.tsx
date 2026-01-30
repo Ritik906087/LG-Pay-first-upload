@@ -13,8 +13,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
 import { Logo } from '@/components/logo';
+import { Loader } from '@/components/ui/loader';
 
 export default function AdminLoginPage() {
   const [phone, setPhone] = useState('');
@@ -86,7 +86,7 @@ export default function AdminLoginPage() {
             </CardContent>
             <CardFooter>
               <Button type="submit" className="w-full btn-gradient font-semibold" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isLoading && <Loader size="xs" className="mr-2" />}
                 Log In
               </Button>
             </CardFooter>
