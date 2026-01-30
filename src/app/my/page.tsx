@@ -176,7 +176,7 @@ export default function MyPage() {
               <GlassCard>
                   <CardContent className="flex items-center justify-center gap-2 p-3">
                       <Users className="h-5 w-5 text-primary"/>
-                      <span className="font-semibold">Team Center</span>
+                      <span className="font-semibold">Team</span>
                   </CardContent>
               </GlassCard>
             </Link>
