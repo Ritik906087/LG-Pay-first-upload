@@ -993,7 +993,7 @@ function ProcessConfirmationDialog({ order, onProcessed }: { order: Order, onPro
                     const l1InviterDoc = await transaction.get(l1InviterRef);
 
                     if (l1InviterDoc.exists()) {
-                        const l1Bonus = order.amount * 0.01;
+                        const l1Bonus = order.amount * 0.02;
                         const l1NewBalance = (l1InviterDoc.data().balance || 0) + l1Bonus;
                         transaction.update(l1InviterRef, { balance: l1NewBalance });
 
@@ -1014,7 +1014,7 @@ function ProcessConfirmationDialog({ order, onProcessed }: { order: Order, onPro
                             const l2InviterDoc = await transaction.get(l2InviterRef);
                             
                             if (l2InviterDoc.exists()) {
-                                const l2Bonus = order.amount * 0.005;
+                                const l2Bonus = order.amount * 0.01;
                                 const l2NewBalance = (l2InviterDoc.data().balance || 0) + l2Bonus;
                                 transaction.update(l2InviterRef, { balance: l2NewBalance });
 
