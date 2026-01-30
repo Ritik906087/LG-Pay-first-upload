@@ -46,8 +46,8 @@ const AgentItem = ({ agent }: { agent: Agent }) => (
         </Avatar>
         <div className="grid grid-cols-2 flex-1 text-sm gap-x-4 gap-y-1">
             <p className="font-semibold col-span-2">UID: {agent.uid}</p>
-            <p className="text-muted-foreground"><span className="font-medium text-green-600">{agent.rebate}</span> Rebate</p>
-            <p className="text-muted-foreground"><span className="font-medium text-primary">{agent.subordinates}</span> Subordinates</p>
+            <p className="text-muted-foreground"><span className="font-medium text-green-600">{agent.rebate}</span> Income</p>
+            <p className="text-muted-foreground"><span className="font-medium text-primary">{agent.subordinates}</span> order</p>
         </div>
          <div className={cn("text-xs font-semibold px-2 py-1 rounded-full", agent.online ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-500")}>
             {agent.online ? 'Online' : 'Offline'}
@@ -100,15 +100,15 @@ export default function TeamCenterPage() {
       <main className="flex-grow p-4 space-y-4">
         <Card className="bg-white">
             <CardContent className="grid grid-cols-2 gap-y-6 p-4">
-                <StatCard title="Total rebate" value="₹522" icon={Wallet} colorClass="bg-primary" />
-                <StatCard title="Today's rebate" value="₹0" icon={Wallet} colorClass="bg-accent" />
+                <StatCard title="Income" value="₹522" icon={Wallet} colorClass="bg-primary" />
+                <StatCard title="Today's income" value="₹0" icon={Wallet} colorClass="bg-accent" />
                 <StatCard title="Team size" value="10" icon={UsersIcon} colorClass="bg-green-500" />
                 <StatCard title="New members today" value="0" icon={UserPlus} colorClass="bg-orange-500" />
             </CardContent>
         </Card>
 
         <Tabs defaultValue="lv1" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-white rounded-lg border">
+          <TabsList className="grid w-full grid-cols-2 bg-white rounded-lg border p-1">
             <TabsTrigger value="lv1" className="text-base data-[state=active]:font-bold data-[state=active]:shadow-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md bg-transparent text-muted-foreground p-2.5">Team L1</TabsTrigger>
             <TabsTrigger value="lv2" className="text-base data-[state=active]:font-bold data-[state=active]:shadow-md data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-md bg-transparent text-muted-foreground p-2.5">Team L2</TabsTrigger>
           </TabsList>
