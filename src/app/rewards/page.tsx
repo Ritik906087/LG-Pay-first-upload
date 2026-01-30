@@ -85,25 +85,25 @@ const EmptyState = ({ message }: { message: string }) => (
 
 
 const TaskItem = ({ title, reward, progress, goal, buttonState = 'default' }: { title: string, reward: number, progress: number, goal: number, buttonState?: 'default' | 'claimed' | 'claimable' }) => (
-    <div className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg">
-        <div className="shrink-0 p-2 bg-primary/10 rounded-full">
+    <div className="flex items-start gap-3 p-3 bg-secondary/50 rounded-lg">
+        <div className="shrink-0 p-2 bg-primary/10 rounded-full mt-0.5">
             <Gift className="h-5 w-5 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm truncate">{title}</p>
+            <p className="font-semibold text-sm leading-tight">{title}</p>
             <div className="flex items-center gap-2 mt-1">
                 <Progress value={(progress / goal) * 100} className="h-1.5 w-20" />
                 <p className="text-xs text-muted-foreground font-mono">{progress}/{goal}</p>
             </div>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
-             <p className="font-bold text-lg text-green-600">₹{reward}</p>
+        <div className="flex flex-col items-end gap-1 shrink-0">
+             <p className="font-bold text-base text-green-600 whitespace-nowrap">₹ {reward}</p>
              {buttonState === 'claimable' ? (
-                 <Button size="sm" className="btn-gradient font-bold w-20 text-xs">Claim</Button>
+                 <Button size="sm" className="btn-gradient font-bold h-7 text-xs px-4">Claim</Button>
              ) : buttonState === 'claimed' ? (
-                <Button size="sm" variant="outline" className="w-20 text-xs" disabled>Claimed</Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs px-4" disabled>Claimed</Button>
              ) : (
-                <Button size="sm" variant="outline" className="w-20 text-xs">Go</Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs px-4">Go</Button>
              )}
         </div>
     </div>
@@ -113,19 +113,19 @@ const TaskItem = ({ title, reward, progress, goal, buttonState = 'default' }: { 
 export default function RewardsPage() {
 
   const orderCountTasks = [
-    { id: 'oc1', title: 'Complete 1 Order', reward: 2, goal: 1, progress: 1, buttonState: 'claimable' },
-    { id: 'oc2', title: 'Complete 5 Orders', reward: 10, goal: 5, progress: 3, buttonState: 'default' },
-    { id: 'oc3', title: 'Complete 10 Orders', reward: 20, goal: 10, progress: 3, buttonState: 'default' },
-    { id: 'oc4', title: 'Complete 20 Orders', reward: 60, goal: 20, progress: 3, buttonState: 'default' },
+    { id: 'oc1', title: 'Complete 1 order', reward: 2, goal: 1, progress: 1, buttonState: 'claimable' },
+    { id: 'oc2', title: 'Complete 5 orders', reward: 10, goal: 5, progress: 3, buttonState: 'default' },
+    { id: 'oc3', title: 'Complete 10 orders', reward: 20, goal: 10, progress: 3, buttonState: 'default' },
+    { id: 'oc4', title: 'Complete 20 orders', reward: 60, goal: 20, progress: 3, buttonState: 'default' },
   ];
   
   const orderAmountTasks = [
-    { id: 'oa1', title: 'Single order of ₹500', reward: 10, goal: 500, progress: 500, buttonState: 'claimed' },
-    { id: 'oa2', title: 'Single order of ₹1,000', reward: 25, goal: 1000, progress: 600, buttonState: 'claimable' },
-    { id: 'oa3', title: 'Single order of ₹2,000', reward: 50, goal: 2000, progress: 600, buttonState: 'default' },
-    { id: 'oa4', title: 'Single order of ₹3,000', reward: 70, goal: 3000, progress: 600, buttonState: 'default' },
-    { id: 'oa5', title: 'Single order of ₹5,000', reward: 100, goal: 5000, progress: 600, buttonState: 'default' },
-    { id: 'oa6', title: 'Single order of ₹10,000', reward: 200, goal: 10000, progress: 600, buttonState: 'default' },
+    { id: 'oa1', title: 'Single order: ₹500', reward: 10, goal: 500, progress: 500, buttonState: 'claimed' },
+    { id: 'oa2', title: 'Single order: ₹1,000', reward: 25, goal: 1000, progress: 600, buttonState: 'claimable' },
+    { id: 'oa3', title: 'Single order: ₹2,000', reward: 50, goal: 2000, progress: 600, buttonState: 'default' },
+    { id: 'oa4', title: 'Single order: ₹3,000', reward: 70, goal: 3000, progress: 600, buttonState: 'default' },
+    { id: 'oa5', title: 'Single order: ₹5,000', reward: 100, goal: 5000, progress: 600, buttonState: 'default' },
+    { id: 'oa6', title: 'Single order: ₹10,000', reward: 200, goal: 10000, progress: 600, buttonState: 'default' },
   ];
 
 
