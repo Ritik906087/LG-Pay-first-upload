@@ -1003,7 +1003,9 @@ function ProcessConfirmationDialog({ order, onProcessed }: { order: Order, onPro
                             userId: buyerData.inviterUid,
                             amount: l1Bonus,
                             description: `Level 1 bonus from user ${order.user?.numericId || order.userId}`,
-                            createdAt: serverTimestamp()
+                            createdAt: serverTimestamp(),
+                            type: 'team_bonus',
+                            orderId: `LGPAYI${Date.now()}`
                         });
 
                         const l1InviterData = l1InviterDoc.data() as UserProfile;
@@ -1024,7 +1026,9 @@ function ProcessConfirmationDialog({ order, onProcessed }: { order: Order, onPro
                                     userId: l1InviterData.inviterUid,
                                     amount: l2Bonus,
                                     description: `Level 2 bonus from user ${order.user?.numericId || order.userId}`,
-                                    createdAt: serverTimestamp()
+                                    createdAt: serverTimestamp(),
+                                    type: 'team_bonus',
+                                    orderId: `LGPAYI${Date.now() + 1}`
                                 });
                             }
                         }

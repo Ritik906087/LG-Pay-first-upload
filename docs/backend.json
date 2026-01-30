@@ -66,6 +66,13 @@
         "inviterUid": {
             "type": "string",
             "description": "The Firebase Auth UID of the user who invited this user."
+        },
+        "claimedUserRewards": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "An array of task IDs for new user rewards that have been claimed."
         }
       },
       "required": ["uid", "numericId", "balance", "holdBalance", "createdAt", "phoneNumber"]
@@ -341,9 +348,29 @@
           "type": "string",
           "format": "date-time",
           "description": "Timestamp when the reward was claimed."
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "team_bonus",
+            "daily_task",
+            "new_user_reward"
+          ],
+          "description": "The type of the reward."
+        },
+        "orderId": {
+          "type": "string",
+          "description": "A unique ID for the reward transaction."
         }
       },
-      "required": ["userId", "amount", "description", "createdAt"]
+      "required": [
+        "userId",
+        "amount",
+        "description",
+        "createdAt",
+        "type",
+        "orderId"
+      ]
     },
     "DailyReward": {
       "title": "Daily Reward",

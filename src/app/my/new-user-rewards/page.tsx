@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
@@ -113,7 +114,9 @@ export default function NewUserRewardsPage() {
                 userId: user.uid,
                 amount: reward,
                 description: `New User: ${taskTitle}`,
-                createdAt: serverTimestamp()
+                createdAt: serverTimestamp(),
+                type: 'new_user_reward',
+                orderId: `LGPAYR${Date.now()}`
             });
 
             toast({ title: "Reward Claimed!", description: `₹${reward} has been added to your balance.` });

@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -122,7 +123,7 @@ export default function TeamPage() {
     
     const selfIncomeQuery = useMemo(() => {
         if (!user || !firestore) return null;
-        return query(collection(firestore, 'users', user.uid, 'transactions'));
+        return query(collection(firestore, 'users', user.uid, 'transactions'), where('type', '==', 'team_bonus'));
     }, [user, firestore]);
     const { data: selfTransactions, loading: selfIncomeLoading } = useCollection(selfIncomeQuery);
     const selfIncome = useMemo(() => {

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
@@ -243,7 +244,9 @@ const DailyTasksSection = () => {
                 userId: user.uid,
                 amount: reward,
                 description: `Daily Task: ${taskTitle}`,
-                createdAt: serverTimestamp()
+                createdAt: serverTimestamp(),
+                type: 'daily_task',
+                orderId: `LGPAYD${Date.now()}`
             });
 
             toast({ title: "Reward Claimed!", description: `₹${reward} has been added to your balance.` });
