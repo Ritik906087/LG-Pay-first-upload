@@ -188,9 +188,9 @@ function OrderStatusContent() {
                             {order.status === 'pending_confirmation' ? (
                                 <>
                                     <p className="text-sm text-green-800 font-semibold">Estimated time remaining</p>
-                                    <p className="text-3xl font-mono font-bold text-green-600">
+                                    <div className="text-3xl font-mono font-bold text-green-600">
                                         {timeLeft !== null ? formatTime(timeLeft) : <Loader size="md" className="inline-block"/>}
-                                    </p>
+                                    </div>
                                 </>
                             ) : order.status === 'completed' ? (
                                  <p className="w-full text-center text-sm text-green-600 font-semibold">Processed successfully!</p>

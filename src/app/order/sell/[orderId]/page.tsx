@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
@@ -184,9 +185,9 @@ function SellOrderStatusContent() {
                     <CardFooter className="bg-primary/10 p-4">
                          <div className="w-full text-center">
                             <p className="text-sm text-primary font-semibold">Time remaining to process</p>
-                            <p className="text-3xl font-mono font-bold text-primary">
+                            <div className="text-3xl font-mono font-bold text-primary">
                                 {timeLeft !== null ? formatTime(timeLeft) : <Loader size="md" className="inline-block"/>}
-                            </p>
+                            </div>
                          </div>
                     </CardFooter>
                 </Card>
