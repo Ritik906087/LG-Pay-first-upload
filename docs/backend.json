@@ -62,6 +62,10 @@
             },
             "required": ["name", "upiId"]
           }
+        },
+        "inviterUid": {
+            "type": "string",
+            "description": "The Firebase Auth UID of the user who invited this user."
         }
       },
       "required": ["uid", "numericId", "balance", "holdBalance", "createdAt", "phoneNumber"]
