@@ -13,10 +13,10 @@ import {
 import { Button } from '@/components/ui/button';
 import { useDoc, useCollection } from '@/firebase';
 import { useParams } from 'next/navigation';
-import { Wallet, ChevronLeft, Copy } from 'lucide-react';
+import { Wallet, ChevronLeft, Copy, Users } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { doc, updateDoc, collection, query, orderBy, Timestamp, runTransaction } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, orderBy, Timestamp, runTransaction, where } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
 import {
   Table,
@@ -278,6 +278,13 @@ export default function UserDetailsPage() {
 
     const { data: sellOrders, loading: sellOrdersLoading } = useCollection<SellOrder>(sellOrdersQuery);
 
+    const l1AgentsQuery = useMemo(() => {
+        if (!firestore || !userId) return null;
+        return query(collection(firestore, 'users'), where('inviterUid', '==', userId));
+    }, [firestore, userId]);
+
+    const { data: l1Agents, loading: l1Loading } = useCollection<UserProfile>(l1AgentsQuery);
+
     const stats = React.useMemo(() => {
         const now = new Date();
         const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -404,6 +411,28 @@ export default function UserDetailsPage() {
                     </CardFooter>
                 </Card>
             </div>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Invite Stats</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center gap-4 rounded-lg bg-purple-100 p-4">
+                        <div className="rounded-full bg-purple-200 p-3">
+                            <Users className="h-6 w-6 text-purple-700" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-medium text-purple-800">Invited Users</p>
+                            {l1Loading ? <Skeleton className="h-6 w-10 mt-1" /> : <p className="text-2xl font-bold text-purple-900">{l1Agents?.length || 0}</p>}
+                        </div>
+                    </div>
+                </CardContent>
+                <CardFooter>
+                    <Button asChild variant="outline">
+                        <Link href={`/admin/invites/${userId}`}>View Invites</Link>
+                    </Button>
+                </CardFooter>
+            </Card>
 
             {/* Linked UPIs Card */}
             <Card>
