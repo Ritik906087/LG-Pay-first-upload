@@ -23,7 +23,7 @@ import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore, useDoc } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Loader } from '@/components/ui/loader';
 import { doc, collection, query, where, Timestamp, runTransaction, getDocs, arrayUnion, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
