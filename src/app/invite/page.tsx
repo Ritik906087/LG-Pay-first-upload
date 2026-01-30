@@ -9,6 +9,7 @@ import { useUser, useFirestore, useDoc } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { doc } from 'firebase/firestore';
 import { Loader } from '@/components/ui/loader';
+import { UserPlus } from 'lucide-react';
 
 type UserProfile = {
   numericId: string;
@@ -94,20 +95,20 @@ export default function InvitePage() {
         <GlassCard>
             <CardContent className="p-4 space-y-4">
                 <div className="flex justify-center rounded-lg overflow-hidden">
-                    <Image src="https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/file_000000002968720686f855daed13e880.png?alt=media&token=c4dece97-7dee-41c4-bac7-6c1f9f186fb6" width={120} height={45} alt="Invite friends" />
+                    <Image src="https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/file_000000002968720686f855daed13e880.png?alt=media&token=c4dece97-7dee-41c4-bac7-6c1f9f186fb6" width={80} height={30} alt="Invite friends" />
                 </div>
                 <h3 className="font-bold text-center">Invite friends to join LG Pay, rewards credited instantly</h3>
                 
                 <div className="space-y-4 text-sm text-foreground">
                     <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
                         <h4 className="font-bold text-primary">लेवल 1 team (Lv 1)</h4>
-                        <p className="mt-1 text-primary/80">ये वे दोस्त हैं जिन्हें आप सीधे आमंत्रित करते हैं। जब वे ARB खरीदते हैं, तो आपको <span className="font-bold">+2%</span> बोनस मिलेगा।</p>
-                        <p className="mt-2 text-xs text-primary/70 font-sans">These are friends you invite directly. When they buy ARB, you get a <span className="font-bold">+2%</span> bonus.</p>
+                        <p className="mt-1 text-primary/80">ये वे दोस्त हैं जिन्हें आप सीधे आमंत्रित करते हैं। जब वे LGB खरीदते हैं, तो आपको <span className="font-bold">+2%</span> बोनस मिलेगा।</p>
+                        <p className="mt-2 text-xs text-primary/70 font-sans">These are friends you invite directly. When they buy LGB, you get a <span className="font-bold">+2%</span> bonus.</p>
                     </div>
                     <div className="p-4 rounded-lg bg-accent/10 border border-accent/20">
                         <h4 className="font-bold text-accent">लेवल 2 team (Lv 2)</h4>
-                        <p className="mt-1 text-accent/80">ये वे दोस्त हैं जिन्हें आपके लेवल 1 दोस्त आमंत्रित करते हैं। जब वे ARB खरीदते हैं, तो आपको फिर भी <span className="font-bold">+1%</span> बोनस मिलेगा।</p>
-                         <p className="mt-2 text-xs text-accent/70 font-sans">These are friends invited by your Level 1 friends. When they buy ARB, you still get a <span className="font-bold">+1%</span> bonus.</p>
+                        <p className="mt-1 text-accent/80">ये वे दोस्त हैं जिन्हें आपके लेवल 1 दोस्त आमंत्रित करते हैं। जब वे LGB खरीदते हैं, तो आपको फिर भी <span className="font-bold">+1%</span> बोनस मिलेगा।</p>
+                         <p className="mt-2 text-xs text-accent/70 font-sans">These are friends invited by your Level 1 friends. When they buy LGB, you still get a <span className="font-bold">+1%</span> bonus.</p>
                     </div>
                 </div>
 
