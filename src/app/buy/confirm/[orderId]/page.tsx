@@ -51,12 +51,14 @@ type PaymentMethod = {
 }
 
 type Order = {
+    id: string;
     amount: number;
     status: string;
     createdAt: Timestamp;
     orderId: string;
     paymentType: 'bank' | 'upi' | 'usdt';
     paymentProvider: string;
+    adminPaymentMethodId?: string;
 };
 
 type UserProfile = {
@@ -149,6 +151,19 @@ function PaymentDetailsContent() {
 
     const { data: userProfile, loading: profileLoading } = useDoc<UserProfile>(userProfileRef);
 
+    const adminMethod = useMemo(() => {
+        if (!allPaymentMethods || allPaymentMethods.length === 0 || !type) return null;
+        return allPaymentMethods.find(m => m.type === type);
+    }, [allPaymentMethods, type]);
+
+    useEffect(() => {
+        if (orderRef && adminMethod?.id && order && !order.adminPaymentMethodId) {
+            updateDoc(orderRef, { adminPaymentMethodId: adminMethod.id })
+                .catch(err => console.error("Failed to set admin payment method ID on order", err));
+        }
+    }, [orderRef, adminMethod, order]);
+
+
      const handleCancelOrder = async (isAutoCancel = false, reason = "Order expired") => {
         if (!orderRef) return;
         
@@ -228,7 +243,7 @@ function PaymentDetailsContent() {
         }
 
         const createdAt = order.createdAt.toDate();
-        const expiryTime = new Date(createdAt.getTime() + 30 * 60 * 1000); // 30 minutes
+        const expiryTime = new Date(createdAt.getTime() + 10 * 60 * 1000); // 10 minutes
 
         const interval = setInterval(() => {
             const now = new Date();
@@ -248,35 +263,29 @@ function PaymentDetailsContent() {
 
 
     const details = useMemo(() => {
-        if (!allPaymentMethods || allPaymentMethods.length === 0) return null;
+        if (!adminMethod) return null;
 
-        if (type === 'bank') {
-            const bankAccount = allPaymentMethods.find(m => m.type === 'bank');
-            if (!bankAccount) return null;
+        if (adminMethod.type === 'bank') {
             return {
-                'Bank Name': bankAccount.bankName,
-                'Account Holder': bankAccount.accountHolderName,
-                'Account Number': bankAccount.accountNumber,
-                'IFSC Code': bankAccount.ifscCode,
+                'Bank Name': adminMethod.bankName,
+                'Account Holder': adminMethod.accountHolderName,
+                'Account Number': adminMethod.accountNumber,
+                'IFSC Code': adminMethod.ifscCode,
             };
         }
-        if (type === 'upi') {
-            const upiAccount = allPaymentMethods.find(m => m.type === 'upi');
-            if (!upiAccount) return null;
+        if (adminMethod.type === 'upi') {
             return {
-                'Recipient Name': upiAccount.upiHolderName,
-                'UPI ID': upiAccount.upiId,
+                'Recipient Name': adminMethod.upiHolderName,
+                'UPI ID': adminMethod.upiId,
             }
         }
-        if (type === 'usdt') {
-            const usdtAccount = allPaymentMethods.find(m => m.type === 'usdt');
-            if (!usdtAccount) return null;
+        if (adminMethod.type === 'usdt') {
             return {
-                'USDT Address (TRC20)': usdtAccount.usdtWalletAddress,
+                'USDT Address (TRC20)': adminMethod.usdtWalletAddress,
             }
         }
         return null;
-    }, [allPaymentMethods, type]);
+    }, [adminMethod]);
 
     const copyToClipboard = (text: string) => {
         if (!text) return;
@@ -666,7 +675,7 @@ function PaymentDetailsContent() {
                             </div>
                         </div>
                         <div className="border-t border-dashed -mx-4 my-4"></div>
-                        {Object.entries(details).map(([key, value]) => (
+                        {details && Object.entries(details).map(([key, value]) => (
                             <div key={key} className="flex justify-between items-center">
                                 <span className="text-muted-foreground">{key}</span>
                                 <div className="flex items-center gap-2">

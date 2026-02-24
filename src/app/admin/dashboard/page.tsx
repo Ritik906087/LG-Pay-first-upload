@@ -1143,24 +1143,46 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                         </div>
 
                         {adminMethod && (
-                            <div className="space-y-2 rounded-md bg-muted p-3 mt-4">
-                                <h4 className="font-semibold text-muted-foreground text-xs">Paid To:</h4>
-                                <div className="text-sm space-y-1">
+                            <div className="mt-4">
+                                <h3 className="font-semibold text-foreground mb-2 text-sm">Receiver Details</h3>
+                                <div className="rounded-lg border bg-secondary/50 p-3 space-y-2 text-sm">
                                     {adminMethod.type === 'bank' && (
                                         <>
-                                            <p><strong>Bank:</strong> {adminMethod.bankName}</p>
-                                            <p><strong>Holder:</strong> {adminMethod.accountHolderName}</p>
-                                            <p><strong>Account No:</strong> {adminMethod.accountNumber}</p>
+                                            <div className="flex justify-between">
+                                                <span className="text-muted-foreground">Bank:</span>
+                                                <span className="font-semibold">{adminMethod.bankName}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-muted-foreground">Holder:</span>
+                                                <span className="font-semibold">{adminMethod.accountHolderName}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-muted-foreground">Account No:</span>
+                                                <span className="font-mono">{adminMethod.accountNumber}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-muted-foreground">IFSC:</span>
+                                                <span className="font-mono">{adminMethod.ifscCode}</span>
+                                            </div>
                                         </>
                                     )}
                                     {adminMethod.type === 'upi' && (
                                         <>
-                                            <p><strong>Name:</strong> {adminMethod.upiHolderName}</p>
-                                            <p><strong>UPI ID:</strong> {adminMethod.upiId}</p>
+                                            <div className="flex justify-between">
+                                                <span className="text-muted-foreground">Name:</span>
+                                                <span className="font-semibold">{adminMethod.upiHolderName}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-muted-foreground">UPI ID:</span>
+                                                <span className="font-mono">{adminMethod.upiId}</span>
+                                            </div>
                                         </>
                                     )}
                                     {adminMethod.type === 'usdt' && (
-                                        <p><strong>Wallet:</strong> {adminMethod.usdtWalletAddress}</p>
+                                        <div className="flex justify-between">
+                                            <span className="text-muted-foreground">Wallet:</span>
+                                            <span className="font-mono break-all">{adminMethod.usdtWalletAddress}</span>
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -1579,3 +1601,4 @@ export default function AdminDashboardPage() {
 
 
     
+
