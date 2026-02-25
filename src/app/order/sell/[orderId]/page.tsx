@@ -63,7 +63,11 @@ function SellOrderStatusContent() {
     
     const loading = sellOrderLoading;
     
-    const progress = sellOrder ? ((sellOrder.amount - sellOrder.remainingAmount) / sellOrder.amount) * 100 : 0;
+    // Safer calculation
+    const amount = sellOrder?.amount || 0;
+    const remainingAmount = sellOrder?.remainingAmount ?? amount;
+    const progress = amount > 0 ? ((amount - remainingAmount) / amount) * 100 : 0;
+    
     const currentStatus = sellOrder ? statusConfig[sellOrder.status] : null;
 
     if (loading) {
@@ -107,13 +111,13 @@ function SellOrderStatusContent() {
                     <CardContent className="space-y-4">
                         <div className="text-center">
                             <p className="text-sm text-muted-foreground">Total Sell Amount</p>
-                            <p className="text-4xl font-bold text-primary">₹{sellOrder.amount.toFixed(2)}</p>
+                            <p className="text-4xl font-bold text-primary">₹{(sellOrder.amount || 0).toFixed(2)}</p>
                         </div>
                         <div>
                             <Progress value={progress} className="h-3" />
                             <div className="flex justify-between mt-2 text-sm font-medium">
-                                <span>Filled: ₹{(sellOrder.amount - sellOrder.remainingAmount).toFixed(2)}</span>
-                                <span>Remaining: ₹{sellOrder.remainingAmount.toFixed(2)}</span>
+                                <span>Filled: ₹{(amount - remainingAmount).toFixed(2)}</span>
+                                <span>Remaining: ₹{remainingAmount.toFixed(2)}</span>
                             </div>
                         </div>
                     </CardContent>
@@ -161,5 +165,3 @@ export default function SellOrderStatusPage() {
     </Suspense>
   );
 }
-
-    
