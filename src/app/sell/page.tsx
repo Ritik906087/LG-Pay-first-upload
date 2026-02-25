@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -133,6 +132,7 @@ export default function SellPage() {
                 userId: user.uid,
                 orderId: orderId,
                 amount: sellAmount,
+                remainingAmount: sellAmount, // For P2P matching
                 withdrawalMethod: selectedUpi,
                 status: 'pending',
                 createdAt: serverTimestamp(),

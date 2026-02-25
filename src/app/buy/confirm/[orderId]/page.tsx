@@ -56,9 +56,11 @@ type Order = {
     status: string;
     createdAt: Timestamp;
     orderId: string;
-    paymentType: 'bank' | 'upi' | 'usdt';
+    paymentType: 'bank' | 'upi' | 'usdt' | 'p2p_upi';
     paymentProvider: string;
     adminPaymentMethodId?: string;
+    sellerId?: string;
+    sellerUpiDetails?: { name: string; upiId: string };
 };
 
 type UserProfile = {
@@ -99,7 +101,7 @@ function PaymentDetailsContent() {
     const firestore = useFirestore();
 
     const orderId = params.orderId as string;
-    const type = searchParams.get('type');
+    const type = searchParams.get('type') as Order['paymentType'];
     const provider = searchParams.get('provider');
 
     const [utr, setUtr] = useState('');
@@ -151,17 +153,30 @@ function PaymentDetailsContent() {
 
     const { data: userProfile, loading: profileLoading } = useDoc<UserProfile>(userProfileRef);
 
-    const adminMethod = useMemo(() => {
+    const paymentTargetDetails = useMemo(() => {
+        if (orderLoading) return null;
+
+        if (type === 'p2p_upi') {
+            if (order && order.sellerUpiDetails) {
+                return {
+                    type: 'upi',
+                    upiHolderName: 'P2P Seller',
+                    upiId: order.sellerUpiDetails.upiId,
+                }
+            }
+            return null;
+        }
+
         if (!allPaymentMethods || allPaymentMethods.length === 0 || !type) return null;
         return allPaymentMethods.find(m => m.type === type);
-    }, [allPaymentMethods, type]);
+    }, [order, orderLoading, type, allPaymentMethods]);
 
     useEffect(() => {
-        if (orderRef && adminMethod?.id && order && !order.adminPaymentMethodId) {
-            updateDoc(orderRef, { adminPaymentMethodId: adminMethod.id })
+        if (orderRef && paymentTargetDetails?.id && order && !order.adminPaymentMethodId && type !== 'p2p_upi') {
+            updateDoc(orderRef, { adminPaymentMethodId: paymentTargetDetails.id })
                 .catch(err => console.error("Failed to set admin payment method ID on order", err));
         }
-    }, [orderRef, adminMethod, order]);
+    }, [orderRef, paymentTargetDetails, order, type]);
 
 
      const handleCancelOrder = async (isAutoCancel = false, reason = "Order expired") => {
@@ -263,29 +278,29 @@ function PaymentDetailsContent() {
 
 
     const details = useMemo(() => {
-        if (!adminMethod) return null;
+        if (!paymentTargetDetails) return null;
 
-        if (adminMethod.type === 'bank') {
+        if (paymentTargetDetails.type === 'bank') {
             return {
-                'Bank Name': adminMethod.bankName,
-                'Account Holder': adminMethod.accountHolderName,
-                'Account Number': adminMethod.accountNumber,
-                'IFSC Code': adminMethod.ifscCode,
+                'Bank Name': paymentTargetDetails.bankName,
+                'Account Holder': paymentTargetDetails.accountHolderName,
+                'Account Number': paymentTargetDetails.accountNumber,
+                'IFSC Code': paymentTargetDetails.ifscCode,
             };
         }
-        if (adminMethod.type === 'upi') {
+        if (paymentTargetDetails.type === 'upi') {
             return {
-                'Recipient Name': adminMethod.upiHolderName,
-                'UPI ID': adminMethod.upiId,
+                'Recipient Name': paymentTargetDetails.upiHolderName,
+                'UPI ID': paymentTargetDetails.upiId,
             }
         }
-        if (adminMethod.type === 'usdt') {
+        if (paymentTargetDetails.type === 'usdt') {
             return {
-                'USDT Address (TRC20)': adminMethod.usdtWalletAddress,
+                'USDT Address (TRC20)': paymentTargetDetails.usdtWalletAddress,
             }
         }
         return null;
-    }, [adminMethod]);
+    }, [paymentTargetDetails]);
 
     const copyToClipboard = (text: string) => {
         if (!text) return;
@@ -615,7 +630,7 @@ function PaymentDetailsContent() {
             </header>
 
             <main className="flex-grow p-4 space-y-4">
-                {type === 'upi' && currentProviderDetails && provider && (
+                {(type === 'upi' || type === 'p2p_upi') && currentProviderDetails && provider && (
                     <Card className={cn("text-white shadow-md", currentProviderDetails.bgColor)}>
                         <CardContent className="p-3 flex items-center justify-between">
                             <div className="flex items-center gap-4">
@@ -637,7 +652,7 @@ function PaymentDetailsContent() {
                                 onClick={() => setIsChangeDialogOpen(true)}
                                 variant="ghost" 
                                 className="bg-white/20 text-white hover:bg-white/30 h-auto px-4 py-1.5 rounded-full"
-                                disabled={isConfirming || isUpdatingProvider}
+                                disabled={isConfirming || isUpdatingProvider || type === 'p2p_upi'}
                             >
                                 {isUpdatingProvider ? <Loader2 className="h-4 w-4 animate-spin"/> : 'Change'}
                             </Button>
@@ -689,7 +704,7 @@ function PaymentDetailsContent() {
                     </CardContent>
                 </Card>
 
-                {type === 'upi' && details && order && (
+                {(type === 'upi' || type === 'p2p_upi') && details && order && (
                     <Card>
                         <CardHeader>
                             <CardTitle>Scan QR to Pay</CardTitle>
@@ -697,7 +712,7 @@ function PaymentDetailsContent() {
                         <CardContent className="flex flex-col items-center gap-2">
                              <Image
                                 src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(
-                                    `upi://pay?pa=${details['UPI ID']}&pn=${encodeURIComponent(details['Recipient Name'])}&am=${order.amount}&tn=${order.orderId}`
+                                    `upi://pay?pa=${details['UPI ID']}&pn=${encodeURIComponent(details['Recipient Name']!)}&am=${order.amount}&tn=${order.orderId}`
                                 )}&size=200x200&qzone=2`}
                                 width={200}
                                 height={200}
@@ -883,3 +898,5 @@ export default function ConfirmPage() {
     </Suspense>
   )
 }
+
+    

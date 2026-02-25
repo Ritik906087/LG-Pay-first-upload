@@ -33,7 +33,7 @@ import { ChevronLeft, ShoppingCart, Wallet, ArrowDownUp, Loader2 } from 'lucide-
 import Link from 'next/link';
 import Image from 'next/image';
 import { useUser, useFirestore, useCollection } from '@/firebase';
-import { addDoc, collection, serverTimestamp, query, where, runTransaction, doc, getDocs, collectionGroup, orderBy, limit } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, query, where, runTransaction, doc, getDocs, collectionGroup, orderBy, limit, arrayUnion, Timestamp } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -267,35 +267,6 @@ export default function BuyPage() {
     };
   }, []); 
 
-  const createAdminOrder = async (provider: string, orderAmount: number) => {
-    if (!user || !firestore) return;
-
-    // Fallback to admin payment method
-    const adminMethodsQuery = query(collection(firestore, "paymentMethods"), where("type", "==", activeTab), limit(1));
-    const adminMethodsSnapshot = await getDocs(adminMethodsQuery);
-
-    if (adminMethodsSnapshot.empty) {
-        toast({ variant: 'destructive', title: 'Service Unavailable', description: 'No admin payment methods are configured. Please try again later.' });
-        return;
-    }
-    const adminMethodId = adminMethodsSnapshot.docs[0].id;
-    
-    const orderData = {
-        userId: user.uid,
-        amount: orderAmount,
-        orderId: `LGPAY${Date.now()}`,
-        status: 'pending_payment',
-        createdAt: serverTimestamp(),
-        paymentType: activeTab === 'otp-upi' ? 'upi' : activeTab,
-        paymentProvider: provider,
-        adminPaymentMethodId: adminMethodId
-    };
-
-    const newOrderRef = await addDoc(collection(firestore, 'users', user.uid, 'orders'), orderData);
-    router.push(`/buy/confirm/${newOrderRef.id}?type=${orderData.paymentType}&provider=${provider}`);
-  };
-
-
   const createOrder = async (provider: string, orderAmount: number) => {
     if (!user || !firestore) return;
     setIsCreatingOrder(true);
@@ -304,47 +275,58 @@ export default function BuyPage() {
 
     try {
         await runTransaction(firestore, async (transaction) => {
-            // 1. Try to find a P2P match
-            const sellOrdersQuery = query(
-                collectionGroup(firestore, 'sellOrders'),
-                where('status', 'in', ['pending', 'partially_filled']),
-                where('remainingAmount', '>=', orderAmount),
-                where('userId', '!=', user.uid), // Can't match with yourself
-                orderBy('userId'),
-                orderBy('createdAt', 'asc'),
-                limit(1)
-            );
-            const sellOrdersSnapshot = await getDocs(sellOrdersQuery);
+            const newOrderRef = doc(collection(firestore, 'users', user.uid, 'orders'));
+            newBuyOrderId = newOrderRef.id;
 
             const buyOrderData: any = {
                 userId: user.uid,
                 amount: orderAmount,
                 orderId: `LGPAY${Date.now()}`,
                 status: 'pending_payment',
-                createdAt: serverTimestamp(),
                 paymentProvider: provider,
             };
 
+            const sellOrdersQuery = query(
+                collectionGroup(firestore, 'sellOrders'),
+                where('status', 'in', ['pending', 'partially_filled']),
+                where('remainingAmount', '>=', orderAmount),
+                where('userId', '!=', user.uid),
+                orderBy('remainingAmount', 'asc'),
+                orderBy('createdAt', 'asc'),
+                limit(1)
+            );
+            const sellOrdersSnapshot = await getDocs(sellOrdersQuery);
+
             if (!sellOrdersSnapshot.empty) {
-                // P2P Match Found
                 const sellOrderDoc = sellOrdersSnapshot.docs[0];
                 const sellOrderData = sellOrderDoc.data();
                 
                 const newRemainingAmount = sellOrderData.remainingAmount - orderAmount;
                 const newSellOrderStatus = newRemainingAmount > 0 ? 'partially_filled' : 'completed';
+
+                buyOrderData.sellerUpiDetails = sellOrderData.withdrawalMethod;
+                buyOrderData.sellerId = sellOrderData.userId;
+                buyOrderData.paymentType = 'p2p_upi';
+                finalPaymentType = 'p2p_upi';
                 
+                const nowTimestamp = Timestamp.now();
+                buyOrderData.createdAt = nowTimestamp;
+
+                const matchedBuyOrderData = {
+                    buyOrderId: newBuyOrderId,
+                    buyerId: user.uid,
+                    amount: orderAmount,
+                    status: 'pending_payment',
+                    createdAt: nowTimestamp
+                };
+
                 transaction.update(sellOrderDoc.ref, {
                     remainingAmount: newRemainingAmount,
                     status: newSellOrderStatus,
+                    matchedBuyOrders: arrayUnion(matchedBuyOrderData)
                 });
-                
-                buyOrderData.paymentType = 'p2p_upi';
-                buyOrderData.sellerId = sellOrderData.userId;
-                buyOrderData.matchedSellOrderId = sellOrderDoc.id;
-                finalPaymentType = 'p2p_upi';
 
             } else {
-                // No P2P match, fallback to admin
                 const adminType = activeTab === 'otp-upi' ? 'upi' : activeTab;
                 const adminMethodsQuery = query(collection(firestore, "paymentMethods"), where("type", "==", adminType), limit(1));
                 const adminMethodsSnapshot = await getDocs(adminMethodsQuery);
@@ -352,15 +334,12 @@ export default function BuyPage() {
                 if (adminMethodsSnapshot.empty) {
                     throw new Error("ADMIN_UNAVAILABLE");
                 }
-                const adminMethodId = adminMethodsSnapshot.docs[0].id;
-                
                 buyOrderData.paymentType = adminType;
-                buyOrderData.adminPaymentMethodId = adminMethodId;
+                buyOrderData.adminPaymentMethodId = adminMethodsSnapshot.docs[0].id;
+                buyOrderData.createdAt = serverTimestamp();
             }
             
-            const newOrderRef = doc(collection(firestore, 'users', user.uid, 'orders'));
             transaction.set(newOrderRef, buyOrderData);
-            newBuyOrderId = newOrderRef.id;
         });
 
         if (newBuyOrderId) {
@@ -525,3 +504,5 @@ export default function BuyPage() {
     </div>
   );
 }
+
+    

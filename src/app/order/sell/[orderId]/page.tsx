@@ -3,9 +3,9 @@
 
 import React, { useMemo, Suspense } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useDoc, useUser, useFirestore, useCollection } from '@/firebase';
-import { doc, collectionGroup, query, where, Timestamp } from 'firebase/firestore';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { useDoc, useUser, useFirestore } from '@/firebase';
+import { doc, Timestamp } from 'firebase/firestore';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -21,11 +21,12 @@ type SellOrder = {
     remainingAmount: number;
     status: 'pending' | 'partially_filled' | 'completed' | 'failed';
     createdAt: Timestamp;
+    matchedBuyOrders?: MatchedBuyOrder[];
 };
 
-type BuyOrder = {
-    id: string;
-    orderId: string;
+type MatchedBuyOrder = {
+    buyOrderId: string;
+    buyerId: string;
     amount: number;
     status: 'pending_payment' | 'pending_confirmation' | 'completed' | 'failed';
     createdAt: Timestamp;
@@ -55,17 +56,12 @@ function SellOrderStatusContent() {
 
     const { data: sellOrder, loading: sellOrderLoading } = useDoc<SellOrder>(sellOrderRef);
 
-    const matchedOrdersQuery = useMemo(() => {
-        if (!firestore || !orderId) return null;
-        return query(
-            collectionGroup(firestore, 'orders'),
-            where('matchedSellOrderId', '==', orderId)
-        );
-    }, [firestore, orderId]);
-
-    const { data: matchedOrders, loading: matchedOrdersLoading } = useCollection<BuyOrder>(matchedOrdersQuery);
+    const matchedOrders = useMemo(() => {
+        if (!sellOrder || !sellOrder.matchedBuyOrders) return [];
+        return [...sellOrder.matchedBuyOrders].sort((a, b) => b.createdAt.seconds - a.createdAt.seconds);
+    }, [sellOrder]);
     
-    const loading = sellOrderLoading || matchedOrdersLoading;
+    const loading = sellOrderLoading;
     
     const progress = sellOrder ? ((sellOrder.amount - sellOrder.remainingAmount) / sellOrder.amount) * 100 : 0;
     const currentStatus = sellOrder ? statusConfig[sellOrder.status] : null;
@@ -133,7 +129,7 @@ function SellOrderStatusContent() {
                                 {matchedOrders.map(buyOrder => {
                                     const buyStatus = statusConfig[buyOrder.status] || { style: "bg-gray-100 text-gray-800", text: buyOrder.status.replace(/_/g, ' ') };
                                     return (
-                                        <div key={buyOrder.id} className="p-3 rounded-lg bg-secondary/70 flex justify-between items-center text-sm">
+                                        <div key={buyOrder.buyOrderId} className="p-3 rounded-lg bg-secondary/70 flex justify-between items-center text-sm">
                                             <div>
                                                 <p className="font-bold">₹{buyOrder.amount.toFixed(2)}</p>
                                                 <p className="text-xs text-muted-foreground font-mono">{buyOrder.createdAt.toDate().toLocaleString()}</p>
@@ -165,3 +161,5 @@ export default function SellOrderStatusPage() {
     </Suspense>
   );
 }
+
+    

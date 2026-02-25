@@ -137,7 +137,7 @@
         "paymentType": {
           "type": "string",
           "description": "The payment method type chosen by the user.",
-          "enum": ["bank", "upi", "usdt"]
+          "enum": ["bank", "upi", "usdt", "p2p_upi"]
         },
         "paymentProvider": {
           "type": "string",
@@ -146,6 +146,18 @@
         "adminPaymentMethodId": {
           "type": "string",
           "description": "The ID of the admin payment method used for the transaction."
+        },
+        "sellerId": {
+            "type": "string",
+            "description": "The UID of the seller in a P2P transaction."
+        },
+        "sellerUpiDetails": {
+            "type": "object",
+            "description": "The UPI details of the seller in a P2P transaction.",
+            "properties": {
+                "name": { "type": "string" },
+                "upiId": { "type": "string" }
+            }
         },
         "status": {
           "type": "string",
@@ -217,6 +229,10 @@
           "type": "number",
           "description": "The amount of LGB to sell, in INR."
         },
+        "remainingAmount": {
+            "type": "number",
+            "description": "The amount of the sell order that is still available to be bought."
+        },
         "withdrawalMethod": {
           "type": "object",
           "description": "The UPI method chosen by the user for withdrawal.",
@@ -237,10 +253,25 @@
           "description": "The current status of the sell order.",
           "enum": [
             "pending",
+            "partially_filled",
             "processing",
             "completed",
             "failed"
           ]
+        },
+        "matchedBuyOrders": {
+            "type": "array",
+            "description": "A list of buy orders that have been matched with this sell order.",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "buyOrderId": { "type": "string" },
+                    "buyerId": { "type": "string" },
+                    "amount": { "type": "number" },
+                    "status": { "type": "string" },
+                    "createdAt": { "type": "string", "format": "date-time" }
+                }
+            }
         },
         "utr": {
             "type": "string",
@@ -441,3 +472,5 @@
     }
   }
 }
+
+    
