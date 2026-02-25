@@ -274,25 +274,32 @@ const createOrder = async (provider: string, orderAmount: number) => {
     let finalPaymentType = activeTab === 'otp-upi' ? 'upi' : activeTab;
 
     try {
-        // Find a suitable P2P seller first, outside the transaction
+        // Simplified query to fetch potential sell orders
         const sellOrdersQuery = query(
             collectionGroup(firestore, 'sellOrders'),
             where('status', 'in', ['pending', 'partially_filled']),
-            where('remainingAmount', '>=', orderAmount),
-            orderBy('remainingAmount', 'asc'),
             orderBy('createdAt', 'asc'),
-            limit(10) // Fetch a few candidates
+            limit(30)
         );
 
-        const candidateSellOrdersSnapshot = await getDocs(sellOrdersQuery);
-        const sellOrderCandidateDoc = candidateSellOrdersSnapshot.docs.find(doc => doc.data().userId !== user.uid);
+        const candidatesSnapshot = await getDocs(sellOrdersQuery);
+        
+        // Client-side filtering to find the best match
+        const sellOrderCandidateDoc = candidatesSnapshot.docs
+            .map(doc => ({ ref: doc.ref, data: doc.data() }))
+            .filter(doc => doc.data.remainingAmount >= orderAmount && doc.data.userId !== user.uid)
+            .sort((a, b) => {
+                if (a.data.remainingAmount !== b.data.remainingAmount) {
+                    return a.data.remainingAmount - b.data.remainingAmount;
+                }
+                return a.data.createdAt.seconds - b.data.createdAt.seconds;
+            })[0];
 
         await runTransaction(firestore, async (transaction) => {
             const newOrderRef = doc(collection(firestore, 'users', user.uid, 'orders'));
             newBuyOrderId = newOrderRef.id;
             let p2pMatchFound = false;
 
-            // If we found a candidate, try to lock and use it within the transaction
             if (sellOrderCandidateDoc) {
                 const sellOrderRef = sellOrderCandidateDoc.ref;
                 const sellOrderDoc = await transaction.get(sellOrderRef);
@@ -303,7 +310,7 @@ const createOrder = async (provider: string, orderAmount: number) => {
                     const isStatusValid = ['pending', 'partially_filled'].includes(sellOrderData.status);
                     const isAmountSufficient = sellOrderData.remainingAmount >= orderAmount;
 
-                    if (isStatusValid && isAmountSufficient) {
+                    if (isStatusValid && isAmountSufficient && sellOrderData.userId !== user.uid) {
                         p2pMatchFound = true;
                         finalPaymentType = 'p2p_upi';
 
@@ -330,7 +337,7 @@ const createOrder = async (provider: string, orderAmount: number) => {
                 }
             }
 
-            // Fallback to Admin if no P2P match was found or the candidate was invalid
+            // Fallback to Admin if no P2P match was found
             if (!p2pMatchFound) {
                 finalPaymentType = activeTab === 'otp-upi' ? 'upi' : activeTab;
                 const adminMethodsQuery = query(collection(firestore, "paymentMethods"), where("type", "==", finalPaymentType), limit(1));
