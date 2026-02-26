@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useMemo, Suspense } from 'react';
@@ -19,7 +20,7 @@ type SellOrder = {
     orderId: string;
     amount: number;
     remainingAmount: number;
-    status: 'pending' | 'partially_filled' | 'completed' | 'failed';
+    status: 'pending' | 'partially_filled' | 'completed' | 'failed' | 'processing';
     createdAt: Timestamp;
     matchedBuyOrders?: MatchedBuyOrder[];
 };
@@ -28,15 +29,17 @@ type MatchedBuyOrder = {
     buyOrderId: string;
     buyerId: string;
     amount: number;
-    status: 'pending_payment' | 'pending_confirmation' | 'completed' | 'failed';
+    status: 'pending_payment' | 'pending_confirmation' | 'completed' | 'failed' | 'cancelled';
     createdAt: Timestamp;
 };
 
 const statusConfig: { [key: string]: { style: string; text: string } } = {
   completed: { style: "bg-green-100 text-green-800", text: "Completed" },
   failed: { style: "bg-red-100 text-red-800", text: "Failed" },
+  cancelled: { style: "bg-red-100 text-red-800", text: "Cancelled" },
   pending: { style: "bg-yellow-100 text-yellow-800", text: "Pending" },
   partially_filled: { style: "bg-blue-100 text-blue-800", text: "Partially Filled" },
+  processing: { style: "bg-blue-100 text-blue-800", text: "Processing" },
   pending_payment: { style: "bg-yellow-100 text-yellow-800", text: "Pending Payment" },
   pending_confirmation: { style: "bg-blue-100 text-blue-800", text: "Confirming" },
 };
@@ -63,7 +66,6 @@ function SellOrderStatusContent() {
     
     const loading = sellOrderLoading;
     
-    // Safer calculation
     const amount = sellOrder?.amount || 0;
     const remainingAmount = sellOrder?.remainingAmount ?? amount;
     const progress = amount > 0 ? ((amount - remainingAmount) / amount) * 100 : 0;

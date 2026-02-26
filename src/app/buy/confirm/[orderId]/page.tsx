@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { Suspense, useMemo, useState, useRef, useEffect } from 'react';
+import React, { Suspense, useMemo, useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams, useParams, usePathname } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,7 @@ import { ChevronLeft, Copy, Upload, Loader2, Info } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useCollection, useDoc, useUser, useFirestore, useStorage } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
-import { doc, getDoc, updateDoc, serverTimestamp, collection, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, serverTimestamp, collection, Timestamp, runTransaction } from 'firebase/firestore';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import {
@@ -61,6 +61,8 @@ type Order = {
     adminPaymentMethodId?: string;
     sellerId?: string;
     sellerUpiDetails?: { name: string; upiId: string };
+    matchedSellOrderId?: string;
+    matchedSellOrderPath?: string;
 };
 
 type UserProfile = {
@@ -179,26 +181,73 @@ function PaymentDetailsContent() {
     }, [orderRef, paymentTargetDetails, order, type]);
 
 
-     const handleCancelOrder = async (isAutoCancel = false, reason = "Order expired") => {
-        if (!orderRef) return;
-        
-        const currentOrder = await getDoc(orderRef);
-        if (currentOrder.data()?.status !== 'pending_payment') return;
+     const handleCancelOrder = useCallback(async (isAutoCancel = false, reason = "Order expired") => {
+        if (!orderRef || !firestore || !order) return;
+
+        const currentOrderSnap = await getDoc(orderRef);
+        if (currentOrderSnap.data()?.status !== 'pending_payment') return;
+
         setIsCancelling(true);
+
         try {
-            await updateDoc(orderRef, { status: isAutoCancel ? 'failed' : 'cancelled', cancellationReason: reason });
+            await runTransaction(firestore, async (transaction) => {
+                const buyOrderSnap = await transaction.get(orderRef);
+                if (!buyOrderSnap.exists() || buyOrderSnap.data()?.status !== 'pending_payment') {
+                    return;
+                }
+                const buyOrderData = buyOrderSnap.data();
+
+                if (buyOrderData.paymentType === 'p2p_upi' && buyOrderData.matchedSellOrderPath) {
+                    const sellOrderRef = doc(firestore, buyOrderData.matchedSellOrderPath);
+                    const sellOrderSnap = await transaction.get(sellOrderRef);
+
+                    if (sellOrderSnap.exists()) {
+                        const sellOrderData = sellOrderSnap.data();
+                        
+                        const newRemainingAmount = (sellOrderData.remainingAmount || 0) + buyOrderData.amount;
+                        
+                        let newSellOrderStatus = 'partially_filled';
+                        if (newRemainingAmount >= sellOrderData.amount) {
+                            newSellOrderStatus = 'pending';
+                        }
+
+                        const updatedMatchedBuyOrders = (sellOrderData.matchedBuyOrders || []).map((matched: any) => {
+                            if (matched.buyOrderId === orderId) {
+                                return { ...matched, status: isAutoCancel ? 'failed' : 'cancelled' };
+                            }
+                            return matched;
+                        });
+                        
+                        transaction.update(sellOrderRef, {
+                            remainingAmount: newRemainingAmount,
+                            status: newSellOrderStatus,
+                            matchedBuyOrders: updatedMatchedBuyOrders
+                        });
+                    }
+                }
+
+                transaction.update(orderRef, {
+                    status: isAutoCancel ? 'failed' : 'cancelled',
+                    cancellationReason: reason,
+                });
+            });
+
             if (!isAutoCancel) {
                 toast({ title: 'Order Cancelled' });
-                router.push('/home');
+                router.push('/order');
+            } else {
+                toast({ title: 'Order Expired', variant: 'destructive' });
+                router.push('/order');
             }
+
         } catch (e: any) {
             console.error("Error cancelling order:", e);
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not cancel the order.' });
+            toast({ variant: 'destructive', title: 'Error', description: `Could not cancel the order. ${e.message}` });
         } finally {
-             setIsCancelling(false);
-             setIsCancelDialogOpen(false);
+            setIsCancelling(false);
+            setIsCancelDialogOpen(false);
         }
-    };
+    }, [firestore, order, orderRef, router, toast, orderId]);
     
     const handleConfirmCancellation = async () => {
         let finalReason = cancelReason;
@@ -274,7 +323,7 @@ function PaymentDetailsContent() {
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [order]);
+    }, [order, router, orderId, handleCancelOrder]);
 
 
     const details = useMemo(() => {
@@ -898,5 +947,3 @@ export default function ConfirmPage() {
     </Suspense>
   )
 }
-
-    

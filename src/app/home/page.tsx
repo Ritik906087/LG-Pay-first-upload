@@ -1,4 +1,5 @@
 
+
 "use client";
 import {
   Card,
@@ -25,7 +26,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import Autoplay from "embla-carousel-autoplay";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useUser, useFirestore, useDoc, useCollection } from '@/firebase';
 import { doc, collection, query, where, Timestamp, updateDoc, runTransaction, getDoc } from 'firebase/firestore';
 import Link from 'next/link';
@@ -143,7 +144,7 @@ const InProgressOrderCard = ({ order, onExpire }: { order: any, onExpire: (order
         if (order.status === 'pending_payment') {
             buttonText = "Complete Payment";
             buttonLink = `/buy/confirm/${order.id}?type=${order.paymentType}&provider=${order.paymentProvider}`;
-            expiryTimestamp = new Timestamp(order.createdAt.seconds + 30 * 60, order.createdAt.nanoseconds);
+            expiryTimestamp = new Timestamp(order.createdAt.seconds + 10 * 60, order.createdAt.nanoseconds);
         } else if (order.status === 'pending_confirmation') {
             buttonText = "View Order";
             buttonLink = `/order/${order.id}`;
@@ -153,11 +154,24 @@ const InProgressOrderCard = ({ order, onExpire }: { order: any, onExpire: (order
             }
         }
     } else if (isSell) {
-         if (order.status === 'pending') {
+         if (['pending', 'partially_filled', 'processing'].includes(order.status)) {
             buttonText = "View Status";
             buttonLink = `/order/sell/${order.id}`;
             expiryTimestamp = new Timestamp(order.createdAt.seconds + 30 * 60, order.createdAt.nanoseconds);
-            statusText = "Processing";
+            
+            switch (order.status) {
+                case 'pending':
+                    statusText = "Waiting for Buyer";
+                    break;
+                case 'partially_filled':
+                    statusText = "Partially Matched";
+                    break;
+                case 'processing':
+                    statusText = "Fully Matched";
+                    break;
+                default:
+                    statusText = order.status;
+            }
         }
     }
 
@@ -210,7 +224,7 @@ export default function HomePage() {
     if (!user || !firestore) return null;
     return query(
         collection(firestore, 'users', user.uid, 'sellOrders'),
-        where('status', '==', 'pending')
+        where('status', 'in', ['pending', 'partially_filled', 'processing'])
     );
   }, [user, firestore]);
 
@@ -227,46 +241,56 @@ export default function HomePage() {
   const ordersLoading = buyOrdersLoading || sellOrdersLoading;
   const hasInProgressOrders = (inProgressBuyOrders && inProgressBuyOrders.length > 0) || (inProgressSellOrders && inProgressSellOrders.length > 0);
 
-  const handleOrderExpire = async (orderId: string, type: 'buy' | 'sell') => {
+  const handleOrderExpire = useCallback(async (orderId: string, type: 'buy' | 'sell') => {
     if (!firestore || !user) return;
 
     const collectionName = type === 'buy' ? 'orders' : 'sellOrders';
     const orderRef = doc(firestore, 'users', user.uid, collectionName, orderId);
 
     try {
-      await runTransaction(firestore, async (transaction) => {
-        const orderSnap = await transaction.get(orderRef);
-        if (!orderSnap.exists()) return;
+        await runTransaction(firestore, async (transaction) => {
+            const orderSnap = await transaction.get(orderRef);
+            if (!orderSnap.exists()) return;
 
-        const orderData = orderSnap.data();
-        const validStatusesToExpire = ['pending_payment', 'processing', 'pending', 'pending_confirmation'];
-        
-        if (!validStatusesToExpire.includes(orderData.status)) {
-          return;
-        }
-        
-        if (type === 'sell') {
-            const userRef = doc(firestore, 'users', user.uid);
-            const userSnap = await transaction.get(userRef);
-            if (!userSnap.exists()) throw new Error("User not found");
+            const orderData = orderSnap.data();
+            const validBuyStatuses = ['pending_payment', 'pending_confirmation'];
+            const validSellStatuses = ['pending', 'partially_filled', 'processing'];
             
-            transaction.update(orderRef, { status: 'failed', failureReason: 'Order automatically expired.' });
-            const newBalance = userSnap.data().balance + orderData.amount;
-            transaction.update(userRef, { balance: newBalance });
-        } else { // Buy order
-            let reason = orderData.status === 'processing' ? 'Order processing timed out.' : 'Order automatically expired.';
-            transaction.update(orderRef, {
-                status: 'failed',
-                cancellationReason: reason,
-            });
-        }
-      });
-      toast({ variant: 'destructive', title: 'Order Expired', description: `Order ${orderId} has been marked as failed.`});
+            if (type === 'buy' && !validBuyStatuses.includes(orderData.status)) return;
+            if (type === 'sell' && !validSellStatuses.includes(orderData.status)) return;
+
+            if (type === 'sell') {
+                if (orderData.remainingAmount > 0) {
+                    const userRef = doc(firestore, 'users', user.uid);
+                    const userSnap = await transaction.get(userRef);
+                    if (!userSnap.exists()) throw new Error("User not found");
+
+                    const newBalance = userSnap.data().balance + orderData.remainingAmount;
+                    transaction.update(userRef, { balance: newBalance });
+
+                    transaction.update(orderRef, {
+                        status: 'failed',
+                        failureReason: 'Order expired after 30 minutes with a remaining amount.',
+                        remainingAmount: 0
+                    });
+                } else if (['pending', 'partially_filled', 'processing'].includes(orderData.status)) {
+                    transaction.update(orderRef, { status: 'failed', failureReason: 'Order expired.' });
+                }
+            } else { // Buy order (delegated to confirm page)
+                // This logic is mainly handled on the confirm page itself,
+                // but this is a fallback.
+                transaction.update(orderRef, {
+                    status: 'failed',
+                    cancellationReason: 'Order automatically expired.',
+                });
+            }
+        });
+        toast({ variant: 'destructive', title: 'Order Expired', description: `Your ${type} order has been marked as failed.` });
     } catch (error) {
-      console.error(`Failed to expire ${type} order ${orderId} from homepage:`, error);
-      toast({ variant: 'destructive', title: 'Error', description: `Could not update expired order.` });
+        console.error(`Failed to expire ${type} order ${orderId}:`, error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not update expired order.' });
     }
-  };
+  }, [firestore, user, toast]);
 
 
   return (

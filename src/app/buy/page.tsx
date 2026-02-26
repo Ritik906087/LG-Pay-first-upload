@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -274,30 +275,24 @@ const createOrder = async (provider: string, orderAmount: number) => {
     let finalPaymentType = activeTab === 'otp-upi' ? 'upi' : activeTab;
 
     try {
-        // Find a suitable P2P sell order
         const allSellOrdersQuery = query(collectionGroup(firestore, 'sellOrders'));
         const allSellOrdersSnapshot = await getDocs(allSellOrdersQuery);
         
-        // Filter candidates on the client-side to avoid complex indexes
         const allCandidates = allSellOrdersSnapshot.docs
             .map(doc => ({ ref: doc.ref, data: doc.data() }))
-            .filter(doc => 
-                ['pending', 'partially_filled'].includes(doc.data.status) &&
-                doc.data.userId !== user.uid // Do not match with self
+            .filter(({ data }) => 
+                ['pending', 'partially_filled'].includes(data.status) &&
+                data.remainingAmount >= orderAmount &&
+                data.userId !== user.uid
             );
 
-        // Find the best candidate that can fulfill the order
         const sellOrderCandidateDoc = allCandidates
-            .filter(doc => doc.data.remainingAmount >= orderAmount) // Has enough amount
             .sort((a, b) => {
-                // Prioritize the one with the smallest remaining amount after fulfillment
                 const remainderA = a.data.remainingAmount - orderAmount;
                 const remainderB = b.data.remainingAmount - orderAmount;
-
-                if (remainderA >= 0 && remainderB >= 0 && remainderA !== remainderB) {
+                if (remainderA !== remainderB) {
                     return remainderA - remainderB;
                 }
-                // If remainders are same, or one is negative, fallback to oldest
                 return a.data.createdAt.seconds - b.data.createdAt.seconds;
             })[0];
 
@@ -307,16 +302,13 @@ const createOrder = async (provider: string, orderAmount: number) => {
             newBuyOrderId = newOrderRef.id;
             let p2pMatchFound = false;
 
-            // If a suitable P2P sell order is found, use it
             if (sellOrderCandidateDoc) {
                 const sellOrderRef = sellOrderCandidateDoc.ref;
-                // Re-fetch inside transaction to ensure data is fresh and lock the doc
                 const sellOrderDoc = await transaction.get(sellOrderRef);
 
                 if (sellOrderDoc.exists()) {
                     const sellOrderData = sellOrderDoc.data();
                     
-                    // Double-check conditions inside transaction for safety
                     const isStatusValid = ['pending', 'partially_filled'].includes(sellOrderData.status);
                     const isAmountSufficient = sellOrderData.remainingAmount >= orderAmount;
                     const isNotOwnOrder = sellOrderData.userId !== user.uid;
@@ -325,7 +317,6 @@ const createOrder = async (provider: string, orderAmount: number) => {
                         p2pMatchFound = true;
                         finalPaymentType = 'p2p_upi';
 
-                        // Update sell order
                         const newRemainingAmount = sellOrderData.remainingAmount - orderAmount;
                         const newSellOrderStatus = newRemainingAmount > 0 ? 'partially_filled' : 'processing';
 
@@ -335,19 +326,20 @@ const createOrder = async (provider: string, orderAmount: number) => {
                             orderId: `LGPAY${Date.now()}`,
                             status: 'pending_payment',
                             paymentProvider: provider,
-                            sellerUpiDetails: sellOrderData.withdrawalMethod, // Key info for buyer
+                            sellerUpiDetails: sellOrderData.withdrawalMethod,
                             sellerId: sellOrderData.userId,
                             paymentType: 'p2p_upi',
                             createdAt: serverTimestamp(),
+                            matchedSellOrderId: sellOrderDoc.id,
+                            matchedSellOrderPath: sellOrderRef.path,
                         };
                         transaction.set(newOrderRef, buyOrderData);
 
-                        // Data to be stored in the sellOrder's matchedBuyOrders array
                         const matchedBuyOrderData = {
                             buyOrderId: newBuyOrderId,
                             buyerId: user.uid,
                             amount: orderAmount,
-                            status: 'pending_payment', // Initial status
+                            status: 'pending_payment',
                             createdAt: Timestamp.now()
                         };
 
@@ -360,7 +352,6 @@ const createOrder = async (provider: string, orderAmount: number) => {
                 }
             }
 
-            // Fallback to admin payment if no suitable P2P order is found
             if (!p2pMatchFound) {
                 finalPaymentType = activeTab === 'otp-upi' ? 'upi' : activeTab;
                 const adminMethodsQuery = query(collection(firestore, "paymentMethods"), where("type", "==", finalPaymentType), limit(1));
@@ -377,7 +368,7 @@ const createOrder = async (provider: string, orderAmount: number) => {
                     status: 'pending_payment',
                     paymentProvider: provider,
                     paymentType: finalPaymentType,
-                    adminPaymentMethodId: adminMethodsSnapshot.docs[0].id, // Admin's method
+                    adminPaymentMethodId: adminMethodsSnapshot.docs[0].id,
                     createdAt: serverTimestamp(),
                 };
                 transaction.set(newOrderRef, buyOrderData);
