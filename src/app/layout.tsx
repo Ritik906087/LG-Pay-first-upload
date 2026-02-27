@@ -8,6 +8,9 @@ import { LanguageProvider } from '@/context/language-context';
 export const metadata: Metadata = {
   title: 'LG Pay',
   description: 'Secure and easy payments with LG Pay',
+  icons: {
+    icon: 'https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/file_000000002968720686f855daed13e880.png?alt=media&token=c4dece97-7dee-41c4-bac7-6c1f9f186fb6',
+  },
 };
 
 export default function RootLayout({
