@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: 'LG Pay',
   description: 'Secure and easy payments with LG Pay',
   icons: {
-    icon: 'https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/file_000000002968720686f855daed13e880.png?alt=media&token=c4dece97-7dee-41c4-bac7-6c1f9f186fb6',
+    icon: 'https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/InShot_20260110_205628399.png?alt=media&token=5d466aa9-095b-495f-92e8-95f3b59b4367',
   },
 };
 
