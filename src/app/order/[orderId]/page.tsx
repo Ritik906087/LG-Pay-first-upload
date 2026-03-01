@@ -32,7 +32,8 @@ type Order = {
     submittedAt: Timestamp;
     cancellationReason?: string;
     rejectionReason?: string;
-    paymentType?: 'bank' | 'upi' | 'usdt';
+    paymentType?: 'bank' | 'upi' | 'usdt' | 'p2p_upi';
+    matchedSellOrderPath?: string;
 };
 
 const formatTime = (seconds: number) => {
@@ -62,9 +63,8 @@ function OrderStatusContent() {
     const { data: order, loading: orderLoading } = useDoc<Order>(orderRef);
 
     const handleOrderExpiry = async () => {
-        if (!order || !orderRef || order.status !== 'pending_confirmation') return;
-
-        // Ensure we don't run this multiple times
+        if (!order || !orderRef || order.status !== 'pending_confirmation' || !firestore) return;
+    
         const currentOrderSnap = await getDoc(orderRef);
         if (currentOrderSnap.exists() && currentOrderSnap.data().status !== 'pending_confirmation') {
             return;
@@ -72,9 +72,41 @@ function OrderStatusContent() {
 
         setIsUpdatingStatus(true);
         try {
-            await updateDoc(orderRef, { 
-                status: 'failed',
-                rejectionReason: 'Order review timed out.'
+            await runTransaction(firestore, async (transaction) => {
+                const buyOrderDoc = await transaction.get(orderRef);
+                if (!buyOrderDoc.exists()) throw new Error("Buy order not found.");
+                const buyOrderData = buyOrderDoc.data() as Order;
+    
+                if (buyOrderData.paymentType === 'p2p_upi' && buyOrderData.matchedSellOrderPath) {
+                    const sellOrderRef = doc(firestore, buyOrderData.matchedSellOrderPath);
+                    const sellOrderDoc = await transaction.get(sellOrderRef);
+    
+                    if (sellOrderDoc.exists()) {
+                        const sellOrderData = sellOrderDoc.data();
+                        
+                        const newRemainingAmount = (sellOrderData.remainingAmount || 0) + buyOrderData.amount;
+                        
+                        let newSellOrderStatus = 'partially_filled';
+                        if (newRemainingAmount >= sellOrderData.amount) {
+                             newSellOrderStatus = 'pending';
+                        }
+    
+                        const updatedMatchedBuyOrders = (sellOrderData.matchedBuyOrders || []).map((bo: any) => 
+                            bo.buyOrderId === order.id ? { ...bo, status: 'failed' } : bo
+                        );
+    
+                        transaction.update(sellOrderRef, {
+                            remainingAmount: newRemainingAmount,
+                            status: newSellOrderStatus,
+                            matchedBuyOrders: updatedMatchedBuyOrders
+                        });
+                    }
+                }
+    
+                transaction.update(orderRef, {
+                    status: 'failed',
+                    rejectionReason: 'Order review timed out.',
+                });
             });
             
             toast({
@@ -83,7 +115,7 @@ function OrderStatusContent() {
                 description: 'The order was not reviewed in time.',
             });
             setTimeout(() => router.push('/home'), 1000);
-
+    
         } catch (error) {
             console.error("Order expiry error:", error);
             toast({ variant: 'destructive', title: 'Error', description: 'Failed to update the order status.' });
