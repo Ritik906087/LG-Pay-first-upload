@@ -1114,12 +1114,49 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
         if (!firestore || !order.path) return;
         setIsRejecting(true);
         const orderRef = doc(firestore, order.path);
-
+    
         try {
-            await updateDoc(orderRef, {
-                status: 'failed',
-                rejectionReason: rejectionReason,
+            await runTransaction(firestore, async (transaction) => {
+                const buyerOrderDoc = await transaction.get(orderRef);
+                if (!buyerOrderDoc.exists()) throw new Error("Buy order not found.");
+                const buyerOrderData = buyerOrderDoc.data() as Order;
+    
+                // Update buyer order
+                transaction.update(orderRef, {
+                    status: 'failed',
+                    rejectionReason: rejectionReason,
+                });
+    
+                // If it's a P2P order, handle seller side
+                if (buyerOrderData.paymentType === 'p2p_upi' && buyerOrderData.matchedSellOrderPath) {
+                    const sellOrderRef = doc(firestore, buyerOrderData.matchedSellOrderPath);
+                    const sellOrderDoc = await transaction.get(sellOrderRef);
+                    if (sellOrderDoc.exists()) {
+                        const sellOrderData = sellOrderDoc.data();
+                        
+                        const newRemainingAmount = (sellOrderData.remainingAmount || 0) + buyerOrderData.amount;
+                        
+                        let newSellOrderStatus = 'partially_filled';
+                        if (newRemainingAmount >= sellOrderData.amount) {
+                            newSellOrderStatus = 'pending';
+                        }
+    
+                        const updatedMatchedBuyOrders = (sellOrderData.matchedBuyOrders || []).map((bo: any) => {
+                            if (bo.buyOrderId === buyerOrderDoc.id) {
+                                return { ...bo, status: 'failed' };
+                            }
+                            return bo;
+                        });
+    
+                        transaction.update(sellOrderRef, {
+                            remainingAmount: newRemainingAmount,
+                            status: newSellOrderStatus,
+                            matchedBuyOrders: updatedMatchedBuyOrders
+                        });
+                    }
+                }
             });
+    
             toast({ title: 'Payment Rejected' });
             setOpen(false);
             onProcessed();
@@ -1627,6 +1664,7 @@ export default function AdminDashboardPage() {
 
 
     
+
 
 
 

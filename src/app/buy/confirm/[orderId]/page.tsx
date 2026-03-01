@@ -162,7 +162,7 @@ function PaymentDetailsContent() {
             if (order && order.sellerUpiDetails) {
                 return {
                     type: 'upi',
-                    upiHolderName: 'P2P Seller',
+                    upiHolderName: order.sellerUpiDetails.name,
                     upiId: order.sellerUpiDetails.upiId,
                 }
             }
@@ -406,30 +406,54 @@ function PaymentDetailsContent() {
             return;
         }
         
-        if (!orderRef || !user) {
+        if (!orderRef || !user || !firestore) {
             toast({ variant: 'destructive', title: 'Error', description: 'Could not initialize. Please try again.' });
             return;
         }
-
+    
         setIsConfirming(true);
-
+    
         try {
-            const updateData: any = {
-                utr,
-                status: 'pending_confirmation',
-                submittedAt: serverTimestamp(),
-                screenshotURL: screenshotDataUrl
-            };
-
-            await updateDoc(orderRef, updateData);
+            await runTransaction(firestore, async (transaction) => {
+                const buyOrderDoc = await transaction.get(orderRef);
+                if (!buyOrderDoc.exists()) throw new Error("Order not found.");
+                const buyOrderData = buyOrderDoc.data() as Order;
+    
+                // 1. Update buyer's order
+                const updateData: any = {
+                    utr,
+                    status: 'pending_confirmation',
+                    submittedAt: serverTimestamp(),
+                    screenshotURL: screenshotDataUrl
+                };
+                transaction.update(orderRef, updateData);
+    
+                // 2. If P2P, update seller's matched order
+                if (buyOrderData.paymentType === 'p2p_upi' && buyOrderData.matchedSellOrderPath) {
+                    const sellOrderRef = doc(firestore, buyOrderData.matchedSellOrderPath);
+                    const sellOrderDoc = await transaction.get(sellOrderRef);
+    
+                    if (sellOrderDoc.exists()) {
+                        const sellOrderData = sellOrderDoc.data();
+                        const updatedMatchedBuyOrders = (sellOrderData.matchedBuyOrders || []).map((bo: any) => {
+                            if (bo.buyOrderId === orderId) {
+                                return { ...bo, status: 'pending_confirmation', utr: utr };
+                            }
+                            return bo;
+                        });
+                        transaction.update(sellOrderRef, { matchedBuyOrders: updatedMatchedBuyOrders });
+                    }
+                }
+            });
+    
             toast({ title: 'Payment Submitted!', description: 'Your proof is under review.' });
             router.push(`/order/${orderId}`);
-        } catch (dbError) {
-            console.error("Error updating Firestore: ", dbError);
+        } catch (error) {
+            console.error("Error submitting payment proof: ", error);
             toast({ variant: 'destructive', title: 'Submission Failed', description: 'Failed to save order details.' });
             setIsConfirming(false);
         }
-    }
+    };
 
     const loading = allPaymentMethodsLoading || orderLoading || profileLoading;
     const currentProviderDetails = provider ? paymentMethodDetails[provider] : null;

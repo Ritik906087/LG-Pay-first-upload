@@ -75,11 +75,11 @@ const MatchedOrderCard = ({ order }: { order: MatchedBuyOrder }) => {
             </div>
           </div>
           {order.utr && (
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">UTR</span>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-muted-foreground" style={{ wordBreak: 'break-all' }}>{order.utr}</span>
-                <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={() => copyToClipboard(order.utr)} />
+            <div className="flex justify-between items-start gap-4">
+              <span className="text-muted-foreground shrink-0">UTR</span>
+              <div className="flex items-center gap-2 text-right">
+                <span className="font-mono text-muted-foreground break-all">{order.utr}</span>
+                <Copy className="h-3 w-3 text-gray-400 cursor-pointer flex-shrink-0" onClick={() => copyToClipboard(order.utr)} />
               </div>
             </div>
           )}
@@ -88,11 +88,11 @@ const MatchedOrderCard = ({ order }: { order: MatchedBuyOrder }) => {
             <span className="font-mono text-muted-foreground text-xs">{order.createdAt.toDate().toLocaleString()}</span>
           </div>
           {order.buyerOrderId && (
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Buyer Order ID</span>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-muted-foreground" style={{ wordBreak: 'break-all' }}>{order.buyerOrderId}</span>
-                <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={() => copyToClipboard(order.buyerOrderId)} />
+            <div className="flex justify-between items-start gap-4">
+              <span className="text-muted-foreground shrink-0">Buyer Order ID</span>
+              <div className="flex items-center gap-2 text-right">
+                <span className="font-mono text-muted-foreground break-all">{order.buyerOrderId}</span>
+                <Copy className="h-3 w-3 text-gray-400 cursor-pointer flex-shrink-0" onClick={() => copyToClipboard(order.buyerOrderId)} />
               </div>
             </div>
           )}
