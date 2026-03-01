@@ -497,12 +497,6 @@ export default function HelpPage() {
                         <ChevronLeft className="h-6 w-6 text-muted-foreground" />
                     </Link>
                 </Button>
-                {isWaitingForAgent && !isAgentActive && timeLeft !== null && timeLeft > 0 && (
-                    <div className="flex items-center gap-1 text-yellow-600">
-                        <Clock className="h-4 w-4" />
-                        <span className="font-mono font-bold text-sm">{formatTime(timeLeft)}</span>
-                    </div>
-                )}
             </div>
             <div className="flex flex-col items-center text-center">
                 <h1 className="text-lg font-bold">{isAgentActive ? "JONNY" : "AI HELP"}</h1>
@@ -542,9 +536,19 @@ export default function HelpPage() {
             </div>
         </header>
          {isWaitingForAgent && !isAgentActive && chatStep === 'chatting' && (
-            <div className="p-3 bg-blue-100 border-b border-blue-200 text-center text-sm text-blue-800 font-semibold flex items-center justify-center gap-2 sticky top-[69px] z-10">
-                <Loader size="xs" />
-                Connecting you to an agent... Please wait.
+            <div className="p-3 bg-blue-50 border-b border-blue-200 text-center text-sm text-blue-700 font-semibold flex flex-col items-center justify-center gap-1 sticky top-[69px] z-10">
+                <p>Please wait, an agent will join shortly.</p>
+                {timeLeft !== null && timeLeft > 0 ? (
+                    <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        <span className="font-mono font-bold text-base text-blue-800">{formatTime(timeLeft)}</span>
+                    </div>
+                ) : (
+                     <div className="flex items-center gap-2 pt-1">
+                        <Loader size="xs"/>
+                        <span>Connecting...</span>
+                    </div>
+                )}
             </div>
         )}
         <main ref={chatContainerRef} className="flex-1 space-y-4 p-4 overflow-y-auto">
