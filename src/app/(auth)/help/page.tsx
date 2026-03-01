@@ -435,18 +435,23 @@ export default function HelpPage() {
     };
     
     const handleCloseChat = async () => {
-        if (!firestore || !activeRequest) return;
-        const requestRef = doc(firestore, 'chatRequests', activeRequest.id);
-        try {
-            await updateDoc(requestRef, { status: 'closed' });
-            toast({ title: 'Chat Closed' });
-            setChatStarted(false);
-            setMessages([]);
-            setChatStep('welcome');
-            localStorage.removeItem(CHAT_STATE_STORAGE_KEY);
-        } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Could not close chat', description: error.message });
+        // If there's an active human agent request, update it in Firestore
+        if (firestore && activeRequest) {
+            const requestRef = doc(firestore, 'chatRequests', activeRequest.id);
+            try {
+                await updateDoc(requestRef, { status: 'closed' });
+            } catch (error: any) {
+                // If Firestore update fails, show an error but still close the local chat
+                toast({ variant: 'destructive', title: 'Could not close server chat', description: error.message });
+            }
         }
+    
+        // Always reset local state and close the chat UI
+        toast({ title: 'Chat Closed' });
+        setChatStarted(false);
+        setMessages([]);
+        setChatStep('welcome');
+        localStorage.removeItem(CHAT_STATE_STORAGE_KEY);
     };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -513,25 +518,23 @@ export default function HelpPage() {
                     </Link>
                 </Button>
 
-                {(isWaitingForAgent || isAgentActive) && (
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                           <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10 hover:text-destructive">
-                               <X className="h-5 w-5" />
-                           </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                <AlertDialogDescription>This will end your current chat session.</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleCloseChat} className="bg-destructive hover:bg-destructive/90">Confirm</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
-                )}
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                       <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10 hover:text-destructive">
+                           <X className="h-5 w-5" />
+                       </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>This will end your current chat session.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleCloseChat} className="bg-destructive hover:bg-destructive/90">Confirm</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
                 
                 <Button onClick={handleSoundToggle} variant="ghost" size="icon" className="h-9 w-9">
                     {isSoundOn ? <Volume2 className="h-5 w-5 text-muted-foreground" /> : <VolumeX className="h-5 w-5 text-muted-foreground" />}
