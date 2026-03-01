@@ -27,6 +27,7 @@ import {
   Award,
   Gift,
   Wallet,
+  Download,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -116,7 +117,11 @@ export default function MyPage() {
       <header className="flex items-center justify-between bg-white p-4">
         <div className="w-8"></div>
         <Logo className="text-xl" />
-        <div className="w-8"></div>
+        <Button asChild variant="ghost" size="icon" className="h-8 w-8">
+          <Link href="/download">
+            <Download className="h-5 w-5 text-muted-foreground" />
+          </Link>
+        </Button>
       </header>
 
       <main className="space-y-4 p-4">
