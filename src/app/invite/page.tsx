@@ -10,7 +10,7 @@ import { useUser, useFirestore, useDoc } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { doc } from 'firebase/firestore';
 import { Loader } from '@/components/ui/loader';
-import { UserPlus } from 'lucide-react';
+import { UserPlus, Clipboard } from 'lucide-react';
 
 type UserProfile = {
   numericId: string;
@@ -47,7 +47,6 @@ export default function InvitePage() {
       toast({
         variant: 'destructive',
         title: 'Could not get invitation code',
-        description: 'Please try again later.',
       });
       return;
     }
@@ -64,22 +63,42 @@ export default function InvitePage() {
           url: inviteUrl,
         });
       } catch (error) {
-        console.error('Error sharing:', error);
-        // Fallback to clipboard if sharing fails (e.g., user cancels)
-        navigator.clipboard.writeText(inviteUrl);
-        toast({
-          title: 'Link Copied!',
-          description: 'Invitation link copied to clipboard.',
-        });
+        // This error is usually thrown when the user cancels the share dialog.
+        // We can safely ignore it.
+        console.log('Sharing was cancelled or failed.', error);
       }
     } else {
-      // Fallback for browsers that don't support the Share API
-      navigator.clipboard.writeText(inviteUrl);
       toast({
-        title: 'Link Copied!',
-        description: 'Invitation link copied to clipboard.',
+        variant: 'destructive',
+        title: 'Sharing Not Supported',
+        description: 'Your browser does not support this feature. Please use the "Copy Link" button instead.',
       });
     }
+  };
+
+  const handleCopyLink = () => {
+     if (!userProfile) {
+      toast({
+        variant: 'destructive',
+        title: 'Could not get invitation code',
+      });
+      return;
+    }
+    const invitationCode = userProfile.numericId;
+    const inviteUrl = `${window.location.origin}/register?ref=${invitationCode}`;
+    navigator.clipboard.writeText(inviteUrl).then(() => {
+        toast({
+            title: 'Link Copied!',
+            description: 'Invitation link copied to clipboard.',
+        });
+    }).catch(err => {
+        console.error('Failed to copy text: ', err);
+        toast({
+            variant: 'destructive',
+            title: 'Failed to Copy',
+            description: 'Could not copy the link. Please try again.',
+        });
+    });
   };
 
 
@@ -112,9 +131,15 @@ export default function InvitePage() {
                 </div>
 
                 <p className="text-xs text-center text-yellow-700 bg-yellow-100 p-2 rounded-md">Note: The more your team trades, the more you earn. Bonuses are credited instantly.</p>
-                <Button onClick={handleInvite} className="w-full btn-gradient rounded-full font-semibold" disabled={profileLoading}>
-                  {profileLoading ? <Loader size="xs" className="mr-2" /> : "Invite Now"}
-                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                    <Button onClick={handleCopyLink} className="w-full rounded-full font-semibold" variant="outline" disabled={profileLoading}>
+                      <Clipboard className="mr-2 h-4 w-4" />
+                      Copy Link
+                    </Button>
+                    <Button onClick={handleInvite} className="w-full btn-gradient rounded-full font-semibold" disabled={profileLoading}>
+                      {profileLoading ? <Loader size="xs" className="mr-2" /> : "Invite Now"}
+                    </Button>
+                </div>
                 <Button asChild variant="ghost" className="w-full text-muted-foreground">
                   <Link href="/my/team">View Invitation Data</Link>
                 </Button>
