@@ -866,42 +866,30 @@ function HistoryUsersGrid({ users, loading, error }: { users: UserProfile[], loa
 
 function LiveChatTabContent() {
     const firestore = useFirestore();
-    const [allChatRequests, setAllChatRequests] = useState<ChatRequest[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<any>(null);
 
-    const fetchChatRequests = useCallback(async () => {
-        if (!firestore) return;
-        setLoading(true);
-        setError(null);
-        try {
-            const q = query(collection(firestore, 'chatRequests'), where('status', 'in', ['pending', 'active']));
-            const snapshot = await getDocs(q);
-            const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChatRequest));
-            setAllChatRequests(requests);
-        } catch (e) {
-            console.error("Error fetching chat requests:", e);
-            setError(e);
-        } finally {
-            setLoading(false);
-        }
+    const chatRequestsQuery = useMemo(() => {
+        if (!firestore) return null;
+        // Fetch last 50 requests to avoid performance issues and missing indexes on large collections
+        return query(collection(firestore, 'chatRequests'), orderBy('createdAt', 'desc'), limit(50));
     }, [firestore]);
 
-    useEffect(() => {
-        const interval = setInterval(() => {
-          fetchChatRequests();
-        }, 5000); // Poll every 5 seconds
-        fetchChatRequests(); // Initial fetch
-        return () => clearInterval(interval);
-    }, [fetchChatRequests]);
+    const { data: allChatRequests, loading, error } = useCollection<ChatRequest>(chatRequestsQuery);
     
+    const liveChatRequests = useMemo(() => {
+        if (!allChatRequests) return [];
+        // Filter for pending and active chats on the client
+        return allChatRequests.filter(req => ['pending', 'active'].includes(req.status));
+    }, [allChatRequests]);
+
     const sortedChatRequests = useMemo(() => {
-        return [...allChatRequests].sort((a, b) => {
+        return [...liveChatRequests].sort((a, b) => {
+            // 'pending' should come before 'active'
             if (a.status === 'pending' && b.status !== 'pending') return -1;
             if (a.status !== 'pending' && b.status === 'pending') return 1;
+            // For requests with the same status, newer ones first
             return b.createdAt.seconds - a.createdAt.seconds;
         });
-    }, [allChatRequests]);
+    }, [liveChatRequests]);
 
     if (loading) {
         return (
@@ -917,7 +905,7 @@ function LiveChatTabContent() {
                 <CardHeader>
                     <CardTitle className="text-destructive">Error Fetching Chat Requests</CardTitle>
                     <CardDescription className="text-destructive/80">
-                        Could not retrieve chat data. This can be caused by Firestore security rules or a missing database index.
+                        Could not retrieve chat data. This can be caused by Firestore security rules. Please check your console for more details.
                     </CardDescription>
                 </CardHeader>
                  <CardContent>
@@ -966,7 +954,7 @@ function LiveChatTabContent() {
                                 isPending ? "bg-green-500 hover:bg-green-600 text-white" : "bg-blue-500 hover:bg-blue-600 text-white"
                             )}>
                                 <Link href={`/admin/chat/${request.id}`}>
-                                    {isPending ? "CHAT" : "VIEW ACTIVE CHAT"}
+                                    {isPending ? "JOIN CHAT" : "VIEW ACTIVE CHAT"}
                                 </Link>
                             </Button>
                         </CardFooter>
@@ -1601,5 +1589,6 @@ export default function AdminDashboardPage() {
 
 
     
+
 
 
