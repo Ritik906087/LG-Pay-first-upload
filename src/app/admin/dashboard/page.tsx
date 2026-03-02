@@ -1117,43 +1117,50 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
     
         try {
             await runTransaction(firestore, async (transaction) => {
+                // --- READ PHASE ---
                 const buyerOrderDoc = await transaction.get(orderRef);
                 if (!buyerOrderDoc.exists()) throw new Error("Buy order not found.");
+                
                 const buyerOrderData = buyerOrderDoc.data() as Order;
+                
+                let sellOrderRef: DocumentReference | null = null;
+                let sellOrderDoc: DocumentData | null = null;
+                if (buyerOrderData.paymentType === 'p2p_upi' && buyerOrderData.matchedSellOrderPath) {
+                    sellOrderRef = doc(firestore, buyerOrderData.matchedSellOrderPath);
+                    sellOrderDoc = await transaction.get(sellOrderRef);
+                }
+
+                // --- WRITE PHASE ---
     
-                // Update buyer order
+                // 1. Update buyer order
                 transaction.update(orderRef, {
                     status: 'failed',
                     rejectionReason: rejectionReason,
                 });
     
-                // If it's a P2P order, handle seller side
-                if (buyerOrderData.paymentType === 'p2p_upi' && buyerOrderData.matchedSellOrderPath) {
-                    const sellOrderRef = doc(firestore, buyerOrderData.matchedSellOrderPath);
-                    const sellOrderDoc = await transaction.get(sellOrderRef);
-                    if (sellOrderDoc.exists()) {
-                        const sellOrderData = sellOrderDoc.data();
-                        
-                        const newRemainingAmount = (sellOrderData.remainingAmount || 0) + buyerOrderData.amount;
-                        
-                        let newSellOrderStatus = 'partially_filled';
-                        if (newRemainingAmount >= sellOrderData.amount) {
-                            newSellOrderStatus = 'pending';
-                        }
-    
-                        const updatedMatchedBuyOrders = (sellOrderData.matchedBuyOrders || []).map((bo: any) => {
-                            if (bo.buyOrderId === buyerOrderDoc.id) {
-                                return { ...bo, status: 'failed' };
-                            }
-                            return bo;
-                        });
-    
-                        transaction.update(sellOrderRef, {
-                            remainingAmount: newRemainingAmount,
-                            status: newSellOrderStatus,
-                            matchedBuyOrders: updatedMatchedBuyOrders
-                        });
+                // 2. If it's a P2P order, handle seller side
+                if (sellOrderRef && sellOrderDoc && sellOrderDoc.exists()) {
+                    const sellOrderData = sellOrderDoc.data();
+                    
+                    const newRemainingAmount = (sellOrderData.remainingAmount || 0) + buyerOrderData.amount;
+                    
+                    let newSellOrderStatus = 'partially_filled';
+                    if (newRemainingAmount >= sellOrderData.amount) {
+                        newSellOrderStatus = 'pending';
                     }
+    
+                    const updatedMatchedBuyOrders = (sellOrderData.matchedBuyOrders || []).map((bo: any) => {
+                        if (bo.buyOrderId === buyerOrderDoc.id) {
+                            return { ...bo, status: 'failed' };
+                        }
+                        return bo;
+                    });
+    
+                    transaction.update(sellOrderRef, {
+                        remainingAmount: newRemainingAmount,
+                        status: newSellOrderStatus,
+                        matchedBuyOrders: updatedMatchedBuyOrders
+                    });
                 }
             });
     
@@ -1664,6 +1671,7 @@ export default function AdminDashboardPage() {
 
 
     
+
 
 
 
