@@ -415,11 +415,21 @@ function PaymentDetailsContent() {
     
         try {
             await runTransaction(firestore, async (transaction) => {
+                // --- READ PHASE ---
                 const buyOrderDoc = await transaction.get(orderRef);
-                if (!buyOrderDoc.exists()) throw new Error("Order not found.");
+                if (!buyOrderDoc.exists()) {
+                    throw new Error("Order not found.");
+                }
                 const buyOrderData = buyOrderDoc.data() as Order;
-    
-                // 1. Update buyer's order
+
+                let sellOrderRef: any = null;
+                let sellOrderDoc: any = null;
+                if (buyOrderData.paymentType === 'p2p_upi' && buyOrderData.matchedSellOrderPath) {
+                    sellOrderRef = doc(firestore, buyOrderData.matchedSellOrderPath);
+                    sellOrderDoc = await transaction.get(sellOrderRef);
+                }
+
+                // --- WRITE PHASE ---
                 const updateData: any = {
                     utr,
                     status: 'pending_confirmation',
@@ -428,21 +438,15 @@ function PaymentDetailsContent() {
                 };
                 transaction.update(orderRef, updateData);
     
-                // 2. If P2P, update seller's matched order
-                if (buyOrderData.paymentType === 'p2p_upi' && buyOrderData.matchedSellOrderPath) {
-                    const sellOrderRef = doc(firestore, buyOrderData.matchedSellOrderPath);
-                    const sellOrderDoc = await transaction.get(sellOrderRef);
-    
-                    if (sellOrderDoc.exists()) {
-                        const sellOrderData = sellOrderDoc.data();
-                        const updatedMatchedBuyOrders = (sellOrderData.matchedBuyOrders || []).map((bo: any) => {
-                            if (bo.buyOrderId === orderId) {
-                                return { ...bo, status: 'pending_confirmation', utr: utr };
-                            }
-                            return bo;
-                        });
-                        transaction.update(sellOrderRef, { matchedBuyOrders: updatedMatchedBuyOrders });
-                    }
+                if (sellOrderRef && sellOrderDoc?.exists()) {
+                    const sellOrderData = sellOrderDoc.data();
+                    const updatedMatchedBuyOrders = (sellOrderData.matchedBuyOrders || []).map((bo: any) => {
+                        if (bo.buyOrderId === orderId) {
+                            return { ...bo, status: 'pending_confirmation', utr: utr };
+                        }
+                        return bo;
+                    });
+                    transaction.update(sellOrderRef, { matchedBuyOrders: updatedMatchedBuyOrders });
                 }
             });
     
