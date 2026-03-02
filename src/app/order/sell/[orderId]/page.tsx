@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useMemo, Suspense, useState } from 'react';
+import React, { useMemo, Suspense, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDoc, useUser, useFirestore } from '@/firebase';
 import { doc, Timestamp, runTransaction } from 'firebase/firestore';
@@ -140,7 +140,7 @@ function SellOrderStatusContent() {
         return [...sellOrder.matchedBuyOrders].sort((a, b) => b.createdAt.seconds - a.createdAt.seconds);
     }, [sellOrder]);
     
-    const handleCancelRemaining = async () => {
+    const handleCancelRemaining = useCallback(async () => {
         if (!sellOrder || !sellOrderRef || !userProfileRef || sellOrder.remainingAmount <= 0) {
             toast({ variant: 'destructive', title: 'Cannot cancel', description: 'No remaining amount to cancel.' });
             return;
@@ -189,7 +189,7 @@ function SellOrderStatusContent() {
         } finally {
             setIsCancelling(false);
         }
-    };
+    }, [sellOrder, sellOrderRef, userProfileRef, firestore, toast]);
 
     const loading = sellOrderLoading;
     
@@ -236,7 +236,7 @@ function SellOrderStatusContent() {
                         </AlertDialogTrigger>
                         <AlertDialogContent>
                             <AlertDialogHeader>
-                                <AlertDialogTitle>Cancel Remaining Order?</AlertDialogTitle>
+                                <AlertDialogTitle>Cancel Unmatched Amount?</AlertDialogTitle>
                                 <AlertDialogDescription>
                                     This will cancel the unfilled part of your sell order (₹{sellOrder.remainingAmount.toFixed(2)}) and refund it to your wallet. Matched orders will not be affected.
                                 </AlertDialogDescription>

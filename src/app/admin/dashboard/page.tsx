@@ -989,15 +989,15 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
         try {
             await runTransaction(firestore, async (transaction) => {
                 // --- READ PHASE ---
-                const buyerOrderDoc = await transaction.get(orderRef);
-                if (!buyerOrderDoc.exists()) throw new Error("Buy order not found.");
-                const buyerOrderData = buyerOrderDoc.data() as Order;
-
                 const buyerDoc = await transaction.get(userRef);
                 if (!buyerDoc.exists()) {
                     throw new Error("User not found to update balance.");
                 }
                 const buyerData = buyerDoc.data() as UserProfile;
+
+                const buyerOrderDoc = await transaction.get(orderRef);
+                if (!buyerOrderDoc.exists()) throw new Error("Buy order not found.");
+                const buyerOrderData = buyerOrderDoc.data() as Order;
     
                 let sellOrderRef: DocumentReference | null = null;
                 let sellOrderDoc: DocumentData | null = null;
@@ -1664,6 +1664,7 @@ export default function AdminDashboardPage() {
 
 
     
+
 
 
 
