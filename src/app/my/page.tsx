@@ -14,6 +14,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
   ChevronRight,
   Copy,
   Star,
@@ -29,6 +36,10 @@ import {
   Gift,
   Wallet,
   Download,
+  Flag,
+  FileQuestion,
+  FileClock,
+  MessageSquareText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -239,6 +250,47 @@ export default function MyPage() {
                     </div>
                   </Link>
                 )}
+
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <div className="flex items-center justify-between p-3 rounded-lg hover:bg-secondary cursor-pointer">
+                      <div className="flex items-center gap-3">
+                        <Flag className="h-5 w-5 text-muted-foreground" />
+                        <span className="font-medium">{translations.report}</span>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-gray-400" />
+                    </div>
+                  </SheetTrigger>
+                  <SheetContent side="bottom" className="rounded-t-2xl">
+                    <SheetHeader className="text-center pb-4">
+                      <SheetTitle>{translations.reportCenter}</SheetTitle>
+                    </SheetHeader>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between p-4 rounded-lg hover:bg-secondary cursor-pointer border">
+                        <div className="flex items-center gap-4">
+                          <FileQuestion className="h-6 w-6 text-primary" />
+                          <span className="font-semibold">{translations.reportingAProblem}</span>
+                        </div>
+                        <ChevronRight className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <div className="flex items-center justify-between p-4 rounded-lg hover:bg-secondary cursor-pointer border">
+                        <div className="flex items-center gap-4">
+                          <FileClock className="h-6 w-6 text-primary" />
+                          <span className="font-semibold">{translations.checkReportStatus}</span>
+                        </div>
+                        <ChevronRight className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <div className="flex items-center justify-between p-4 rounded-lg hover:bg-secondary cursor-pointer border">
+                        <div className="flex items-center gap-4">
+                          <MessageSquareText className="h-6 w-6 text-primary" />
+                          <span className="font-semibold">{translations.feedback}</span>
+                        </div>
+                        <ChevronRight className="h-5 w-5 text-gray-400" />
+                      </div>
+                    </div>
+                  </SheetContent>
+                </Sheet>
+
                 {listItems.map(item => {
                     if (item.label === translations.language) {
                       return (
