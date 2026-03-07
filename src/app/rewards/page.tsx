@@ -287,7 +287,7 @@ export default function RewardsPage() {
           size="icon"
           className="h-8 w-8"
         >
-          <Link href="/home">
+          <Link href="/my">
             <ChevronLeft className="h-6 w-6 text-muted-foreground" />
           </Link>
         </Button>
@@ -296,26 +296,9 @@ export default function RewardsPage() {
       </header>
 
       <main className="space-y-4 p-4">
-        
         <div className="space-y-4">
-            <GlassCard>
-                <CardHeader>
-                    <CardTitle className="text-lg font-bold">VIP Tasks</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <EmptyState message="No VIP tasks available right now." />
-                </CardContent>
-            </GlassCard>
             <DailyTasksSection />
-             <GlassCard>
-                <CardHeader>
-                    <CardTitle className="text-lg font-bold">Reward getting member</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <EmptyState message="No recent rewards." />
-                </CardContent>
-            </GlassCard>
-          </div>
+        </div>
       </main>
     </div>
   );
