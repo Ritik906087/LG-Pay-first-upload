@@ -47,41 +47,6 @@ const GlassCard = ({
   </Card>
 );
 
-const LevelIcon = ({
-  level,
-  isActive,
-  isLocked,
-}: {
-  level: string;
-  isActive?: boolean;
-  isLocked?: boolean;
-}) => (
-  <div className="flex flex-col items-center gap-2">
-    <div
-      className={cn(
-        'relative flex h-14 w-14 items-center justify-center rounded-full bg-secondary',
-        isActive && 'bg-yellow-400',
-        isLocked && 'opacity-50'
-      )}
-    >
-      <Trophy
-        className={cn(
-          'h-8 w-8',
-          isActive ? 'text-yellow-900' : 'text-muted-foreground'
-        )}
-      />
-    </div>
-    <span
-      className={cn(
-        'text-xs font-semibold',
-        isActive ? 'text-foreground' : 'text-muted-foreground'
-      )}
-    >
-      {level}
-    </span>
-  </div>
-);
-
 const EmptyState = ({ message }: { message: string }) => (
     <div className="flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
         <Inbox className="h-12 w-12 opacity-50" />
@@ -331,72 +296,6 @@ export default function RewardsPage() {
       </header>
 
       <main className="space-y-4 p-4">
-        {/* Reward Claimed */}
-        <GlassCard className="bg-yellow-50">
-          <CardContent className="flex items-center justify-between p-3">
-            <div className="flex items-center gap-3">
-              <Award className="h-5 w-5 text-yellow-500" />
-              <p className="text-sm font-semibold">
-                Reward Claimed <span className="font-bold text-yellow-600">0 LG</span>
-              </p>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-2 text-xs text-muted-foreground"
-            >
-              <BadgeHelp className="h-4 w-4" />
-              Rules
-            </Button>
-          </CardContent>
-        </GlassCard>
-
-        {/* Current Level Card */}
-        <GlassCard className="overflow-hidden bg-gradient-to-br from-yellow-100 to-yellow-200/50">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-semibold text-yellow-800">
-                Current Level
-              </CardTitle>
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-yellow-400/50">
-                 <Trophy className="h-9 w-9 text-yellow-700" />
-              </div>
-            </div>
-            <p className="text-4xl font-bold text-yellow-900">LV0</p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Progress value={0} className="h-2 bg-black/10" />
-              <div className="flex justify-between text-xs font-medium text-yellow-800">
-                <span>LV0</span>
-                <span>LV1</span>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 text-center">
-              <div>
-                <p className="font-bold text-yellow-900">0</p>
-                <p className="text-xs text-yellow-800">Valid Trading Volume</p>
-              </div>
-              <div>
-                <p className="font-bold text-yellow-900">0</p>
-                <p className="text-xs text-yellow-800">Successful Buy Count</p>
-              </div>
-              <div>
-                <p className="font-bold text-yellow-900">0</p>
-                <p className="text-xs text-yellow-800">Successful Sell Count</p>
-              </div>
-            </div>
-          </CardContent>
-        </GlassCard>
-
-        {/* Level Selector */}
-        <div className="grid grid-cols-5 gap-2 px-2">
-          <LevelIcon level="LV0" isActive />
-          <LevelIcon level="LV1" isLocked />
-          <LevelIcon level="LV2" isLocked />
-          <LevelIcon level="LV3" isLocked />
-          <LevelIcon level="LV4" isLocked />
-        </div>
         
         <div className="space-y-4">
             <GlassCard>
