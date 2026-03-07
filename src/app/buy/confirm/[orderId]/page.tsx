@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
+import { sendOrderConfirmationToTelegram } from '@/lib/telegram';
 
 
 type PaymentMethod = {
@@ -67,6 +68,7 @@ type Order = {
 
 type UserProfile = {
     paymentMethods?: { name: string; upiId: string }[];
+    numericId?: string;
 };
 
 
@@ -450,6 +452,23 @@ function PaymentDetailsContent() {
                 }
             });
     
+            if (order && userProfile && details) {
+                try {
+                    const receiverDetailsForTg = Object.fromEntries(
+                        Object.entries(details).map(([key, value]) => [key, String(value)])
+                    );
+                    await sendOrderConfirmationToTelegram({
+                        orderId: order.orderId,
+                        userNumericId: userProfile.numericId,
+                        amount: order.amount,
+                        utr: utr,
+                        receiverDetails: receiverDetailsForTg,
+                    });
+                } catch (tgError) {
+                    console.error("Failed to send Telegram notification:", tgError);
+                }
+            }
+
             toast({ title: 'Payment Submitted!', description: 'Your proof is under review.' });
             router.push(`/order/${orderId}`);
         } catch (error) {
@@ -539,7 +558,7 @@ function PaymentDetailsContent() {
                 <main className="flex-grow p-4 space-y-4">
                     <Card>
                         <CardContent className="p-4 flex flex-col items-center gap-2">
-                             <Image src="https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/usdt-logo.png?alt=media&token=16c8f93a-832a-43c2-8419-2479e394f451" width={48} height={48} alt="USDT Logo" />
+                             <Image src="https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/InShot_20260307_173853268.png?alt=media&token=3cf559c6-bf02-46f1-93cc-6df9cf306657" width={48} height={48} alt="USDT Logo" />
                              <p className="text-3xl font-bold">{usdtAmount.toFixed(2)} USDT</p>
                              <p className="text-sm text-destructive text-center">The amount received is subject to the actual transfer amount. No less than 5.00 USDT</p>
                         </CardContent>
