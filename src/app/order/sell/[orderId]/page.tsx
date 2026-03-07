@@ -5,7 +5,7 @@
 import React, { useMemo, Suspense, useState, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDoc, useUser, useFirestore } from '@/firebase';
-import { doc, Timestamp, runTransaction } from 'firebase/firestore';
+import { doc, Timestamp, runTransaction, serverTimestamp } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, Copy } from 'lucide-react';
@@ -169,17 +169,27 @@ function SellOrderStatusContent() {
     
                 transaction.update(userProfileRef, { balance: newBalance });
     
-                if (orderData.status === 'pending') {
-                    transaction.update(sellOrderRef, {
-                        status: 'failed',
-                        failureReason: 'Cancelled by user.',
-                        remainingAmount: 0
-                    });
-                } else {
-                     transaction.update(sellOrderRef, {
-                        remainingAmount: 0,
-                     });
+                // Check if any part of the order was successfully filled
+                const hasCompletedMatches = (orderData.matchedBuyOrders || []).some(
+                    (bo: MatchedBuyOrder) => bo.status === 'completed'
+                );
+
+                // If no part was ever completed, the whole order is 'failed'.
+                // Otherwise, it's 'completed' because the active part is now done.
+                const newStatus = hasCompletedMatches ? 'completed' : 'failed';
+                
+                const updatePayload: any = {
+                    status: newStatus,
+                    remainingAmount: 0,
+                };
+
+                if (newStatus === 'completed') {
+                    updatePayload.completedAt = serverTimestamp();
+                } else { // newStatus is 'failed'
+                    updatePayload.failureReason = 'Cancelled by user';
                 }
+
+                transaction.update(sellOrderRef, updatePayload);
             });
     
             toast({ title: 'Order Updated', description: 'The remaining amount has been cancelled and refunded.' });
