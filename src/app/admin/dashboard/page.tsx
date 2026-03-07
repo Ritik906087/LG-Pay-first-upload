@@ -1525,87 +1525,65 @@ function AdminDashboard() {
             </Button>
       </header>
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-        <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 md:w-auto md:inline-flex md:grid-cols-7">
-            <TabsTrigger value="dashboard">
+        <Tabs defaultValue="dashboard" className="w-full md:grid md:grid-cols-[220px_1fr] lg:grid-cols-[250px_1fr] gap-6">
+          <TabsList className="w-full h-auto flex-row justify-start overflow-x-auto md:flex-col md:items-stretch md:justify-start">
+            <TabsTrigger value="dashboard" className="justify-start p-3">
                 <LayoutDashboard className="mr-2" />
                 Dashboard
             </TabsTrigger>
-            <TabsTrigger value="users">
+            <TabsTrigger value="users" className="justify-start p-3">
                 <Users className="mr-2"/>
                 Users
             </TabsTrigger>
-             <TabsTrigger value="withdrawals">
+             <TabsTrigger value="withdrawals" className="justify-start p-3">
                 <Banknote className="mr-2"/>
                 Withdrawals
             </TabsTrigger>
-            <TabsTrigger value="confirmations">
+            <TabsTrigger value="confirmations" className="justify-start p-3">
                 <FileClock className="mr-2"/>
                 Confirmations
             </TabsTrigger>
-            <TabsTrigger value="live-chat">
+            <TabsTrigger value="live-chat" className="justify-start p-3">
                 <MessageSquare className="mr-2"/>
                 Live Chat
             </TabsTrigger>
-            <TabsTrigger value="history">
+            <TabsTrigger value="history" className="justify-start p-3">
                 <History className="mr-2"/>
                 History
             </TabsTrigger>
-             <TabsTrigger value="payment-methods">
+             <TabsTrigger value="payment-methods" className="justify-start p-3">
                 <Wallet className="mr-2"/>
                 Payment Methods
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="dashboard" className="mt-4">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">
-                        Total Users
-                        </CardTitle>
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        {loading ? <Skeleton className="h-8 w-1/2" /> : <div className="text-2xl font-bold">{totalUsers}</div>}
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">
-                        Total Balance
-                        </CardTitle>
-                        <Wallet className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                       {loading ? <Skeleton className="h-8 w-2/3" /> : <div className="text-2xl font-bold">{(totalBalance || 0).toFixed(2)} <span className="text-sm text-muted-foreground">LGB</span></div>}
-                    </CardContent>
-                </Card>
-            </div>
-          </TabsContent>
-          <TabsContent value="users" className="mt-4">
-            <div className="space-y-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input
-                    placeholder="Search by UID or Phone Number..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 max-w-sm"
-                />
-              </div>
-              <UsersGrid users={filteredUsers} loading={loading} error={error} />
-            </div>
-          </TabsContent>
-           <TabsContent value="withdrawals" className="mt-4">
-                <WithdrawalsTabContent />
+          <div className="mt-4 md:mt-0">
+            <TabsContent value="dashboard" className="mt-0">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                            Total Users
+                            </CardTitle>
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            {loading ? <Skeleton className="h-8 w-1/2" /> : <div className="text-2xl font-bold">{totalUsers}</div>}
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">
+                            Total Balance
+                            </CardTitle>
+                            <Wallet className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                        {loading ? <Skeleton className="h-8 w-2/3" /> : <div className="text-2xl font-bold">{(totalBalance || 0).toFixed(2)} <span className="text-sm text-muted-foreground">LGB</span></div>}
+                        </CardContent>
+                    </Card>
+                </div>
             </TabsContent>
-            <TabsContent value="confirmations" className="mt-4">
-                <ConfirmationsTabContent />
-            </TabsContent>
-            <TabsContent value="live-chat" className="mt-4">
-              <LiveChatTabContent />
-            </TabsContent>
-            <TabsContent value="history" className="mt-4">
+            <TabsContent value="users" className="mt-0">
                 <div className="space-y-4">
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -1616,39 +1594,63 @@ function AdminDashboard() {
                         className="pl-10 max-w-sm"
                     />
                 </div>
-                <HistoryUsersGrid users={filteredUsers} loading={loading} error={error} />
+                <UsersGrid users={filteredUsers} loading={loading} error={error} />
                 </div>
-          </TabsContent>
-          <TabsContent value="payment-methods" className="mt-4">
-             <div className="w-full max-w-2xl mx-auto">
-                <Tabs defaultValue="bank">
-                    <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="bank">
-                            <Landmark className="mr-2" />
-                            Bank
-                        </TabsTrigger>
-                        <TabsTrigger value="upi">
-                            <Banknote className="mr-2" />
-                            UPI
-                        </TabsTrigger>
-                         <TabsTrigger value="usdt">
-                            <Wallet className="mr-2" />
-                            USDT
-                        </TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="bank" className="mt-4">
-                        <BankDetailsForm onAdd={(details) => handleAddMethod('bank', details)} />
-                    </TabsContent>
-                    <TabsContent value="upi" className="mt-4">
-                        <UpiDetailsForm onAdd={(details) => handleAddMethod('upi', details)} />
-                    </TabsContent>
-                     <TabsContent value="usdt" className="mt-4">
-                        <UsdtDetailsForm onAdd={(details) => handleAddMethod('usdt', details)} />
-                    </TabsContent>
-                </Tabs>
-                <PaymentMethodsList methods={paymentMethods || []} loading={paymentMethodsLoading} onDelete={handleDeleteMethod}/>
-             </div>
-          </TabsContent>
+            </TabsContent>
+            <TabsContent value="withdrawals" className="mt-0">
+                    <WithdrawalsTabContent />
+                </TabsContent>
+                <TabsContent value="confirmations" className="mt-0">
+                    <ConfirmationsTabContent />
+                </TabsContent>
+                <TabsContent value="live-chat" className="mt-0">
+                <LiveChatTabContent />
+                </TabsContent>
+                <TabsContent value="history" className="mt-0">
+                    <div className="space-y-4">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                        <Input
+                            placeholder="Search by UID or Phone Number..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-10 max-w-sm"
+                        />
+                    </div>
+                    <HistoryUsersGrid users={filteredUsers} loading={loading} error={error} />
+                    </div>
+            </TabsContent>
+            <TabsContent value="payment-methods" className="mt-0">
+                <div className="w-full max-w-2xl mx-auto">
+                    <Tabs defaultValue="bank">
+                        <TabsList className="grid w-full grid-cols-3">
+                            <TabsTrigger value="bank">
+                                <Landmark className="mr-2" />
+                                Bank
+                            </TabsTrigger>
+                            <TabsTrigger value="upi">
+                                <Banknote className="mr-2" />
+                                UPI
+                            </TabsTrigger>
+                            <TabsTrigger value="usdt">
+                                <Wallet className="mr-2" />
+                                USDT
+                            </TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="bank" className="mt-4">
+                            <BankDetailsForm onAdd={(details) => handleAddMethod('bank', details)} />
+                        </TabsContent>
+                        <TabsContent value="upi" className="mt-4">
+                            <UpiDetailsForm onAdd={(details) => handleAddMethod('upi', details)} />
+                        </TabsContent>
+                        <TabsContent value="usdt" className="mt-4">
+                            <UsdtDetailsForm onAdd={(details) => handleAddMethod('usdt', details)} />
+                        </TabsContent>
+                    </Tabs>
+                    <PaymentMethodsList methods={paymentMethods || []} loading={paymentMethodsLoading} onDelete={handleDeleteMethod}/>
+                </div>
+            </TabsContent>
+          </div>
         </Tabs>
       </main>
     </div>
@@ -1695,3 +1697,4 @@ export default function AdminDashboardPage() {
 
 
     
+
