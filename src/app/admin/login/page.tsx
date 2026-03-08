@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -31,7 +32,10 @@ export default function AdminLoginPage() {
 
     if (
       (phone === '9060873927' && password === 'Ritik@9060') ||
-      (phone === '9199604613' && password === 'ritik@123')
+      (phone === '9199604613' && password === 'ritik@123') ||
+      (phone === '9955557336' && password === 'Satyam@9955') ||
+      (phone === '7307081891' && password === 'Anand8090') ||
+      (phone === '9798630209' && password === 'Aman@12')
     ) {
       toast({ title: 'Login Successful', description: "Welcome, Admin!" });
       // Set a cookie to maintain session
