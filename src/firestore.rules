@@ -42,10 +42,15 @@ service cloud.firestore {
     }
     
     match /reports/{reportId} {
-      allow create: if request.auth != null;
-      allow read, update, delete: if true;
+      allow read, write: if true;
     }
     
+    match /feedback/{feedbackId} {
+      allow create: if request.auth != null;
+      allow read: if true; // WARNING: Allows anyone to read all feedback. Secure this in production.
+      allow update, delete: if false;
+    }
+
     // Rules for Collection Group queries used in admin panel
     match /{path=**}/orders/{orderId} {
       allow read: if true;

@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { useCollection, useDoc, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { LogOut, Users, LayoutDashboard, Wallet, Eye, Search, Landmark, Banknote, Trash2, Clock, History, CheckCircle, Download, XCircle, MessageSquare, Send, Paperclip, X, FileClock, AlertCircle, FileWarning } from 'lucide-react';
+import { LogOut, Users, LayoutDashboard, Wallet, Eye, Search, Landmark, Banknote, Trash2, Clock, History, CheckCircle, Download, XCircle, MessageSquare, Send, Paperclip, X, FileClock, AlertCircle, FileWarning, MessageCircleQuestion } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -137,6 +137,14 @@ type Report = {
     message: string;
     createdAt: Timestamp;
     status: 'pending' | 'resolved';
+}
+
+type Feedback = {
+    id: string;
+    userId: string;
+    userNumericId: string;
+    message: string;
+    createdAt: Timestamp;
 }
 
 const paymentMethodDetails: { [key: string]: { logo: string; bgColor: string } } = {
@@ -1612,6 +1620,78 @@ function ReportsTabContent() {
     );
 }
 
+function FeedbackTabContent() {
+    const firestore = useFirestore();
+
+    const feedbackQuery = useMemo(() => {
+        if (!firestore) return null;
+        return query(collection(firestore, "feedback"), orderBy('createdAt', 'desc'));
+    }, [firestore]);
+
+    const { data: feedbackItems, loading, error } = useCollection<Feedback>(feedbackQuery);
+
+    if (loading) {
+        return <div className="flex justify-center p-8"><Loader size="md" /></div>;
+    }
+
+    if (error) {
+        return (
+            <Card className="bg-destructive/10">
+                <CardHeader>
+                    <CardTitle className="text-destructive">Error Fetching Feedback</CardTitle>
+                    <CardDescription className="text-destructive/80">
+                        Could not retrieve feedback data.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-xs text-destructive/80 font-mono bg-destructive/10 p-2 rounded-md break-all">
+                        {error.message}
+                    </p>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    if (!feedbackItems || feedbackItems.length === 0) {
+        return (
+            <Card>
+                <CardContent className="p-8 text-center text-muted-foreground">
+                    No feedback has been submitted yet.
+                </CardContent>
+            </Card>
+        );
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>User Feedback</CardTitle>
+                <CardDescription>Suggestions and feedback from users.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>User UID</TableHead>
+                            <TableHead>Message</TableHead>
+                            <TableHead className="text-right">Date</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {feedbackItems.map(item => (
+                            <TableRow key={item.id}>
+                                <TableCell className="font-mono text-xs">{item.userNumericId}</TableCell>
+                                <TableCell className="max-w-[400px] whitespace-pre-wrap">{item.message}</TableCell>
+                                <TableCell className="text-right text-xs">{new Date(item.createdAt.toDate()).toLocaleString()}</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </CardContent>
+        </Card>
+    );
+}
+
 function AdminDashboard() {
     const router = useRouter();
     const firestore = useFirestore();
@@ -1697,6 +1777,10 @@ function AdminDashboard() {
                 <FileWarning className="mr-2"/>
                 Reports
             </TabsTrigger>
+             <TabsTrigger value="feedback" className="justify-start p-3">
+                <MessageCircleQuestion className="mr-2"/>
+                Feedback
+            </TabsTrigger>
             <TabsTrigger value="live-chat" className="justify-start p-3">
                 <MessageSquare className="mr-2"/>
                 Live Chat
@@ -1759,6 +1843,9 @@ function AdminDashboard() {
                 </TabsContent>
                 <TabsContent value="reports" className="mt-0">
                     <ReportsTabContent />
+                </TabsContent>
+                <TabsContent value="feedback" className="mt-0">
+                    <FeedbackTabContent />
                 </TabsContent>
                 <TabsContent value="live-chat" className="mt-0">
                 <LiveChatTabContent />

@@ -466,6 +466,31 @@
         }
       },
       "required": ["userId", "orderId", "displayOrderId", "orderType", "message", "createdAt", "status"]
+    },
+    "Feedback": {
+      "title": "Feedback",
+      "description": "Represents user-submitted feedback or suggestions.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The Firebase Auth UID of the user who submitted the feedback."
+        },
+        "userNumericId": {
+          "type": "string",
+          "description": "The numeric ID of the user."
+        },
+        "message": {
+          "type": "string",
+          "description": "The user's feedback or suggestion."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the feedback was submitted."
+        }
+      },
+      "required": ["userId", "userNumericId", "message", "createdAt"]
     }
   },
   "auth": {
@@ -519,6 +544,12 @@
         "$ref": "#/entities/Report"
       },
       "description": "Stores user-submitted problem reports for orders."
+    },
+    "/feedback/{feedbackId}": {
+      "schema": {
+        "$ref": "#/entities/Feedback"
+      },
+      "description": "Stores user-submitted feedback and suggestions."
     }
   }
 }

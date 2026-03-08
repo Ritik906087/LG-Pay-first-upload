@@ -284,13 +284,15 @@ export default function MyPage() {
                           <ChevronRight className="h-5 w-5 text-gray-400" />
                         </div>
                       </Link>
-                      <div className="flex items-center justify-between p-4 rounded-lg hover:bg-secondary cursor-pointer border">
-                        <div className="flex items-center gap-4">
-                          <MessageSquareText className="h-6 w-6 text-primary" />
-                          <span className="font-semibold">{translations.feedback}</span>
+                      <Link href="/my/feedback" className="block">
+                        <div className="flex items-center justify-between p-4 rounded-lg hover:bg-secondary cursor-pointer border">
+                          <div className="flex items-center gap-4">
+                            <MessageSquareText className="h-6 w-6 text-primary" />
+                            <span className="font-semibold">{translations.feedback}</span>
+                          </div>
+                          <ChevronRight className="h-5 w-5 text-gray-400" />
                         </div>
-                        <ChevronRight className="h-5 w-5 text-gray-400" />
-                      </div>
+                      </Link>
                     </div>
                   </SheetContent>
                 </Sheet>
