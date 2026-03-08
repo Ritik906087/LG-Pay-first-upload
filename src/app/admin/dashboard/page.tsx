@@ -1618,7 +1618,7 @@ function ReviewReportDialog({ report, onResolved }: { report: Report, onResolved
                             </Button>
                         )}
                         {!report.screenshotURL && !report.videoURL && (
-                            <p className="text-muted-foreground text-xs">No evidence uploaded.</p>
+                            <p className="text-xs text-muted-foreground">No evidence uploaded.</p>
                         )}
                     </div>
                 </div>
