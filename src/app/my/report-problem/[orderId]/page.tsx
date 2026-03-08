@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
-import { ChevronLeft, Loader, Upload, Paperclip, Video, FileText } from 'lucide-react';
+import { ChevronLeft, Loader, Paperclip } from 'lucide-react';
 import { useUser, useFirestore, useDoc, useStorage } from '@/firebase';
 import { doc, collection, serverTimestamp, Timestamp, setDoc } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
@@ -99,22 +99,37 @@ function ReportProblemForm() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (fileType === 'screenshot' && !file.type.startsWith('image/')) {
-        toast({ variant: 'destructive', title: 'Invalid File', description: 'Please upload an image file for the screenshot.' });
-        return;
+    let fileTypeName = '';
+
+    if (fileType === 'screenshot') {
+        if (!file.type.startsWith('image/')) {
+            toast({ variant: 'destructive', title: 'Invalid File', description: 'Please upload an image file for the screenshot.' });
+            return;
+        }
+        setScreenshotFile(file);
+        fileTypeName = 'Screenshot';
     }
-    if (fileType === 'video' && !file.type.startsWith('video/')) {
-        toast({ variant: 'destructive', title: 'Invalid File', description: 'Please upload a video file.' });
-        return;
+    if (fileType === 'video') {
+        if (!file.type.startsWith('video/')) {
+            toast({ variant: 'destructive', title: 'Invalid File', description: 'Please upload a video file.' });
+            return;
+        }
+        setVideoFile(file);
+        fileTypeName = 'Video';
     }
-    if (fileType === 'statement' && !file.type.startsWith('image/') && !file.type.includes('pdf')) {
-        toast({ variant: 'destructive', title: 'Invalid File', description: 'Please upload an image or PDF for the statement.' });
-        return;
+    if (fileType === 'statement') {
+        if (!file.type.startsWith('image/') && !file.type.includes('pdf')) {
+            toast({ variant: 'destructive', title: 'Invalid File', description: 'Please upload an image or PDF for the statement.' });
+            return;
+        }
+        setBankStatementFile(file);
+        fileTypeName = 'Bank statement';
     }
 
-    if (fileType === 'screenshot') setScreenshotFile(file);
-    if (fileType === 'video') setVideoFile(file);
-    if (fileType === 'statement') setBankStatementFile(file);
+    toast({
+        title: `${fileTypeName} selected`,
+        description: file.name,
+    });
   };
   
   const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -161,7 +176,6 @@ function ReportProblemForm() {
     
     setIsSubmitting(true);
     
-    // 1. Generate a new report document reference to get a unique ID
     const newReportRef = doc(collection(firestore, "reports"));
     const reportId = newReportRef.id;
 
@@ -170,24 +184,19 @@ function ReportProblemForm() {
         let videoURL: string | undefined;
         let bankStatementURL: string | undefined;
 
-        // 2. Upload files if they exist, using the new reportId in the path
         if (screenshotFile) {
-            const fileExtension = screenshotFile.name.split('.').pop();
-            const path = `reports/${user.uid}/${reportId}/screenshot.${fileExtension}`;
+            const path = `reports/${user.uid}/${reportId}/screenshot.${screenshotFile.name.split('.').pop()}`;
             screenshotURL = await uploadFile(screenshotFile, path, setScreenshotProgress);
         }
-        if (videoFile) {
-            const fileExtension = videoFile.name.split('.').pop();
-            const path = `reports/${user.uid}/${reportId}/video.${fileExtension}`;
-            videoURL = await uploadFile(videoFile, path, setVideoProgress);
-        }
         if (bankStatementFile) {
-            const fileExtension = bankStatementFile.name.split('.').pop();
-            const path = `reports/${user.uid}/${reportId}/statement.${fileExtension}`;
+            const path = `reports/${user.uid}/${reportId}/statement.${bankStatementFile.name.split('.').pop()}`;
             bankStatementURL = await uploadFile(bankStatementFile, path, setBankStatementProgress);
         }
+        if (videoFile) {
+            const path = `reports/${user.uid}/${reportId}/video.${videoFile.name.split('.').pop()}`;
+            videoURL = await uploadFile(videoFile, path, setVideoProgress);
+        }
 
-        // 3. Save the report data to Firestore with the file URLs
         await setDoc(newReportRef, {
             userId: user.uid,
             userNumericId: userProfile.numericId,
