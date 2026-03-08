@@ -1,8 +1,8 @@
-
 'use client';
 
 import React, { useState, useMemo, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -298,4 +298,3 @@ export default function ReportProblemDetailPage() {
         </Suspense>
     );
 }
-
