@@ -29,7 +29,10 @@ export default function AdminLoginPage() {
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    if (phone === '9060873927' && password === 'Ritik@9060') {
+    if (
+      (phone === '9060873927' && password === 'Ritik@9060') ||
+      (phone === '9199604613' && password === 'ritik@123')
+    ) {
       toast({ title: 'Login Successful', description: "Welcome, Admin!" });
       // Set a cookie to maintain session
       document.cookie = 'admin-auth=true; path=/; max-age=86400'; // 24 hours
