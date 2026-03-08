@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useMemo, Suspense } from 'react';
+import React, { useState, useMemo, Suspense, useCallback } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -140,7 +140,7 @@ function ReportProblemForm() {
     }
   };
 
-  const uploadFile = (file: File, path: string, progressSetter: (p: number) => void): Promise<string> => {
+  const uploadFile = useCallback((file: File, path: string, progressSetter: (p: number) => void): Promise<string> => {
     return new Promise((resolve, reject) => {
         if (!storage) {
             return reject(new Error("Firebase Storage is not initialized."));
@@ -157,19 +157,24 @@ function ReportProblemForm() {
                 console.error('Upload failed:', error);
                 reject(error);
             },
-            () => {
-                getDownloadURL(uploadTask.snapshot.ref).then(resolve).catch(reject);
+            async () => {
+                try {
+                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                    resolve(downloadURL);
+                } catch (error) {
+                    reject(error);
+                }
             }
         );
     });
-  };
+  }, [storage]);
 
   const handleSubmit = async () => {
     if (!problemType) {
         toast({ variant: 'destructive', title: 'Please select a problem type.' });
         return;
     }
-     if (!user || !userProfile || !order || !firestore) {
+    if (!user || !userProfile || !order || !firestore) {
         toast({ variant: 'destructive', title: 'Error', description: 'Could not load required data. Please try again.' });
         return;
     }
@@ -180,22 +185,26 @@ function ReportProblemForm() {
     const reportId = newReportRef.id;
 
     try {
-        let screenshotURL: string | undefined;
-        let videoURL: string | undefined;
-        let bankStatementURL: string | undefined;
+        const uploadPromises: Promise<any>[] = [];
+        const fileData: { [key: string]: string } = {};
 
-        if (screenshotFile) {
-            const path = `reports/${user.uid}/${reportId}/screenshot.${screenshotFile.name.split('.').pop()}`;
-            screenshotURL = await uploadFile(screenshotFile, path, setScreenshotProgress);
-        }
-        if (bankStatementFile) {
-            const path = `reports/${user.uid}/${reportId}/statement.${bankStatementFile.name.split('.').pop()}`;
-            bankStatementURL = await uploadFile(bankStatementFile, path, setBankStatementProgress);
-        }
-        if (videoFile) {
-            const path = `reports/${user.uid}/${reportId}/video.${videoFile.name.split('.').pop()}`;
-            videoURL = await uploadFile(videoFile, path, setVideoProgress);
-        }
+        const addUpload = (file: File | null, type: 'screenshot' | 'video' | 'statement', progressSetter: (p: number) => void) => {
+            if (file) {
+                const extension = file.name.split('.').pop() || 'file';
+                const path = `reports/${user.uid}/${reportId}/${type}.${extension}`;
+                uploadPromises.push(
+                    uploadFile(file, path, progressSetter).then(url => {
+                        fileData[`${type}URL`] = url;
+                    })
+                );
+            }
+        };
+
+        addUpload(screenshotFile, 'screenshot', setScreenshotProgress);
+        addUpload(bankStatementFile, 'statement', setBankStatementProgress);
+        addUpload(videoFile, 'video', setVideoProgress);
+
+        await Promise.all(uploadPromises);
 
         await setDoc(newReportRef, {
             userId: user.uid,
@@ -205,9 +214,7 @@ function ReportProblemForm() {
             orderType: orderType,
             problemType: problemType,
             message: message,
-            screenshotURL,
-            videoURL,
-            bankStatementURL,
+            ...fileData,
             createdAt: serverTimestamp(),
             status: 'pending',
         });
@@ -218,8 +225,7 @@ function ReportProblemForm() {
     } catch (error) {
         console.error("Error submitting report:", error);
         toast({ variant: 'destructive', title: 'Submission Failed', description: 'An error occurred. Please try again.'});
-    } finally {
-        setIsSubmitting(false);
+        setIsSubmitting(false); // Only set to false on error, success navigates away
     }
   };
 
