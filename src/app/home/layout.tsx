@@ -39,7 +39,16 @@ export default function HomeLayout({
     );
   }
 
-  const showNavBar = !pathname.startsWith('/buy') && !pathname.startsWith('/sell') && !pathname.startsWith('/my/team') && !pathname.startsWith('/my/report-problem') && !pathname.startsWith('/my/report-status') && !pathname.startsWith('/my/feedback');
+  const noNavRoutes = [
+    '/buy', 
+    '/sell', 
+    '/my/team', 
+    '/my/report-problem/', // Note the trailing slash to match dynamic routes
+    '/my/report-status', 
+    '/my/feedback'
+  ];
+
+  const showNavBar = !noNavRoutes.some(route => pathname.startsWith(route));
 
   return (
     <div className="home-layout md:bg-gray-200">

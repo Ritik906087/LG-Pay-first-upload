@@ -450,9 +450,23 @@
           "type": "string",
           "enum": ["buy", "sell"]
         },
+        "problemType": {
+          "type": "string",
+          "description": "The category of problem selected by the user."
+        },
         "message": {
           "type": "string",
           "description": "The user's description of the problem."
+        },
+        "screenshotURL": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the uploaded screenshot evidence."
+        },
+        "videoURL": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL of the uploaded video evidence."
         },
         "createdAt": {
           "type": "string",
@@ -465,7 +479,7 @@
           "description": "The current status of the report."
         }
       },
-      "required": ["userId", "orderId", "displayOrderId", "orderType", "message", "createdAt", "status"]
+      "required": ["userId", "orderId", "displayOrderId", "orderType", "message", "createdAt", "status", "problemType"]
     },
     "Feedback": {
       "title": "Feedback",

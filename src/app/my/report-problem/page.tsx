@@ -1,26 +1,17 @@
 
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import {
-  ChevronLeft,
-  Filter,
-  History,
-  ClipboardList
-} from 'lucide-react';
+import { ChevronLeft, ClipboardList } from 'lucide-react';
 import Link from 'next/link';
-import { useUser, useFirestore, useCollection, useDoc } from '@/firebase';
+import { useUser, useFirestore, useCollection } from '@/firebase';
 import {
   collection,
   query,
-  where,
   orderBy,
   limit,
   Timestamp,
-  addDoc,
-  serverTimestamp,
-  doc
 } from 'firebase/firestore';
 import {
   Tabs,
@@ -35,20 +26,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogDescription,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { useToast } from '@/hooks/use-toast';
 import { Loader } from '@/components/ui/loader';
 import { Card, CardContent } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
 import { startOfDay, startOfWeek, startOfMonth, isAfter } from 'date-fns';
 
 type Order = {
@@ -60,103 +39,6 @@ type Order = {
 };
 
 type SellOrder = Order;
-
-type UserProfile = {
-  numericId: string;
-};
-
-const ReportDialog = ({
-  order,
-  orderType,
-}: {
-  order: Order | SellOrder;
-  orderType: 'buy' | 'sell';
-}) => {
-  const [open, setOpen] = useState(false);
-  const [message, setMessage] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = useUser();
-  const firestore = useFirestore();
-  const { toast } = useToast();
-
-  const userProfileRef = useMemo(() => {
-    if (!user || !firestore) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [user, firestore]);
-  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
-
-  const handleSubmit = async () => {
-    if (!message.trim()) {
-      toast({ variant: 'destructive', title: 'Please describe the problem.' });
-      return;
-    }
-    if (!user || !firestore || !userProfile) {
-      toast({ variant: 'destructive', title: 'You must be logged in.' });
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      await addDoc(collection(firestore, 'reports'), {
-        userId: user.uid,
-        userNumericId: userProfile.numericId,
-        orderId: order.id,
-        displayOrderId: order.orderId,
-        orderType: orderType,
-        message: message,
-        createdAt: serverTimestamp(),
-        status: 'pending',
-      });
-      toast({ title: 'Report Submitted', description: 'We will review your issue shortly.' });
-      setOpen(false);
-      setMessage('');
-    } catch (error: any) {
-      console.error('Failed to submit report', error);
-      toast({ variant: 'destructive', title: 'Submission Failed', description: error.message });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="sm" variant="outline">
-          Request Report
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Report a Problem</DialogTitle>
-          <DialogDescription>
-            Describe the issue you're facing with order{' '}
-            <span className="font-mono">{order.orderId}</span>.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="py-4 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="message">Problem Description</Label>
-            <Textarea
-              id="message"
-              placeholder="Please provide as much detail as possible..."
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting || !message.trim()}>
-            {isSubmitting && <Loader size="xs" className="mr-2" />}
-            Submit Report
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-};
 
 const OrderCard = ({
   order,
@@ -185,7 +67,11 @@ const OrderCard = ({
           </div>
         </div>
         <div className="flex justify-end pt-2">
-          <ReportDialog order={order} orderType={orderType} />
+           <Button asChild size="sm" variant="outline">
+            <Link href={`/my/report-problem/${order.id}?orderType=${orderType}`}>
+              Request Report
+            </Link>
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -280,7 +166,7 @@ const OrderList = ({
   );
 };
 
-export default function ReportProblemPage() {
+export default function ReportProblemSelectionPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [timeFilter, setTimeFilter] = useState('all_time');
 

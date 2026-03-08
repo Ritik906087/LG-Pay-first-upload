@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { useCollection, useDoc, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { LogOut, Users, LayoutDashboard, Wallet, Eye, Search, Landmark, Banknote, Trash2, Clock, History, CheckCircle, Download, XCircle, MessageSquare, Send, Paperclip, X, FileClock, AlertCircle, FileWarning, MessageCircleQuestion } from 'lucide-react';
+import { LogOut, Users, LayoutDashboard, Wallet, Eye, Search, Landmark, Banknote, Trash2, Clock, History, CheckCircle, Download, XCircle, MessageSquare, Send, Paperclip, X, FileClock, AlertCircle, FileWarning, MessageCircleQuestion, Video, Image as ImageIcon } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -134,7 +134,10 @@ type Report = {
     orderId: string;
     displayOrderId: string;
     orderType: 'buy' | 'sell';
+    problemType: string;
     message: string;
+    screenshotURL?: string;
+    videoURL?: string;
     createdAt: Timestamp;
     status: 'pending' | 'resolved';
 }
@@ -1491,9 +1494,89 @@ function ConfirmationsTabContent() {
     )
 }
 
-function ReportsTabContent() {
+function ReviewReportDialog({ report, onResolved }: { report: Report, onResolved: () => void }) {
+    const [open, setOpen] = useState(false);
+    const [isUpdating, setIsUpdating] = useState(false);
     const firestore = useFirestore();
     const { toast } = useToast();
+
+    const handleResolve = async () => {
+        if (!firestore) return;
+        setIsUpdating(true);
+        const reportRef = doc(firestore, 'reports', report.id);
+        try {
+            await updateDoc(reportRef, { status: 'resolved' });
+            toast({ title: 'Report Resolved' });
+            setOpen(false);
+            onResolved();
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Failed to update report status.' });
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button size="sm">Review</Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Review User Report</DialogTitle>
+                    <DialogDescription>
+                        From User UID: {report.userNumericId}
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-2 max-h-[60vh] overflow-y-auto text-sm space-y-4">
+                    <p><strong>Order ID:</strong> <span className="font-mono">{report.displayOrderId}</span></p>
+                    <p><strong>Order Type:</strong> <span className="capitalize">{report.orderType}</span></p>
+                    <p><strong>Problem:</strong> <span className="font-semibold">{report.problemType}</span></p>
+                    <div>
+                        <p><strong>Message:</strong></p>
+                        <p className="bg-secondary p-2 rounded-md mt-1">{report.message}</p>
+                    </div>
+                    <div className="space-y-2">
+                        <p><strong>Evidence:</strong></p>
+                        {report.screenshotURL && (
+                            <Button asChild variant="outline" size="sm" className="w-full">
+                                <a href={report.screenshotURL} target="_blank" rel="noopener noreferrer">
+                                    <ImageIcon className="mr-2" /> View Screenshot
+                                </a>
+                            </Button>
+                        )}
+                        {report.videoURL && (
+                             <Button asChild variant="outline" size="sm" className="w-full">
+                                <a href={report.videoURL} target="_blank" rel="noopener noreferrer">
+                                    <Video className="mr-2" /> View Video
+                                </a>
+                            </Button>
+                        )}
+                        {!report.screenshotURL && !report.videoURL && (
+                            <p className="text-muted-foreground text-xs">No evidence uploaded.</p>
+                        )}
+                    </div>
+                </div>
+                <DialogFooter>
+                    {report.status === 'pending' ? (
+                        <>
+                            <Button variant="outline" onClick={() => setOpen(false)}>Close</Button>
+                            <Button onClick={handleResolve} disabled={isUpdating}>
+                                {isUpdating && <Loader size="xs" className="mr-2" />}
+                                Mark as Resolved
+                            </Button>
+                        </>
+                    ) : (
+                        <Button onClick={() => setOpen(false)}>Close</Button>
+                    )}
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
+
+function ReportsTabContent() {
+    const firestore = useFirestore();
 
     const [reports, setReports] = useState<Report[]>([]);
     const [loading, setLoading] = useState(true);
@@ -1507,7 +1590,6 @@ function ReportsTabContent() {
             const q = query(collection(firestore, "reports"));
             const snapshot = await getDocs(q);
             const fetchedReports = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Report));
-            // Sort client-side to avoid needing an index on createdAt
             fetchedReports.sort((a, b) => b.createdAt.seconds - a.createdAt.seconds);
             setReports(fetchedReports);
         } catch (e) {
@@ -1521,17 +1603,6 @@ function ReportsTabContent() {
         fetchReports();
     }, [fetchReports]);
 
-    const handleResolve = async (reportId: string) => {
-        if (!firestore) return;
-        const reportRef = doc(firestore, 'reports', reportId);
-        try {
-            await updateDoc(reportRef, { status: 'resolved' });
-            toast({ title: 'Report Resolved', description: 'The report has been marked as resolved.' });
-            fetchReports(); // Re-fetch to update the UI
-        } catch (e: any) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Failed to update report status.' });
-        }
-    };
 
     if (loading) {
         return (
@@ -1583,7 +1654,7 @@ function ReportsTabContent() {
                         <TableRow>
                             <TableHead>User UID</TableHead>
                             <TableHead>Order ID</TableHead>
-                            <TableHead>Message</TableHead>
+                            <TableHead>Problem</TableHead>
                             <TableHead>Date</TableHead>
                             <TableHead>Status</TableHead>
                             <TableHead className="text-right">Action</TableHead>
@@ -1594,7 +1665,7 @@ function ReportsTabContent() {
                             <TableRow key={report.id}>
                                 <TableCell className="font-mono text-xs">{report.userNumericId}</TableCell>
                                 <TableCell className="font-mono text-xs break-all">{report.displayOrderId}</TableCell>
-                                <TableCell className="max-w-[300px] truncate">{report.message}</TableCell>
+                                <TableCell className="max-w-[200px] truncate">{report.problemType}</TableCell>
                                 <TableCell>{new Date(report.createdAt.toDate()).toLocaleString()}</TableCell>
                                 <TableCell>
                                     <span className={cn(
@@ -1605,11 +1676,7 @@ function ReportsTabContent() {
                                     </span>
                                 </TableCell>
                                 <TableCell className="text-right">
-                                    {report.status === 'pending' ? (
-                                        <Button size="sm" onClick={() => handleResolve(report.id)}>Resolve</Button>
-                                    ) : (
-                                        <CheckCircle className="h-5 w-5 text-green-500 ml-auto" />
-                                    )}
+                                    <ReviewReportDialog report={report} onResolved={fetchReports} />
                                 </TableCell>
                             </TableRow>
                         ))}
@@ -1923,5 +1990,3 @@ export default function AdminDashboardPage() {
 
     return <AdminDashboard />;
 }
-
-    

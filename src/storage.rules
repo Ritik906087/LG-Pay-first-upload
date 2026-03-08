@@ -1,0 +1,31 @@
+
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Default rule: block all reads and writes by default for security.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    // Avatars: Public read, owner write.
+    // Allows anyone to view a profile photo, but only the user to change it.
+    match /avatars/{userId}/{allPaths=**} {
+      allow read;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Payment Proofs: User can upload payment proofs for their own orders. Admin can read.
+    match /payment_proofs/{userId}/{orderId}/{allPaths=**} {
+      allow read;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Report Evidence: Users can upload evidence for their reports.
+    match /report_evidence/{userId}/{fileName} {
+      allow read; // Admins will need read access.
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
