@@ -37,7 +37,7 @@ service cloud.firestore {
     }
     
     match /chatRequests/{requestId} {
-      allow create: if request.auth != null;
+      allow create: if true;
       allow read, update: if true;
     }
     
