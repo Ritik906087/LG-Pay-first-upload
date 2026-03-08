@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo, Suspense } from 'react';
@@ -10,9 +11,9 @@ import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
-import { ChevronLeft, Loader, Upload, Paperclip, Video } from 'lucide-react';
+import { ChevronLeft, Loader, Upload, Paperclip, Video, FileText } from 'lucide-react';
 import { useUser, useFirestore, useDoc, useStorage } from '@/firebase';
-import { doc, addDoc, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { doc, collection, serverTimestamp, Timestamp, setDoc } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -72,9 +73,11 @@ function ReportProblemForm() {
   const [message, setMessage] = useState('');
   const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [bankStatementFile, setBankStatementFile] = useState<File | null>(null);
 
   const [screenshotProgress, setScreenshotProgress] = useState<number | null>(null);
   const [videoProgress, setVideoProgress] = useState<number | null>(null);
+  const [bankStatementProgress, setBankStatementProgress] = useState<number | null>(null);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [charCount, setCharCount] = useState(0);
@@ -92,7 +95,7 @@ function ReportProblemForm() {
   }, [firestore, user, orderId, orderType]);
   const { data: order, loading: orderLoading } = useDoc<Order>(orderRef);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fileType: 'screenshot' | 'video') => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fileType: 'screenshot' | 'video' | 'statement') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -104,9 +107,14 @@ function ReportProblemForm() {
         toast({ variant: 'destructive', title: 'Invalid File', description: 'Please upload a video file.' });
         return;
     }
+    if (fileType === 'statement' && !file.type.startsWith('image/') && !file.type.includes('pdf')) {
+        toast({ variant: 'destructive', title: 'Invalid File', description: 'Please upload an image or PDF for the statement.' });
+        return;
+    }
 
     if (fileType === 'screenshot') setScreenshotFile(file);
     if (fileType === 'video') setVideoFile(file);
+    if (fileType === 'statement') setBankStatementFile(file);
   };
   
   const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -119,6 +127,9 @@ function ReportProblemForm() {
 
   const uploadFile = (file: File, path: string, progressSetter: (p: number) => void): Promise<string> => {
     return new Promise((resolve, reject) => {
+        if (!storage) {
+            return reject(new Error("Firebase Storage is not initialized."));
+        }
         const storageRef = ref(storage, path);
         const uploadTask = uploadBytesResumable(storageRef, file);
 
@@ -132,7 +143,7 @@ function ReportProblemForm() {
                 reject(error);
             },
             () => {
-                getDownloadURL(uploadTask.snapshot.ref).then(resolve);
+                getDownloadURL(uploadTask.snapshot.ref).then(resolve).catch(reject);
             }
         );
     });
@@ -143,27 +154,41 @@ function ReportProblemForm() {
         toast({ variant: 'destructive', title: 'Please select a problem type.' });
         return;
     }
-     if (!user || !userProfile || !order) {
+     if (!user || !userProfile || !order || !firestore) {
         toast({ variant: 'destructive', title: 'Error', description: 'Could not load required data. Please try again.' });
         return;
     }
     
     setIsSubmitting(true);
     
+    // 1. Generate a new report document reference to get a unique ID
+    const newReportRef = doc(collection(firestore, "reports"));
+    const reportId = newReportRef.id;
+
     try {
         let screenshotURL: string | undefined;
         let videoURL: string | undefined;
+        let bankStatementURL: string | undefined;
 
+        // 2. Upload files if they exist, using the new reportId in the path
         if (screenshotFile) {
-            const path = `report_evidence/${user.uid}/${Date.now()}_${screenshotFile.name}`;
+            const fileExtension = screenshotFile.name.split('.').pop();
+            const path = `reports/${user.uid}/${reportId}/screenshot.${fileExtension}`;
             screenshotURL = await uploadFile(screenshotFile, path, setScreenshotProgress);
         }
         if (videoFile) {
-            const path = `report_evidence/${user.uid}/${Date.now()}_${videoFile.name}`;
+            const fileExtension = videoFile.name.split('.').pop();
+            const path = `reports/${user.uid}/${reportId}/video.${fileExtension}`;
             videoURL = await uploadFile(videoFile, path, setVideoProgress);
         }
+        if (bankStatementFile) {
+            const fileExtension = bankStatementFile.name.split('.').pop();
+            const path = `reports/${user.uid}/${reportId}/statement.${fileExtension}`;
+            bankStatementURL = await uploadFile(bankStatementFile, path, setBankStatementProgress);
+        }
 
-        await addDoc(collection(firestore, 'reports'), {
+        // 3. Save the report data to Firestore with the file URLs
+        await setDoc(newReportRef, {
             userId: user.uid,
             userNumericId: userProfile.numericId,
             orderId: order.id,
@@ -173,6 +198,7 @@ function ReportProblemForm() {
             message: message,
             screenshotURL,
             videoURL,
+            bankStatementURL,
             createdAt: serverTimestamp(),
             status: 'pending',
         });
@@ -262,17 +288,23 @@ function ReportProblemForm() {
                         value={message}
                         onChange={handleMessageChange}
                         maxLength={150}
+                        disabled={isSubmitting}
                     />
                     <p className="text-xs text-muted-foreground text-right">{charCount}/150</p>
                 </div>
                 <div className="space-y-2">
-                    <Label>Upload Bank Statement / Screenshot</Label>
-                    <Input type="file" onChange={(e) => handleFileChange(e, 'screenshot')} accept="image/*" />
+                    <Label>Upload Screenshot</Label>
+                    <Input type="file" onChange={(e) => handleFileChange(e, 'screenshot')} accept="image/*" disabled={isSubmitting} />
                     <FileUploadProgress file={screenshotFile} progress={screenshotProgress} />
                 </div>
                  <div className="space-y-2">
-                    <Label>Upload Video Recording</Label>
-                    <Input type="file" onChange={(e) => handleFileChange(e, 'video')} accept="video/*" />
+                    <Label>Upload Bank Statement (Image or PDF)</Label>
+                    <Input type="file" onChange={(e) => handleFileChange(e, 'statement')} accept="image/*,application/pdf" disabled={isSubmitting} />
+                     <FileUploadProgress file={bankStatementFile} progress={bankStatementProgress} />
+                </div>
+                 <div className="space-y-2">
+                    <Label>Upload Video Recording (Optional)</Label>
+                    <Input type="file" onChange={(e) => handleFileChange(e, 'video')} accept="video/*" disabled={isSubmitting} />
                      <FileUploadProgress file={videoFile} progress={videoProgress} />
                 </div>
             </CardContent>
