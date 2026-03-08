@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ChevronLeft, Hourglass, CheckCircle, ClipboardList } from 'lucide-react';
 import Link from 'next/link';
 import { useUser, useFirestore, useCollection } from '@/firebase';
-import { collection, query, where, orderBy, Timestamp } from 'firebase/firestore';
+import { collection, query, where, Timestamp } from 'firebase/firestore';
 import { Loader } from '@/components/ui/loader';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/context/language-context';
@@ -60,14 +60,21 @@ export default function ReportStatusPage() {
 
   const reportsQuery = useMemo(() => {
     if (!user || !firestore) return null;
+    // Remove orderBy from query to avoid needing a composite index
     return query(
       collection(firestore, 'reports'),
-      where('userId', '==', user.uid),
-      orderBy('createdAt', 'desc')
+      where('userId', '==', user.uid)
     );
   }, [user, firestore]);
 
-  const { data: reports, loading: reportsLoading } = useCollection<Report>(reportsQuery);
+  const { data: unsortedReports, loading: reportsLoading } = useCollection<Report>(reportsQuery);
+
+  // Sort the reports on the client side
+  const reports = useMemo(() => {
+    if (!unsortedReports) return [];
+    return [...unsortedReports].sort((a, b) => b.createdAt.seconds - a.createdAt.seconds);
+  }, [unsortedReports]);
+
 
   const loading = authLoading || reportsLoading;
 
