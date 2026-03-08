@@ -38,7 +38,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Loader } from '@/components/ui/loader';
@@ -260,6 +260,20 @@ export default function UserDetailsPage() {
     const firestore = useFirestore();
     const { toast } = useToast();
     
+    const [isMasterAdmin, setIsMasterAdmin] = useState(false);
+
+    useEffect(() => {
+        const getCookie = (name: string) => {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop()?.split(';').shift();
+        }
+        const adminPhone = getCookie('admin-phone');
+        if (adminPhone === '9060873927') {
+            setIsMasterAdmin(true);
+        }
+    }, []);
+    
     const userRef = React.useMemo(() => {
         if (!firestore || !userId) return null;
         return doc(firestore, 'users', userId);
@@ -396,7 +410,11 @@ export default function UserDetailsPage() {
                         <p className="text-sm text-muted-foreground">This is the user's available balance for transactions.</p>
                     </CardContent>
                     <CardFooter>
-                         <BalanceActionDialog userId={userId} currentBalance={Number(user.balance) || 0} />
+                         {isMasterAdmin ? (
+                            <BalanceActionDialog userId={userId} currentBalance={Number(user.balance) || 0} />
+                         ) : (
+                            <Button disabled>Manage Balance (Master only)</Button>
+                         )}
                     </CardFooter>
                 </Card>
                 
@@ -636,5 +654,6 @@ export default function UserDetailsPage() {
         </main>
     )
 }
+    
 
     

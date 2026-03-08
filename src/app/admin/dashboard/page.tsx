@@ -970,7 +970,7 @@ function LiveChatTabContent() {
             <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 <Input
-                    placeholder="Search by UID or Identifier..."
+                    placeholder="Search by UID or Phone Number..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10 max-w-sm"
@@ -1838,7 +1838,7 @@ function AdminDashboard() {
     const [searchTerm, setSearchTerm] = useState('');
 
     const handleLogout = () => {
-        document.cookie = 'admin-auth=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        document.cookie = 'admin-phone=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
         router.push('/admin/login');
     };
     

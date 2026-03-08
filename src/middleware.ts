@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
   const userToken = request.cookies.get('firebase-auth-token');
-  const hasAdminToken = request.cookies.has('admin-auth');
+  const adminPhone = request.cookies.get('admin-phone'); // Check for the new cookie
   const { pathname } = request.nextUrl;
 
   // ===== Admin Auth Routes =====
@@ -12,12 +12,12 @@ export function middleware(request: NextRequest) {
     const isAdminLoginRoute = pathname.startsWith('/admin/login');
 
     // If logged in, trying to access login page -> redirect to dashboard
-    if (hasAdminToken && isAdminLoginRoute) {
+    if (adminPhone && isAdminLoginRoute) {
       return NextResponse.redirect(new URL('/admin/dashboard', request.url));
     }
 
     // If not logged in, trying to access any admin page (except login) -> redirect to login
-    if (!hasAdminToken && !isAdminLoginRoute) {
+    if (!adminPhone && !isAdminLoginRoute) {
       return NextResponse.redirect(new URL('/admin/login', request.url));
     }
     

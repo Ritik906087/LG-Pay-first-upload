@@ -38,8 +38,8 @@ export default function AdminLoginPage() {
       (phone === '9798630209' && password === 'Aman@12')
     ) {
       toast({ title: 'Login Successful', description: "Welcome, Admin!" });
-      // Set a cookie to maintain session
-      document.cookie = 'admin-auth=true; path=/; max-age=86400'; // 24 hours
+      // Set a cookie with the admin's phone number to maintain session and permissions
+      document.cookie = `admin-phone=${phone}; path=/; max-age=86400`; // 24 hours
       window.location.href = '/admin/dashboard';
     } else {
       toast({
