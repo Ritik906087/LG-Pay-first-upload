@@ -89,6 +89,10 @@ const paymentMethodDetails: { [key: string]: { logo: string; bgColor: string } }
     logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/download.png?alt=media&token=fab572ac-b45e-4c62-8276-8c87108756e4",
     bgColor: "bg-orange-500",
   },
+  Airtel: {
+    logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/Airtel%2001.png?alt=media&token=357342fd-85df-43c1-a7fb-d9d57315df1d",
+    bgColor: "bg-red-500",
+  },
 };
 
 

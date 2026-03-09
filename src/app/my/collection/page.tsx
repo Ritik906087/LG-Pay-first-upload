@@ -27,6 +27,7 @@ type PaymentMethod = {
   name: string;
   logo: string;
   bgColor: string;
+  maintenance?: boolean;
 };
 
 type LinkedPaymentMethod = PaymentMethod & {
@@ -54,6 +55,12 @@ const initialPaymentMethods: PaymentMethod[] = [
     name: "Freecharge",
     logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/download.png?alt=media&token=fab572ac-b45e-4c62-8276-8c87108756e4",
     bgColor: "bg-orange-500",
+  },
+  {
+    name: "Airtel",
+    logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/Airtel%2001.png?alt=media&token=357342fd-85df-43c1-a7fb-d9d57315df1d",
+    bgColor: "bg-red-500",
+    maintenance: true,
   },
 ];
 
@@ -169,6 +176,7 @@ export default function CollectionPage() {
         "Paytm": /^[a-zA-Z0-9.\-_]{2,256}@(paytm|ptaxis|ptyes|ptsbi|pthdfc)$/,
         "MobiKwik": /^[a-zA-Z0-9.\-_]{2,256}@(ikwik|mbk)$/,
         "Freecharge": /^[a-zA-Z0-9.\-_]{2,256}@freecharge$/,
+        "Airtel": /^[a-zA-Z0-9.\-_]{2,256}@airtel$/,
     };
 
     const regex = upiRegexMap[methodName];
@@ -267,7 +275,11 @@ export default function CollectionPage() {
                   )}
                 </div>
               </div>
-              {method.linked ? (
+              {method.maintenance ? (
+                  <div className="rounded-md bg-orange-100 px-3 py-1.5 text-xs font-bold uppercase text-orange-600">
+                      Maintenance
+                  </div>
+              ) : method.linked ? (
                  <div className="flex items-center justify-center rounded-md bg-green-500/80 px-3 py-1.5 text-xs font-bold uppercase text-white">
                     ACTIVATED
                 </div>
