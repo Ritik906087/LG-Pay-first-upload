@@ -18,8 +18,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from "firebase/auth";
-import { useUser, useFirestore, useDoc } from '@/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { useUser, useFirestore } from '@/firebase';
+import { doc, setDoc, runTransaction } from 'firebase/firestore';
 import { Loader } from "@/components/ui/loader";
 
 
@@ -53,13 +53,6 @@ export default function AddCollectionPage() {
   const auth = getAuth();
   const { user } = useUser();
   const firestore = useFirestore();
-
-  const userProfileRef = useMemo(() => {
-    if (!user || !firestore) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [user, firestore]);
-
-  const { data: userProfile } = useDoc<{ paymentMethods?: { name: string, upiId: string }[] }>(userProfileRef);
 
   const recaptchaVerifier = useRef<RecaptchaVerifier | null>(null);
   const confirmationResult = useRef<ConfirmationResult | null>(null);
@@ -139,6 +132,14 @@ export default function AddCollectionPage() {
   }
 
   const handleLinkSubmit = async () => {
+    // Capture the original user's UID at the start.
+    if (!user) {
+        toast({ variant: "destructive", title: "You are not logged in.", description: "Please log in and try again." });
+        return;
+    }
+    const originalUserUid = user.uid;
+
+    // --- Validations ---
     if (!otp || !upiId) {
         toast({ variant: "destructive", title: "Missing Information", description: "Please enter OTP and UPI ID." });
         return;
@@ -151,49 +152,57 @@ export default function AddCollectionPage() {
         });
         return;
     }
+    // --- End Validations ---
+
     setIsLinking(true);
     try {
       if (!confirmationResult.current) {
-        throw new Error("OTP not sent yet.");
+        throw new Error("OTP has not been sent yet. Please send OTP first.");
       }
+      
+      // This call might change the auth state if the phone number is associated with another account
       await confirmationResult.current.confirm(otp);
       
-      if (selectedMethod && userProfileRef) {
-          const currentMethods = userProfile?.paymentMethods || [];
-          
-          const isDuplicate = currentMethods.some(pm => pm.upiId === upiId);
-          if (isDuplicate) {
-              toast({
-                  variant: "destructive",
-                  title: "UPI Already Linked",
-                  description: "This UPI ID is already linked to your account."
-              });
-              setIsLinking(false);
-              return;
-          }
+      // OTP is confirmed. Now, write to the ORIGINAL user's document.
+      if (selectedMethod && firestore) {
+          const userProfileRefForUpdate = doc(firestore, 'users', originalUserUid);
 
-          const updatedMethods = [...currentMethods, { name: selectedMethod.name, upiId: upiId }];
-          
-          await setDoc(userProfileRef, {
-              paymentMethods: updatedMethods
-          }, { merge: true });
+          await runTransaction(firestore, async (transaction) => {
+              const userDoc = await transaction.get(userProfileRefForUpdate);
+              if (!userDoc.exists()) {
+                  throw new Error("Your user profile could not be found.");
+              }
+
+              const currentMethods = userDoc.data().paymentMethods || [];
+              const isDuplicate = currentMethods.some((pm: any) => pm.upiId === upiId);
+              if (isDuplicate) {
+                  throw new Error("This UPI ID is already linked to your account.");
+              }
+
+              const updatedMethods = [...currentMethods, { name: selectedMethod.name, upiId: upiId }];
+              
+              transaction.set(userProfileRefForUpdate, {
+                  paymentMethods: updatedMethods
+              }, { merge: true });
+          });
       }
 
       toast({
         title: "Success!",
         description: `${selectedMethod?.name} has been linked successfully.`,
       });
-      setIsDialogOpen(false);
+      
+      // The auth state might be incorrect now. Force a reload to restore the original session from the cookie.
+      window.location.href = '/my/collection';
 
-    } catch (error) {
+    } catch (error: any) {
        console.error("Linking error:", error);
        toast({
         variant: "destructive",
         title: "Failed to link UPI",
-        description: "The verification code is incorrect or another error occurred. Please try again.",
+        description: error.message || "The verification code is incorrect or another error occurred. Please try again.",
       });
-    } finally {
-      setIsLinking(false);
+       setIsLinking(false); // Only set linking to false on error, success navigates away.
     }
   };
 
