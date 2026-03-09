@@ -141,13 +141,6 @@ function PaymentDetailsContent() {
         "Other reasons"
     ];
 
-    const upiMethods = [
-        { name: "PhonePe", logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/Phonepay.png?alt=media&token=579a228d-121f-4d5b-933d-692d791dec2f" },
-        { name: "Paytm", logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/download%20(2).png?alt=media&token=1fd9f09a-1f02-4dd9-ab3b-06c756856bd8" },
-        { name: "MobiKwik", logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/MobiKwik.png?alt=media&token=bf924e98-9b78-459d-8eb7-396c305a11d7" },
-        { name: "Freecharge", logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/download.png?alt=media&token=fab572ac-b45e-4c62-8276-8c87108756e4" },
-    ];
-
     const paymentMethodsQuery = useMemo(() => firestore ? collection(firestore, 'paymentMethods') : null, [firestore]);
     const { data: allPaymentMethods, loading: allPaymentMethodsLoading } = useCollection<PaymentMethod>(paymentMethodsQuery);
 
@@ -165,6 +158,13 @@ function PaymentDetailsContent() {
     }, [user, firestore]);
 
     const { data: userProfile, loading: profileLoading } = useDoc<UserProfile>(userProfileRef);
+
+    const verifiedBuyUpiMethods = useMemo(() => {
+        if (!userProfile?.paymentMethods) return [];
+        return userProfile.paymentMethods.filter(pm => 
+            ['MobiKwik', 'Freecharge'].includes(pm.name)
+        );
+    }, [userProfile]);
 
     const paymentTargetDetails = useMemo(() => {
         if (orderLoading) return null;
@@ -909,19 +909,36 @@ function PaymentDetailsContent() {
                   <DialogTitle className="text-lg font-semibold text-center">Change Payment Method</DialogTitle>
                 </DialogHeader>
                 <div className="p-4 space-y-3">
-                  {upiMethods.map((method) => (
-                      <button 
-                          key={method.name}
-                          onClick={() => handlePaymentMethodChange(method.name)}
-                          disabled={isUpdatingProvider}
-                          className="w-full flex items-center p-3 rounded-lg border hover:bg-secondary transition-colors disabled:opacity-50"
-                      >
-                          {isUpdatingProvider && provider !== method.name && <div className="w-6 mr-2"></div>}
-                          {isUpdatingProvider && provider === method.name && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                          <Image src={method.logo} alt={method.name} width={32} height={32} className="mr-4" />
-                          <span className="font-medium">{method.name}</span>
-                      </button>
-                  ))}
+                  {verifiedBuyUpiMethods.map((method) => {
+                      const details = paymentMethodDetails[method.name];
+                      if (!details) return null;
+                      return (
+                          <button 
+                              key={method.upiId}
+                              onClick={() => handlePaymentMethodChange(method.name)}
+                              disabled={isUpdatingProvider}
+                              className="w-full flex items-center p-3 rounded-lg border hover:bg-secondary transition-colors disabled:opacity-50"
+                          >
+                              {isUpdatingProvider ? (
+                                <Loader2 className="h-5 w-5 mr-4 animate-spin" />
+                              ) : (
+                                <Image src={details.logo} alt={method.name} width={32} height={32} className="mr-4" />
+                              )}
+                              <div className="text-left">
+                                  <span className="font-medium">{method.name}</span>
+                                  <p className="text-xs font-mono text-muted-foreground">{method.upiId}</p>
+                              </div>
+                          </button>
+                      )
+                  })}
+                   {verifiedBuyUpiMethods.length === 0 && (
+                      <div className="text-center text-sm text-muted-foreground p-4">
+                          <p>No MobiKwik or Freecharge accounts linked.</p>
+                          <Button asChild variant="link" className="mt-2">
+                              <Link href="/my/collection/add">Link an account</Link>
+                          </Button>
+                      </div>
+                  )}
                 </div>
               </DialogContent>
             </Dialog>
