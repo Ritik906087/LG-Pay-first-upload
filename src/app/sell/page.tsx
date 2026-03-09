@@ -40,7 +40,7 @@ type WithdrawalMethod = {
 
 const paymentMethodDetails: { [key: string]: { logo: string; bgColor: string } } = {
   PhonePe: {
-    logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/download%20(1).png?alt=media&token=205260a4-bfcf-46dd-8dc6-5b440852f2ae",
+    logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/Phonepay.png?alt=media&token=579a228d-121f-4d5b-933d-692d791dec2f",
     bgColor: "bg-violet-600",
   },
   Paytm: {
@@ -48,7 +48,7 @@ const paymentMethodDetails: { [key: string]: { logo: string; bgColor: string } }
     bgColor: "bg-sky-500",
   },
   MobiKwik: {
-    logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/download.png?alt=media&token=ffb28e60-0b26-4802-9b54-bc6bbb02f35f",
+    logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/MobiKwik.png?alt=media&token=bf924e98-9b78-459d-8eb7-396c305a11d7",
     bgColor: "bg-blue-600",
   },
   Freecharge: {
