@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useMemo, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, Suspense, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useDoc, useUser, useFirestore } from '@/firebase';
 import { doc, getDoc, updateDoc, runTransaction, Timestamp } from 'firebase/firestore';
@@ -62,7 +62,7 @@ function OrderStatusContent() {
 
     const { data: order, loading: orderLoading } = useDoc<Order>(orderRef);
 
-    const handleOrderExpiry = async () => {
+    const handleOrderExpiry = useCallback(async () => {
         if (!order || !orderRef || order.status !== 'pending_confirmation' || !firestore) return;
     
         const currentOrderSnap = await getDoc(orderRef);
@@ -86,7 +86,7 @@ function OrderStatusContent() {
         } finally {
             setIsUpdatingStatus(false);
         }
-    };
+    }, [order, orderRef, firestore, toast]);
     
     useEffect(() => {
         if (!order || order.status !== 'pending_confirmation' || !order.submittedAt) {
@@ -115,7 +115,7 @@ function OrderStatusContent() {
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [order]);
+    }, [order, handleOrderExpiry]);
     
 
     if (orderLoading) {
@@ -139,7 +139,7 @@ function OrderStatusContent() {
         )
     }
     
-    const isTimeout = (order.status === 'failed' || order.status === 'cancelled') && (order.rejectionReason?.includes('timed out') || order.cancellationReason?.includes('timed out'));
+    const isTimeout = (order.status === 'failed' || order.status === 'cancelled') && (order.cancellationReason?.includes('timed out'));
 
     return (
         <div className="flex flex-col min-h-screen">
@@ -182,7 +182,7 @@ function OrderStatusContent() {
                                     {isTimeout ? 'Timeout' : order.status.replace('_', ' ')}
                                 </h2>
                                 <p className="text-muted-foreground">
-                                    {isTimeout ? "This order has timed out." : "This order could not be completed."}
+                                    {isTimeout ? "This order has timed out." : (order.rejectionReason || order.cancellationReason || "This order could not be completed.")}
                                 </p>
                             </>
                         )}
@@ -278,3 +278,5 @@ export default function OrderStatusPage() {
         </Suspense>
     );
 }
+
+    

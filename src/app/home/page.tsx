@@ -29,7 +29,7 @@ import Image from 'next/image';
 import Autoplay from "embla-carousel-autoplay";
 import React, { useEffect, useState, useCallback } from 'react';
 import { useUser, useFirestore, useDoc, useCollection } from '@/firebase';
-import { doc, collection, query, where, Timestamp, updateDoc, runTransaction, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, Timestamp, updateDoc, runTransaction } from 'firebase/firestore';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -128,7 +128,7 @@ const Countdown = ({ expiryTimestamp, onExpire }: { expiryTimestamp: Timestamp, 
 };
 
 
-const InProgressOrderCard = ({ order, onExpire }: { order: any, onExpire: (orderId: string, type: 'buy' | 'sell') => void }) => {
+const InProgressOrderCard = ({ order, onExpire }: { order: any, onExpire: (orderId: string, type: 'buy' | 'sell', currentStatus: string) => void }) => {
     const isBuy = order.type === 'buy';
     const isSell = order.type === 'sell';
     
@@ -187,7 +187,7 @@ const InProgressOrderCard = ({ order, onExpire }: { order: any, onExpire: (order
                         <p className="font-bold text-lg">{currencySymbol}{displayAmount}</p>
                         <div className="flex items-center gap-2">
                              <p className="text-xs text-muted-foreground capitalize">{statusText}</p>
-                             {expiryTimestamp ? <Countdown expiryTimestamp={expiryTimestamp} onExpire={() => onExpire(order.id, order.type)} /> 
+                             {expiryTimestamp ? <Countdown expiryTimestamp={expiryTimestamp} onExpire={() => onExpire(order.id, order.type, order.status)} /> 
                              : order.status === 'in_applied' ? <p className="text-xs text-orange-600 font-semibold">System Busy</p> : null}
                         </div>
                     </div>
@@ -246,33 +246,30 @@ export default function HomePage() {
   const ordersLoading = buyOrdersLoading || sellOrdersLoading;
   const hasInProgressOrders = (inProgressBuyOrders && inProgressBuyOrders.length > 0) || (inProgressSellOrders && inProgressSellOrders.length > 0);
 
-  const handleOrderExpire = useCallback(async (orderId: string, type: 'buy' | 'sell') => {
+  const handleOrderExpire = useCallback(async (orderId: string, type: 'buy' | 'sell', status: string) => {
     if (!firestore || !user) return;
 
-    const collectionName = type === 'buy' ? 'orders' : 'sellOrders';
-    const orderRef = doc(firestore, 'users', user.uid, collectionName, orderId);
+    if (type === 'buy') {
+      const orderRef = doc(firestore, 'users', user.uid, 'orders', orderId);
+      const orderSnap = await getDoc(orderRef);
+      if (!orderSnap.exists()) return;
+      const orderData = orderSnap.data();
 
-    try {
-        await runTransaction(firestore, async (transaction) => {
-            const orderSnap = await transaction.get(orderRef);
-            if (!orderSnap.exists()) return;
-
-            const orderData = orderSnap.data();
-            const validBuyStatuses = ['pending_payment', 'pending_confirmation'];
-            
-            if (type === 'buy' && !validBuyStatuses.includes(orderData.status)) return;
-            
-            if (type === 'buy') {
-                transaction.update(orderRef, {
-                    status: 'failed',
-                    cancellationReason: 'Order timed out.',
-                });
-            }
-        });
-        toast({ variant: 'destructive', title: 'Order Timeout', description: `Your ${type} order has timed out.` });
-    } catch (error) {
-        console.error(`Failed to expire ${type} order ${orderId}:`, error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not update expired order.' });
+      // Only update if the status hasn't changed by another process/tab
+      if (orderData.status === status) {
+        if (status === 'pending_payment') {
+          await updateDoc(orderRef, {
+            status: 'failed',
+            cancellationReason: 'Order timed out.',
+          });
+          toast({ variant: 'destructive', title: 'Order Timeout' });
+        } else if (status === 'pending_confirmation') {
+          await updateDoc(orderRef, {
+            status: 'in_applied',
+          });
+          toast({ title: 'Order is now In Applied', description: 'Please wait for admin review.' });
+        }
+      }
     }
   }, [firestore, user, toast]);
 
@@ -429,3 +426,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    
