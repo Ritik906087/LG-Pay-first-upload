@@ -30,11 +30,6 @@ type PaymentMethod = {
   maintenance?: boolean;
 };
 
-type LinkedPaymentMethod = PaymentMethod & {
-  linked: boolean;
-  upiId?: string;
-};
-
 const initialPaymentMethods: PaymentMethod[] = [
   { name: "PhonePe", logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/Phonepay.png?alt=media&token=579a228d-121f-4d5b-933d-692d791dec2f", bgColor: "bg-violet-600" },
   { name: "Paytm", logo: "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/download%20(2).png?alt=media&token=1fd9f09a-1f02-4dd9-ab3b-06c756856bd8", bgColor: "bg-sky-500" },
@@ -44,9 +39,6 @@ const initialPaymentMethods: PaymentMethod[] = [
 ];
 
 export default function AddCollectionPage() {
-  const [paymentMethods, setPaymentMethods] = useState<LinkedPaymentMethod[]>(
-    initialPaymentMethods.map(pm => ({...pm, linked: false, upiId: ''}))
-  );
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
   const [isOtpSending, setIsOtpSending] = useState(false);
@@ -71,23 +63,6 @@ export default function AddCollectionPage() {
 
   const recaptchaVerifier = useRef<RecaptchaVerifier | null>(null);
   const confirmationResult = useRef<ConfirmationResult | null>(null);
-
-  useEffect(() => {
-    if (userProfile && userProfile.paymentMethods) {
-        setPaymentMethods(prevMethods => 
-            initialPaymentMethods.map(pm => {
-                const linked = userProfile.paymentMethods?.find(upm => upm.name === pm.name);
-                return { 
-                    ...pm, 
-                    linked: !!linked, 
-                    upiId: linked ? linked.upiId : '' 
-                };
-            })
-        );
-    } else {
-        setPaymentMethods(initialPaymentMethods.map(pm => ({ ...pm, linked: false, upiId: '' })));
-    }
-  }, [userProfile]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -185,7 +160,19 @@ export default function AddCollectionPage() {
       
       if (selectedMethod && userProfileRef) {
           const currentMethods = userProfile?.paymentMethods || [];
-          const updatedMethods = [...currentMethods.filter(pm => pm.name !== selectedMethod.name), { name: selectedMethod.name, upiId: upiId }];
+          
+          const isDuplicate = currentMethods.some(pm => pm.upiId === upiId);
+          if (isDuplicate) {
+              toast({
+                  variant: "destructive",
+                  title: "UPI Already Linked",
+                  description: "This UPI ID is already linked to your account."
+              });
+              setIsLinking(false);
+              return;
+          }
+
+          const updatedMethods = [...currentMethods, { name: selectedMethod.name, upiId: upiId }];
           
           await setDoc(userProfileRef, {
               paymentMethods: updatedMethods
@@ -225,10 +212,10 @@ export default function AddCollectionPage() {
 
       <main className="flex-grow space-y-4 p-4">
         <h2 className="text-sm font-semibold text-muted-foreground">
-          Select the receiving UPI to link or update
+          Select the receiving UPI to link
         </h2>
         <div className="space-y-3">
-          {paymentMethods.map((method) => (
+          {initialPaymentMethods.map((method) => (
             <div
               key={method.name}
               className={`flex h-20 w-full items-center justify-between gap-4 rounded-xl px-4 py-2 text-white shadow-md ${method.bgColor}`}
@@ -245,9 +232,6 @@ export default function AddCollectionPage() {
                 </div>
                 <div>
                   <span className="text-lg font-semibold">{method.name}</span>
-                  {method.linked && method.upiId && (
-                     <p className="text-xs font-mono text-white/80">{method.upiId}</p>
-                  )}
                 </div>
               </div>
               {method.maintenance ? (
@@ -259,7 +243,7 @@ export default function AddCollectionPage() {
                   onClick={() => handleLinkClick(method)}
                   className="rounded-full bg-white/20 px-6 font-semibold text-white shadow-sm hover:bg-white/30"
                 >
-                  {method.linked ? 'Change' : 'Link'}
+                  Link
                 </Button>
               )}
             </div>
