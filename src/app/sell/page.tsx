@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -178,7 +177,7 @@ export default function SellPage() {
         <div className="w-8"></div>
       </header>
 
-      <main className="flex-grow space-y-4 p-4">
+      <main className="flex-grow space-y-4 p-4 pb-20">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
@@ -273,7 +272,7 @@ export default function SellPage() {
         </Card>
       </main>
 
-       <CardFooter className="p-4 bg-white border-t sticky bottom-14">
+       <CardFooter className="p-4 bg-white border-t sticky bottom-0">
         <Button 
             className="w-full h-12 btn-gradient font-bold text-base"
             onClick={handleSell}
