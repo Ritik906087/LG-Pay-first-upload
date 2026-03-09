@@ -937,7 +937,7 @@ function PaymentDetailsContent() {
                     <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction 
-                            onClick={() => router.push('/my/collection')}
+                            onClick={() => router.push('/my/collection/add')}
                             className="bg-green-600 hover:bg-green-700">
                             Verify
                         </AlertDialogAction>

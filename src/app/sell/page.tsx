@@ -265,7 +265,7 @@ export default function SellPage() {
                         <Wallet className="h-8 w-8 opacity-50 mb-2" />
                         <p>No withdrawal method active</p>
                         <Button asChild variant="link" className="mt-1">
-                            <Link href="/my/collection">Add UPI Account</Link>
+                            <Link href="/my/collection/add">Add UPI Account</Link>
                         </Button>
                     </div>
                 )}

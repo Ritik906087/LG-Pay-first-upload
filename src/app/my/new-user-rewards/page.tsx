@@ -192,7 +192,7 @@ export default function NewUserRewardsPage() {
                                 } else {
                                     buttonContent = 'Connect';
                                     useLink = true;
-                                    linkHref = '/my/collection';
+                                    linkHref = '/my/collection/add';
                                 }
                             } else if (task.action === 'join') {
                                 buttonContent = 'Join';
