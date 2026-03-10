@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import { useUser, useFirestore, useDoc } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Loader } from '@/components/ui/loader';
-import { doc, runTransaction, collection, addDoc, serverTimestamp, query, where, getDocs, arrayUnion } from 'firebase/firestore';
+import { doc, runTransaction, collection, addDoc, serverTimestamp, query, where, getDocs, arrayUnion, getDoc, Timestamp } from 'firebase/firestore';
 import Image from 'next/image';
 
 const TelegramIcon = () => (
@@ -87,7 +87,6 @@ export default function NewbieRewardsPage() {
         }
         setDataLoading(true);
         try {
-            // To avoid a composite index error, query only on 'status' and filter 'amount' on the client.
             const ordersQuery = query(
                 collection(firestore, 'users', user.uid, 'orders'),
                 where('status', '==', 'completed')
@@ -147,6 +146,7 @@ export default function NewbieRewardsPage() {
     const isUpiConnected = useMemo(() => !!userProfile?.paymentMethods?.some(pm => ['MobiKwik', 'Freecharge'].includes(pm.name)), [userProfile]);
     
     const allTasksCompleted = useMemo(() => newbieTasks.every(task => claimedRewards.has(task.id)), [newbieTasks, claimedRewards]);
+    const isFinalBonusClaimed = useMemo(() => claimedRewards.has(finalBonusTask.id), [claimedRewards]);
 
     const totalBonus = useMemo(() => {
         let total = 0;
@@ -155,11 +155,11 @@ export default function NewbieRewardsPage() {
                 total += task.reward;
             }
         });
-        if(claimedRewards.has(finalBonusTask.id)) {
+        if(isFinalBonusClaimed) {
             total += finalBonusTask.reward;
         }
         return total;
-    }, [claimedRewards, newbieTasks, finalBonusTask]);
+    }, [claimedRewards, newbieTasks, finalBonusTask, isFinalBonusClaimed]);
     
     const loading = userLoading || profileLoading || dataLoading;
     
@@ -187,12 +187,29 @@ export default function NewbieRewardsPage() {
             <Card className="border-none bg-gradient-to-r from-blue-500 to-blue-400 text-white shadow-lg">
                 <CardContent className="p-4 flex justify-between items-center">
                     <div>
-                        <p className="text-sm opacity-80">Total bonus</p>
-                        <p className="text-3xl font-bold">₹ {totalBonus}</p>
+                        <p className="text-sm opacity-80">
+                            {allTasksCompleted && !isFinalBonusClaimed ? "Final Bonus" : "Total bonus"}
+                        </p>
+                        <p className="text-3xl font-bold">
+                            {allTasksCompleted && !isFinalBonusClaimed 
+                                ? `₹ ${finalBonusTask.reward}` 
+                                : (totalBonus > 0 ? `₹ ${totalBonus}` : `${totalBonus}`)
+                            }
+                        </p>
                     </div>
-                    <div className="bg-black/20 text-white font-semibold rounded-lg px-4 py-2 text-sm">
-                        Received
-                    </div>
+                    {allTasksCompleted && !isFinalBonusClaimed ? (
+                        <Button 
+                            className="bg-white/90 text-blue-500 font-bold rounded-lg px-4 py-2 text-sm hover:bg-white"
+                            disabled={claiming === finalBonusTask.id}
+                            onClick={() => handleClaim(finalBonusTask.id, finalBonusTask.reward, finalBonusTask.title)}
+                        >
+                            {claiming === finalBonusTask.id ? <Loader size="xs" /> : 'Receive'}
+                        </Button>
+                    ) : (
+                        <div className="bg-black/20 text-white font-semibold rounded-lg px-4 py-2 text-sm">
+                            Received
+                        </div>
+                    )}
                 </CardContent>
             </Card>
             
@@ -245,29 +262,6 @@ export default function NewbieRewardsPage() {
                     );
                 })}
             </div>
-            
-            {allTasksCompleted && (
-                <Card className="border-yellow-400 border-2 bg-yellow-50 mt-6 animate-fade-in">
-                    <CardContent className="p-4 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <Gift className="h-8 w-8 text-yellow-500" />
-                            <div>
-                                <p className="font-bold text-yellow-900">All tasks completed!</p>
-                                <p className="text-sm text-yellow-700">Claim your final bonus of ₹{finalBonusTask.reward}</p>
-                            </div>
-                        </div>
-                        <Button 
-                            size="lg"
-                            className="btn-gradient font-bold"
-                            disabled={claimedRewards.has(finalBonusTask.id) || claiming === finalBonusTask.id}
-                            onClick={() => handleClaim(finalBonusTask.id, finalBonusTask.reward, finalBonusTask.title)}
-                        >
-                            {claiming === finalBonusTask.id ? <Loader size="xs" /> : (claimedRewards.has(finalBonusTask.id) ? 'Claimed' : 'Claim')}
-                        </Button>
-                    </CardContent>
-                </Card>
-            )}
-
           </main>
         </div>
     );
