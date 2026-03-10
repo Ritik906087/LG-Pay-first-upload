@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { motion, AnimatePresence } from 'framer-motion';
 
-import { ChevronLeft, ShoppingCart, Wallet, ArrowDownUp, Loader2 } from 'lucide-react';
+import { ChevronLeft, Wallet, ArrowDownUp, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useUser, useFirestore, useCollection, useDoc } from '@/firebase';
@@ -106,7 +106,7 @@ const PurchaseGrid = ({ onBuyClick, options, bonusPercentage, isCreatingOrder }:
                  <div className="flex items-center justify-between p-3 relative z-10">
                      <div className="flex items-center gap-4">
                          <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                            <ShoppingCart className="h-6 w-6" />
+                            <Image src="https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/LG%20PAY%20AVATAR.png?alt=media&token=707ce79d-15fa-4e58-9d1d-a7d774cfe5ec" width={36} height={36} alt="Buy LG" />
                          </div>
                          <div>
                             <p className="font-bold text-lg">₹ {option.amount.toLocaleString('en-IN')}</p>

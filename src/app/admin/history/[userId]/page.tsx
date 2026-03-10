@@ -1,6 +1,5 @@
 
 
-
 'use client';
 
 import React, { useMemo, useState, useRef } from 'react';
@@ -39,7 +38,7 @@ import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 
-const defaultAvatarUrl = "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/file_000000002968720686f855daed13e880.png?alt=media&token=c4dece97-7dee-41c4-bac7-6c1f9f186fb6";
+const defaultAvatarUrl = "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/LG%20PAY%20AVATAR.png?alt=media&token=707ce79d-15fa-4e58-9d1d-a7d774cfe5ec";
 
 // Types
 type UserProfile = {
