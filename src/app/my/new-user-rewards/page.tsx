@@ -1,7 +1,7 @@
-
 "use client";
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ChevronLeft, Gift, PlaySquare, CircleDollarSign } from 'lucide-react';
