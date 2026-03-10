@@ -222,7 +222,7 @@ const UsdtPurchaseForm = ({ onBuyClick, bonusPercentage, isCreatingOrder }: { on
 
 export default function BuyPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'otp-upi' | 'bank' | 'usdt'>('otp-upi');
+  const [activeTab, setActiveTab] = useState<'upi' | 'bank' | 'usdt'>('upi');
   const [activeSubTab, setActiveSubTab] = useState('small');
   
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
@@ -295,7 +295,11 @@ const createOrder = async (provider: string, orderAmount: number) => {
     if (!user || !firestore) return;
     setIsCreatingOrder(true);
     let newBuyOrderId: string | null = null;
-    let finalPaymentType = activeTab === 'otp-upi' ? 'upi' : activeTab;
+    
+    const bonusPercentage = activeTab === 'bank' ? 5 : activeTab === 'upi' ? 6 : 0;
+    const finalAmount = orderAmount + (orderAmount * (bonusPercentage / 100));
+
+    let finalPaymentType = activeTab;
 
     try {
         const allSellOrdersQuery = query(collectionGroup(firestore, 'sellOrders'));
@@ -346,7 +350,9 @@ const createOrder = async (provider: string, orderAmount: number) => {
 
                         const buyOrderData = {
                             userId: user.uid,
-                            amount: orderAmount,
+                            amount: finalAmount,
+                            baseAmount: orderAmount,
+                            bonusPercentage: bonusPercentage,
                             orderId: buyOrderDisplayId,
                             status: 'pending_payment',
                             paymentProvider: provider,
@@ -378,7 +384,7 @@ const createOrder = async (provider: string, orderAmount: number) => {
             }
 
             if (!p2pMatchFound) {
-                finalPaymentType = activeTab === 'otp-upi' ? 'upi' : activeTab;
+                finalPaymentType = activeTab;
                 const adminMethodsQuery = query(collection(firestore, "paymentMethods"), where("type", "==", finalPaymentType), limit(1));
                 const adminMethodsSnapshot = await getDocs(adminMethodsQuery);
 
@@ -388,7 +394,9 @@ const createOrder = async (provider: string, orderAmount: number) => {
                 
                 const buyOrderData = {
                     userId: user.uid,
-                    amount: orderAmount,
+                    amount: finalAmount,
+                    baseAmount: orderAmount,
+                    bonusPercentage: bonusPercentage,
                     orderId: buyOrderDisplayId,
                     status: 'pending_payment',
                     paymentProvider: provider,
@@ -475,7 +483,7 @@ const createOrder = async (provider: string, orderAmount: number) => {
     }
   };
 
-  const bonusPercentage = activeTab === 'bank' ? 6 : activeTab === 'usdt' ? 7 : 5;
+  const bonusPercentage = activeTab === 'bank' ? 5 : activeTab === 'upi' ? 6 : 0;
   
   const displayedOptions = useMemo(() => {
       if (activeSubTab === 'small') {
@@ -502,17 +510,17 @@ const createOrder = async (provider: string, orderAmount: number) => {
       <main className="p-4 flex-grow">
         <Tabs value={activeTab} className="w-full" onValueChange={(value) => setActiveTab(value as any)}>
           <TabsList className="grid w-full grid-cols-3 gap-2 h-auto p-0 bg-transparent">
-             <TabsTrigger value="otp-upi" className="flex flex-col items-center justify-center p-3 h-auto rounded-xl border-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 transition-all space-y-1">
-                <span className="font-bold text-base text-foreground">OTP-UPI</span>
-                <span className="text-xs text-green-600 font-semibold">+5% Bonus</span>
+             <TabsTrigger value="upi" className="flex flex-col items-center justify-center p-3 h-auto rounded-xl border-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 transition-all space-y-1">
+                <span className="font-bold text-base text-foreground">UPI</span>
+                <span className="text-xs text-green-600 font-semibold">+6% Bonus</span>
             </TabsTrigger>
             <TabsTrigger value="bank" className="flex flex-col items-center justify-center p-3 h-auto rounded-xl border-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 transition-all space-y-1">
                 <span className="font-bold text-base text-foreground">BANK</span>
-                <span className="text-xs text-green-600 font-semibold">+6% Bonus</span>
+                <span className="text-xs text-green-600 font-semibold">+5% Bonus</span>
             </TabsTrigger>
              <TabsTrigger value="usdt" className="flex flex-col items-center justify-center p-3 h-auto rounded-xl border-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 transition-all space-y-1">
                 <span className="font-bold text-base text-foreground">USDT</span>
-                <span className="text-xs text-primary font-semibold">1$ = 110₹</span>
+                <span className="text-xs text-primary font-semibold">1 USDT ≈ 110₹</span>
             </TabsTrigger>
           </TabsList>
         </Tabs>
