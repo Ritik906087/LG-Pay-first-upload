@@ -83,13 +83,15 @@ export default function NewbieRewardsPage() {
         
         // Check Purchase
         if (!claimed.has('nb_purchase')) {
+            // This query avoids a composite index by fetching completed orders and filtering client-side
             const purchaseQuery = query(
                 collection(firestore, 'users', user.uid, 'orders'),
-                where('status', '==', 'completed'),
-                where('amount', '>=', 1000)
+                where('status', '==', 'completed')
             );
             const purchaseSnapshot = await getDocs(purchaseQuery);
-            const hasPurchased = !purchaseSnapshot.empty;
+            // Check if any completed order has amount >= 1000
+            const hasPurchased = purchaseSnapshot.docs.some(doc => doc.data().amount >= 1000);
+
             if (hasPurchased) {
                 await updateDoc(userProfileRef, { claimedUserRewards: arrayUnion('nb_purchase') });
                 claimed.add('nb_purchase');
