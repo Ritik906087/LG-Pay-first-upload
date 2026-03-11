@@ -24,7 +24,7 @@ import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { collection, addDoc, doc, deleteDoc, collectionGroup, query, where, getDocs, updateDoc, Timestamp, runTransaction, limit, orderBy, serverTimestamp, arrayUnion, DocumentData, DocumentReference } from 'firebase/firestore';
+import { collection, addDoc, doc, deleteDoc, collectionGroup, query, where, getDocs, updateDoc, Timestamp, runTransaction, limit, orderBy, serverTimestamp, arrayUnion, DocumentData, DocumentReference, onSnapshot } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import {
@@ -1406,52 +1406,66 @@ function ConfirmationsTabContent() {
     const [methodsLoading, setMethodsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
-
-    const fetchData = useCallback(async () => {
+    // Fetch static data (users, payment methods) once on component mount
+    useEffect(() => {
         if (!firestore) return;
+        const fetchStaticData = async () => {
+            setUsersLoading(true);
+            setMethodsLoading(true);
+            try {
+                const usersPromise = getDocs(collection(firestore, 'users'));
+                const methodsPromise = getDocs(collection(firestore, 'paymentMethods'));
+
+                const [usersSnapshot, methodsSnapshot] = await Promise.all([
+                    usersPromise,
+                    methodsPromise,
+                ]);
+
+                const usersData = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile));
+                setAllUsers(usersData);
+                setUsersLoading(false);
+
+                const methodsData = methodsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PaymentMethod));
+                setAdminPaymentMethods(methodsData);
+                setMethodsLoading(false);
+            } catch (e) {
+                console.error("Error fetching static confirmation data:", e);
+                setError(e); // Set an error state to inform the user
+            }
+        };
+        fetchStaticData();
+    }, [firestore]);
+    
+    // Set up a real-time listener for the orders collection group
+    useEffect(() => {
+        if (!firestore) return;
+
         setLoading(true);
-        setUsersLoading(true);
-        setMethodsLoading(true);
-        setError(null);
-        try {
-             // Fetch users, methods, and orders in parallel
-            const usersPromise = getDocs(collection(firestore, 'users'));
-            const methodsPromise = getDocs(collection(firestore, 'paymentMethods'));
-            const ordersPromise = getDocs(query(collectionGroup(firestore, 'orders'), where('status', 'in', ['pending_confirmation', 'in_applied'])));
-
-            const [usersSnapshot, methodsSnapshot, ordersSnapshot] = await Promise.all([
-                usersPromise,
-                methodsPromise,
-                ordersPromise,
-            ]);
-
-            const usersData = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile));
-            setAllUsers(usersData);
-            setUsersLoading(false);
-
-            const methodsData = methodsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PaymentMethod));
-            setAdminPaymentMethods(methodsData);
-            setMethodsLoading(false);
-
-            const allPendingOrders: Order[] = ordersSnapshot.docs
+        // Query the entire 'orders' collection group to avoid needing a specific index
+        const q = query(collectionGroup(firestore, 'orders'));
+        
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            // Filter for pending confirmations on the client-side
+            const pendingOrders = snapshot.docs
                 .map(orderDoc => ({
                     id: orderDoc.id,
                     ...orderDoc.data(),
                     path: orderDoc.ref.path,
-                } as Order));
-            setAllOrders(allPendingOrders);
-
-        } catch (error) {
-            console.error("Error fetching confirmations:", error);
-            setError(error);
-        } finally {
+                } as Order))
+                .filter(order => ['pending_confirmation', 'in_applied'].includes(order.status));
+            
+            setAllOrders(pendingOrders);
             setLoading(false);
-        }
-    }, [firestore]);
+            setError(null);
+        }, (err) => {
+            console.error("Error listening to order confirmations:", err);
+            setError(err);
+            setLoading(false);
+        });
 
-    useEffect(() => {
-        fetchData();
-    }, [fetchData]);
+        // Cleanup listener on component unmount
+        return () => unsubscribe();
+    }, [firestore]);
 
     const usersMap = useMemo(() => {
         return new Map(allUsers.map(user => [user.id, user]));
@@ -1489,7 +1503,7 @@ function ConfirmationsTabContent() {
                 <CardHeader>
                     <CardTitle className="text-destructive">Error Fetching Confirmations</CardTitle>
                     <CardDescription className="text-destructive/80">
-                        Could not retrieve pending payments. This might be due to Firestore security rules or a missing database index.
+                        Could not retrieve pending payments. This might be due to Firestore security rules or a network issue.
                     </CardDescription>
                 </CardHeader>
                  <CardContent>
@@ -1560,7 +1574,7 @@ function ConfirmationsTabContent() {
                                     )}
                                 </CardContent>
                                 <CardFooter className="p-4 pt-0">
-                                    <ProcessConfirmationDialog order={order} onProcessed={fetchData} adminPaymentMethods={adminPaymentMethods} />
+                                    <ProcessConfirmationDialog order={order} onProcessed={() => {}} adminPaymentMethods={adminPaymentMethods} />
                                 </CardFooter>
                             </Card>
                         )
@@ -2108,5 +2122,3 @@ export default function AdminDashboardPage() {
 
     return <AdminDashboard />;
 }
-
-    
