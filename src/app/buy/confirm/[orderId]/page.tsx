@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { Suspense, useMemo, useState, useRef, useEffect, useCallback } from 'react';
@@ -54,6 +53,7 @@ type PaymentMethod = {
 type Order = {
     id: string;
     amount: number;
+    baseAmount: number;
     status: string;
     createdAt: Timestamp;
     orderId: string;
@@ -215,7 +215,7 @@ function PaymentDetailsContent() {
                     if (sellOrderSnap.exists()) {
                         const sellOrderData = sellOrderSnap.data();
                         
-                        const newRemainingAmount = (sellOrderData.remainingAmount || 0) + buyOrderData.amount;
+                        const newRemainingAmount = (sellOrderData.remainingAmount || 0) + buyOrderData.baseAmount;
                         
                         let newSellOrderStatus = 'partially_filled';
                         if (newRemainingAmount >= sellOrderData.amount) {
@@ -469,7 +469,7 @@ function PaymentDetailsContent() {
                     await sendOrderConfirmationToTelegram({
                         orderId: order.orderId,
                         userNumericId: userProfile.numericId,
-                        amount: order.amount,
+                        amount: order.baseAmount,
                         utr: utr,
                         receiverDetails: receiverDetailsForTg,
                     });
@@ -773,12 +773,12 @@ function PaymentDetailsContent() {
                         <div className="flex justify-between items-center pt-0">
                             <span className="text-muted-foreground text-base">Amount to be paid</span>
                             <div className="flex items-center gap-2">
-                                <span className="font-bold text-2xl text-primary">₹{order?.amount}</span>
+                                <span className="font-bold text-2xl text-primary">₹{order?.baseAmount}</span>
                                 <Button 
                                     variant="ghost" 
                                     size="icon" 
                                     className="h-8 w-8" 
-                                    onClick={() => copyToClipboard(order?.amount?.toString() ?? '')}
+                                    onClick={() => copyToClipboard(order?.baseAmount?.toString() ?? '')}
                                     disabled={isConfirming || isUpdatingProvider}
                                 >
                                     <Copy className="h-5 w-5 text-muted-foreground" />
@@ -817,7 +817,7 @@ function PaymentDetailsContent() {
                         <CardContent className="flex flex-col items-center gap-2">
                              <Image
                                 src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(
-                                    `upi://pay?pa=${details['UPI ID']}&pn=${encodeURIComponent(details['Recipient Name']!)}&am=${order.amount}&tn=${order.orderId}`
+                                    `upi://pay?pa=${details['UPI ID']}&pn=${encodeURIComponent(details['Recipient Name']!)}&am=${order.baseAmount}&tn=${order.orderId}`
                                 )}&size=200x200&qzone=2`}
                                 width={200}
                                 height={200}

@@ -136,7 +136,15 @@
         },
         "amount": {
           "type": "number",
-          "description": "The amount of LGB to buy, in INR."
+          "description": "The total amount of LGB to be credited, including any bonuses."
+        },
+        "baseAmount": {
+            "type": "number",
+            "description": "The original purchase amount before any bonuses were applied."
+        },
+        "bonusPercentage": {
+            "type": "number",
+            "description": "The percentage of the bonus applied to this order."
         },
         "paymentType": {
           "type": "string",

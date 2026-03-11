@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useMemo, Suspense, useCallback } from 'react';
@@ -26,6 +25,7 @@ type Order = {
     id: string;
     orderId: string;
     amount: number;
+    baseAmount: number;
     status: 'pending_payment' | 'pending_confirmation' | 'in_applied' | 'completed' | 'cancelled' | 'failed';
     utr: string;
     screenshotURL: string;
@@ -221,7 +221,7 @@ function OrderStatusContent() {
                     <CardContent className="space-y-3 text-sm">
                          <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Amount</span>
-                            <span className="font-semibold">₹{order.amount.toFixed(2)}</span>
+                            <span className="font-semibold">₹{order.baseAmount.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Order ID</span>

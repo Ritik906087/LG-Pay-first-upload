@@ -128,7 +128,7 @@ const PurchaseGrid = ({ onBuyClick, options, bonusPercentage, isCreatingOrder }:
   );
 };
 
-const UsdtPurchaseForm = ({ onBuyClick, bonusPercentage, isCreatingOrder }: { onBuyClick: (option: { amount: number }) => void, bonusPercentage: number, isCreatingOrder: boolean }) => {
+const UsdtPurchaseForm = ({ onBuyClick, isCreatingOrder }: { onBuyClick: (option: { amount: number }) => void, isCreatingOrder: boolean }) => {
     const { toast } = useToast();
     const [usdtAmount, setUsdtAmount] = useState('5');
     
@@ -140,7 +140,6 @@ const UsdtPurchaseForm = ({ onBuyClick, bonusPercentage, isCreatingOrder }: { on
         return 0;
     }, [usdtAmount]);
     
-    const finalLgbAmount = lgbAmount + (lgbAmount * (bonusPercentage / 100));
 
     const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
@@ -199,7 +198,6 @@ const UsdtPurchaseForm = ({ onBuyClick, bonusPercentage, isCreatingOrder }: { on
                         <span className="font-bold text-3xl text-yellow-900">{lgbAmount.toFixed(0)}</span>
                         <span className="font-semibold text-yellow-900/90">LGB</span>
                     </div>
-                    {bonusPercentage > 0 && <p className="text-xs text-green-600 font-semibold mt-1">You Get: {lgbAmount.toFixed(0)} + {bonusPercentage}% = {finalLgbAmount.toFixed(0)} LGB</p>}
                 </CardContent>
             </Card>
 
@@ -296,22 +294,20 @@ const createOrder = async (provider: string, orderAmount: number) => {
     setIsCreatingOrder(true);
     let newBuyOrderId: string | null = null;
     
-    const bonusPercentage = activeTab === 'bank' ? 5 : activeTab === 'upi' ? 6 : 0;
-    const finalAmount = orderAmount + (orderAmount * (bonusPercentage / 100));
+    const bonusPercentage = activeTab === 'bank' ? 5 : activeTab === 'upi' ? 6 : (activeTab === 'usdt' ? 0 : 0);
 
     let finalPaymentType = activeTab;
 
     try {
         const p2pCandidatesQuery = query(
             collectionGroup(firestore, 'sellOrders'),
-            where('status', 'in', ['pending', 'partially_filled']),
-            where('remainingAmount', '>=', orderAmount)
+            where('status', 'in', ['pending', 'partially_filled'])
         );
         const allSellOrdersSnapshot = await getDocs(p2pCandidatesQuery);
         
         const allCandidates = allSellOrdersSnapshot.docs
             .map(doc => ({ ref: doc.ref, data: doc.data() }))
-            .filter(({ data }) => data.userId !== user.uid);
+            .filter(({ data }) => data.userId !== user.uid && data.remainingAmount >= orderAmount);
 
         const sellOrderCandidateDoc = allCandidates
             .sort((a, b) => {
@@ -350,7 +346,7 @@ const createOrder = async (provider: string, orderAmount: number) => {
 
                         const buyOrderData = {
                             userId: user.uid,
-                            amount: finalAmount,
+                            amount: orderAmount,
                             baseAmount: orderAmount,
                             bonusPercentage: bonusPercentage,
                             orderId: buyOrderDisplayId,
@@ -394,7 +390,7 @@ const createOrder = async (provider: string, orderAmount: number) => {
                 
                 const buyOrderData = {
                     userId: user.uid,
-                    amount: finalAmount,
+                    amount: orderAmount,
                     baseAmount: orderAmount,
                     bonusPercentage: bonusPercentage,
                     orderId: buyOrderDisplayId,
@@ -526,7 +522,7 @@ const createOrder = async (provider: string, orderAmount: number) => {
         </Tabs>
         
         {activeTab === 'usdt' ? (
-             <UsdtPurchaseForm onBuyClick={handleBuyClick} bonusPercentage={bonusPercentage} isCreatingOrder={isCreatingOrder} />
+             <UsdtPurchaseForm onBuyClick={handleBuyClick} isCreatingOrder={isCreatingOrder} />
         ) : (
             <Tabs defaultValue="small" className="w-full mt-4" onValueChange={setActiveSubTab}>
                 <TabsList className="grid w-full grid-cols-2">
