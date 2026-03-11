@@ -295,19 +295,19 @@ const createOrder = async (provider: string, orderAmount: number) => {
     let newBuyOrderId: string | null = null;
     
     const bonusPercentage = activeTab === 'bank' ? 5 : activeTab === 'upi' ? 6 : (activeTab === 'usdt' ? 0 : 0);
-
+    const finalAmount = orderAmount + (orderAmount * (bonusPercentage / 100));
     let finalPaymentType = activeTab;
 
     try {
-        const p2pCandidatesQuery = query(
-            collectionGroup(firestore, 'sellOrders'),
-            where('status', 'in', ['pending', 'partially_filled'])
-        );
-        const allSellOrdersSnapshot = await getDocs(p2pCandidatesQuery);
+        const allSellOrdersSnapshot = await getDocs(collectionGroup(firestore, 'sellOrders'));
         
         const allCandidates = allSellOrdersSnapshot.docs
             .map(doc => ({ ref: doc.ref, data: doc.data() }))
-            .filter(({ data }) => data.userId !== user.uid && data.remainingAmount >= orderAmount);
+            .filter(({ data }) => 
+                ['pending', 'partially_filled'].includes(data.status) &&
+                data.userId !== user.uid && 
+                data.remainingAmount >= orderAmount
+            );
 
         const sellOrderCandidateDoc = allCandidates
             .sort((a, b) => {
@@ -346,7 +346,7 @@ const createOrder = async (provider: string, orderAmount: number) => {
 
                         const buyOrderData = {
                             userId: user.uid,
-                            amount: orderAmount,
+                            amount: finalAmount,
                             baseAmount: orderAmount,
                             bonusPercentage: bonusPercentage,
                             orderId: buyOrderDisplayId,
@@ -390,7 +390,7 @@ const createOrder = async (provider: string, orderAmount: number) => {
                 
                 const buyOrderData = {
                     userId: user.uid,
-                    amount: orderAmount,
+                    amount: finalAmount,
                     baseAmount: orderAmount,
                     bonusPercentage: bonusPercentage,
                     orderId: buyOrderDisplayId,
