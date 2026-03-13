@@ -17,7 +17,7 @@ const tutorials = [
     id: 'buy',
     title: 'How to Buy LGB',
     description: 'A step-by-step guide on purchasing LGB in the app.',
-    videoUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+    videoUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
     steps: [
       'Go to the Home page and click "Buy".',
       'Select the amount you want to purchase.',
@@ -31,7 +31,7 @@ const tutorials = [
     id: 'sell',
     title: 'How to Sell LGB',
     description: 'Learn how to sell your LGB and withdraw funds.',
-    videoUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+    videoUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
     steps: [
         'Go to the Home page and click "Sell".',
         'Enter the amount you wish to sell.',
@@ -44,7 +44,7 @@ const tutorials = [
     id: 'upi',
     title: 'How to Link a UPI Account',
     description: 'Link your UPI account to enable withdrawals.',
-    videoUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
+    videoUrl: 'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4',
     steps: [
         'Go to the "My" page.',
         'Tap on "Payment Method".',
