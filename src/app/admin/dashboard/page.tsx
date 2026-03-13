@@ -1412,7 +1412,7 @@ function ConfirmationsTabContent() {
     useEffect(() => {
         if (!firestore) return;
         setOrdersLoading(true);
-        const q = query(collectionGroup(firestore, 'orders'), orderBy('createdAt', 'desc'), limit(100));
+        const q = query(collectionGroup(firestore, 'orders'), limit(300));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const pendingOrders = snapshot.docs
                 .map(orderDoc => ({
