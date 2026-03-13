@@ -122,7 +122,7 @@ export default function MyPage() {
   };
 
   const isFinalNewbieRewardClaimed = userProfile?.claimedUserRewards?.includes('nb_final_reward');
-  const showNewUserRewardButton = !profileLoading && !isFinalNewbieRewardClaimed;
+  const showNewUserRewardButton = !profileLoading;
 
 
   return (
@@ -240,15 +240,44 @@ export default function MyPage() {
         <GlassCard>
             <CardContent className="p-2">
                 {showNewUserRewardButton && (
-                  <Link href="/my/new-user-rewards" key="new-user-rewards">
-                    <div className="flex items-center justify-between p-3 rounded-lg hover:bg-secondary cursor-pointer">
-                      <div className="flex items-center gap-3">
-                        <Gift className="h-5 w-5 text-muted-foreground" />
-                        <span className="font-medium">{translations.newUserReward}</span>
+                  <Sheet>
+                    <SheetTrigger asChild>
+                      <div className="flex items-center justify-between p-3 rounded-lg hover:bg-secondary cursor-pointer">
+                        <div className="flex items-center gap-3">
+                          <Gift className="h-5 w-5 text-muted-foreground" />
+                          <span className="font-medium">{translations.newUserReward}</span>
+                        </div>
+                        <ChevronRight className="h-5 w-5 text-gray-400" />
                       </div>
-                      <ChevronRight className="h-5 w-5 text-gray-400" />
-                    </div>
-                  </Link>
+                    </SheetTrigger>
+                    <SheetContent side="bottom" className="rounded-t-2xl">
+                        <SheetHeader className="text-center pb-4">
+                            <SheetTitle>{translations.newUserReward}</SheetTitle>
+                        </SheetHeader>
+                        <div className="space-y-3">
+                            {!isFinalNewbieRewardClaimed && (
+                                <Link href="/my/new-user-rewards" className="block">
+                                    <div className="flex items-center justify-between p-4 rounded-lg hover:bg-secondary cursor-pointer border">
+                                    <div className="flex items-center gap-4">
+                                        <Gift className="h-6 w-6 text-primary" />
+                                        <span className="font-semibold">Newbie Task</span>
+                                    </div>
+                                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                                    </div>
+                                </Link>
+                            )}
+                            <Link href="/my/newbie-friend-rewards" className="block">
+                                <div className="flex items-center justify-between p-4 rounded-lg hover:bg-secondary cursor-pointer border">
+                                <div className="flex items-center gap-4">
+                                    <Users className="h-6 w-6 text-primary" />
+                                    <span className="font-semibold">Newbie Friend Bonus</span>
+                                </div>
+                                <ChevronRight className="h-5 w-5 text-gray-400" />
+                                </div>
+                            </Link>
+                        </div>
+                    </SheetContent>
+                  </Sheet>
                 )}
 
                 <Sheet>

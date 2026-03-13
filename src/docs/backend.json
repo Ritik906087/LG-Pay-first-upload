@@ -74,6 +74,13 @@
           },
           "description": "An array of task IDs for new user rewards that have been claimed."
         },
+        "claimedNewbieFriendRewards": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "An array of invited user UIDs for which the newbie friend bonus has been claimed."
+        },
         "sessionId": {
             "type": "string",
             "description": "A unique identifier for the current login session to enforce single-device login."
