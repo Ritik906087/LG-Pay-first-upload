@@ -121,7 +121,6 @@ export default function MyPage() {
     }
   };
 
-  const isFinalNewbieRewardClaimed = userProfile?.claimedUserRewards?.includes('nb_final_reward');
   const showNewUserRewardButton = !profileLoading;
 
 
@@ -255,22 +254,20 @@ export default function MyPage() {
                             <SheetTitle>{translations.newUserReward}</SheetTitle>
                         </SheetHeader>
                         <div className="space-y-3">
-                            {!isFinalNewbieRewardClaimed && (
-                                <Link href="/my/new-user-rewards" className="block">
-                                    <div className="flex items-center justify-between p-4 rounded-lg hover:bg-secondary cursor-pointer border">
-                                    <div className="flex items-center gap-4">
-                                        <Gift className="h-6 w-6 text-primary" />
-                                        <span className="font-semibold">Newbie Task</span>
-                                    </div>
-                                    <ChevronRight className="h-5 w-5 text-gray-400" />
-                                    </div>
-                                </Link>
-                            )}
+                            <Link href="/my/new-user-rewards" className="block">
+                                <div className="flex items-center justify-between p-4 rounded-lg hover:bg-secondary cursor-pointer border">
+                                <div className="flex items-center gap-4">
+                                    <Gift className="h-6 w-6 text-primary" />
+                                    <span className="font-semibold">Newbie Reward</span>
+                                </div>
+                                <ChevronRight className="h-5 w-5 text-gray-400" />
+                                </div>
+                            </Link>
                             <Link href="/my/newbie-friend-rewards" className="block">
                                 <div className="flex items-center justify-between p-4 rounded-lg hover:bg-secondary cursor-pointer border">
                                 <div className="flex items-center gap-4">
                                     <Users className="h-6 w-6 text-primary" />
-                                    <span className="font-semibold">Newbie Friend Bonus</span>
+                                    <span className="font-semibold">Newbie Friend Reward</span>
                                 </div>
                                 <ChevronRight className="h-5 w-5 text-gray-400" />
                                 </div>
