@@ -44,8 +44,8 @@ async function createHumanAgentRequest(input: {
             createdAt: serverTimestamp(),
         });
         
-        // No need to await this, let it run in the background
-        sendNewChatRequestToTelegram({
+        // Wait for the notification to be sent to ensure reliability
+        await sendNewChatRequestToTelegram({
             userNumericId,
             enteredIdentifier: input.enteredIdentifier,
         });

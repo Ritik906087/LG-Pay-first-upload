@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { Suspense, useMemo, useState, useRef, useEffect, useCallback } from 'react';
@@ -466,7 +465,7 @@ function PaymentDetailsContent() {
                     const receiverDetailsForTg = Object.fromEntries(
                         Object.entries(details).map(([key, value]) => [key, String(value)])
                     );
-                    sendOrderConfirmationToTelegram({
+                    await sendOrderConfirmationToTelegram({
                         orderId: order.orderId,
                         userNumericId: userProfile.numericId,
                         amount: order.baseAmount,
