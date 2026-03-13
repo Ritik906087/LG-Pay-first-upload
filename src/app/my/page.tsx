@@ -92,7 +92,7 @@ export default function MyPage() {
 
   const actionItems = [
     { icon: Wallet, label: translations.collection, href: "/my/collection" },
-    { icon: Lock, label: translations.paymentPassword },
+    { icon: Lock, label: translations.paymentPassword, href: "/my/change-password" },
     { icon: ScrollText, label: translations.transaction, href: "/my/transactions" },
     { icon: Settings, label: translations.settings, href: "/my/settings" },
   ]
