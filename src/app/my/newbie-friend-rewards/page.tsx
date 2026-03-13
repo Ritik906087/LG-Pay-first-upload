@@ -222,6 +222,10 @@ export default function NewbieFriendRewardsPage() {
                     </CardContent>
                 </Card>
 
+                <Button className="w-full h-12 text-lg font-bold" onClick={handleReceiveRewards} disabled={isClaiming || totalBonus === 0}>
+                    {isClaiming ? <Loader size="xs" /> : `Receive Rewards (₹${totalBonus})`}
+                </Button>
+                
                 <p className="text-sm text-destructive text-center bg-red-100 p-2 rounded-lg">
                    Warning: You will receive ₹200 LG only when your referred user buys ₹1000 worth of LG.
                 </p>
@@ -247,12 +251,6 @@ export default function NewbieFriendRewardsPage() {
                     </AccordionItem>
                 </Accordion>
             </main>
-
-            <footer className="p-4 bg-white border-t sticky bottom-0">
-                 <Button className="w-full h-12 text-lg font-bold" onClick={handleReceiveRewards} disabled={isClaiming || totalBonus === 0}>
-                    {isClaiming ? <Loader size="xs" /> : `Receive Rewards (₹${totalBonus})`}
-                </Button>
-            </footer>
         </div>
     );
 }
