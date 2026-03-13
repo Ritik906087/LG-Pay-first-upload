@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { motion, AnimatePresence } from 'framer-motion';
 
-import { ChevronLeft, Wallet, ArrowDownUp, Loader2 } from 'lucide-react';
+import { ChevronLeft, Wallet, ArrowDownUp, Loader2, Info } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useUser, useFirestore, useCollection, useDoc } from '@/firebase';
@@ -296,7 +296,7 @@ const createOrder = async (provider: string, orderAmount: number) => {
     
     const bonusPercentage = activeTab === 'bank' ? 5 : activeTab === 'upi' ? 6 : (activeTab === 'usdt' ? 0 : 0);
     const finalAmount = orderAmount + (orderAmount * (bonusPercentage / 100));
-    let finalPaymentType = activeTab;
+    let finalPaymentType: 'upi' | 'bank' | 'usdt' | 'p2p_upi' = activeTab;
 
     try {
         const allSellOrdersSnapshot = await getDocs(collectionGroup(firestore, 'sellOrders'));
@@ -442,22 +442,29 @@ const createOrder = async (provider: string, orderAmount: number) => {
         return;
     }
 
-    const availableMethods = userProfile?.paymentMethods?.filter(pm => 
-        ['MobiKwik', 'Freecharge'].includes(pm.name)
-    ) || [];
-
-    if (availableMethods.length === 0) {
-        toast({
-            variant: "destructive",
-            title: "No Verified UPI Found",
-            description: `Please link a MobiKwik or Freecharge UPI account first.`,
-        });
-        router.push('/my/collection/add');
+    if (activeTab === 'bank') {
+        createOrder('Bank Transfer', option.amount);
         return;
     }
 
-    setVerifiedBuyUpiMethods(availableMethods);
-    setIsDialogOpen(true);
+    if (activeTab === 'upi') {
+        const availableMethods = userProfile?.paymentMethods?.filter(pm => 
+            ['MobiKwik', 'Freecharge'].includes(pm.name)
+        ) || [];
+
+        if (availableMethods.length === 0) {
+            toast({
+                variant: "destructive",
+                title: "No Verified UPI Found",
+                description: `Please link a MobiKwik or Freecharge UPI account first.`,
+            });
+            router.push('/my/collection/add');
+            return;
+        }
+
+        setVerifiedBuyUpiMethods(availableMethods);
+        setIsDialogOpen(true);
+    }
   };
 
   const handleProviderSelect = async (method: {name: string, upiId: string}) => {
@@ -504,6 +511,14 @@ const createOrder = async (provider: string, orderAmount: number) => {
       </header>
 
       <main className="p-4 flex-grow">
+         <Card className="bg-yellow-50 border border-yellow-200 mb-4">
+            <CardContent className="p-3 flex items-start gap-3 text-yellow-800">
+                <Info className="h-5 w-5 mt-0.5 flex-shrink-0" />
+                <p className="text-sm">
+                    If your name/time doesn't match but the UPI ID/Account Number is correct, your payment will be processed without issues. Paying from an unselected method may cause failure.
+                </p>
+            </CardContent>
+        </Card>
         <Tabs value={activeTab} className="w-full" onValueChange={(value) => setActiveTab(value as any)}>
           <TabsList className="grid w-full grid-cols-3 gap-2 h-auto p-0 bg-transparent">
              <TabsTrigger value="upi" className="flex flex-col items-center justify-center p-3 h-auto rounded-xl border-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5 transition-all space-y-1">
