@@ -1398,29 +1398,28 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
 function ConfirmationsTabContent() {
     const firestore = useFirestore();
     const [allOrders, setAllOrders] = useState<Order[]>([]);
-    const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
+    const [usersMap, setUsersMap] = useState<Map<string, UserProfile>>(new Map());
     const [adminPaymentMethods, setAdminPaymentMethods] = useState<PaymentMethod[]>([]);
     
     const [ordersLoading, setOrdersLoading] = useState(true);
-    const [usersLoading, setUsersLoading] = useState(true);
+    const [usersLoading, setUsersLoading] = useState(false);
     const [methodsLoading, setMethodsLoading] = useState(true);
 
     const [error, setError] = useState<any>(null);
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Real-time listener for orders
+    // Real-time listener for pending orders
     useEffect(() => {
         if (!firestore) return;
         setOrdersLoading(true);
-        const q = query(collectionGroup(firestore, 'orders'), limit(300));
+        const q = query(collectionGroup(firestore, 'orders'), where('status', 'in', ['pending_confirmation', 'in_applied']));
+        
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const pendingOrders = snapshot.docs
-                .map(orderDoc => ({
-                    id: orderDoc.id,
-                    ...orderDoc.data(),
-                    path: orderDoc.ref.path,
-                } as Order))
-                .filter(order => ['pending_confirmation', 'in_applied'].includes(order.status));
+            const pendingOrders = snapshot.docs.map(orderDoc => ({
+                id: orderDoc.id,
+                ...orderDoc.data(),
+                path: orderDoc.ref.path,
+            } as Order));
             
             setAllOrders(pendingOrders);
             setOrdersLoading(false);
@@ -1434,22 +1433,53 @@ function ConfirmationsTabContent() {
         return () => unsubscribe();
     }, [firestore]);
 
-    // Real-time listener for users
+    // Fetch user data for the orders
     useEffect(() => {
-        if (!firestore) return;
-        setUsersLoading(true);
-        const q = query(collection(firestore, 'users'));
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile));
-            setAllUsers(usersData);
+        if (!firestore || allOrders.length === 0) {
             setUsersLoading(false);
-        }, (err) => {
-            console.error("Error listening to users:", err);
-            setUsersLoading(false);
-        });
+            return;
+        }
+    
+        const userIds = [...new Set(allOrders.map(order => order.userId))];
+        const newUsersToFetch = userIds.filter(id => !usersMap.has(id));
 
-        return () => unsubscribe();
-    }, [firestore]);
+        if (newUsersToFetch.length === 0) {
+            return;
+        }
+
+        setUsersLoading(true);
+        
+        const fetchUsers = async () => {
+            try {
+                const newUserPromises = [];
+                // Batch fetch in chunks of 30 (Firestore 'in' query limit)
+                for (let i = 0; i < newUsersToFetch.length; i += 30) {
+                    const chunk = newUsersToFetch.slice(i, i + 30);
+                    const usersQuery = query(collection(firestore, 'users'), where('__name__', 'in', chunk));
+                    newUserPromises.push(getDocs(usersQuery));
+                }
+    
+                const userSnapshots = await Promise.all(newUserPromises);
+                const newUsersData: UserProfile[] = userSnapshots.flatMap(snapshot => 
+                    snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile))
+                );
+
+                setUsersMap(prevMap => {
+                    const newMap = new Map(prevMap);
+                    newUsersData.forEach(user => newMap.set(user.id, user));
+                    return newMap;
+                });
+            } catch (err) {
+                console.error("Error fetching users for orders:", err);
+                setError(err);
+            } finally {
+                setUsersLoading(false);
+            }
+        };
+        
+        fetchUsers();
+    
+    }, [allOrders, firestore, usersMap]);
     
     // Fetch payment methods once
     useEffect(() => {
@@ -1469,15 +1499,11 @@ function ConfirmationsTabContent() {
     }, [firestore]);
 
 
-    const usersMap = useMemo(() => {
-        return new Map(allUsers.map(user => [user.id, user]));
-    }, [allUsers]);
-
     const ordersWithUserData = useMemo(() => {
         return allOrders.map(order => ({
             ...order,
             user: usersMap.get(order.userId)
-        })).sort((a, b) => a.createdAt.seconds - b.createdAt.seconds);
+        })).sort((a, b) => b.createdAt.seconds - a.createdAt.seconds); // Newest first
     }, [allOrders, usersMap]);
 
     const filteredOrders = useMemo(() => {
@@ -1491,7 +1517,7 @@ function ConfirmationsTabContent() {
         );
     }, [ordersWithUserData, searchTerm]);
     
-    const loading = ordersLoading || usersLoading || methodsLoading;
+    const loading = ordersLoading || methodsLoading;
 
     if (loading) {
         return (
@@ -1561,7 +1587,7 @@ function ConfirmationsTabContent() {
                                     </div>
                                 </CardHeader>
                                 <CardContent className="p-4 pt-0 space-y-2 text-sm">
-                                    <p><strong>User:</strong> {order.user?.displayName || 'N/A'} ({order.user?.numericId})</p>
+                                    <p><strong>User:</strong> {order.user ? `${order.user.displayName} (${order.user.numericId})` : (usersLoading ? <Skeleton className="h-4 w-20 inline-block"/> : 'N/A')}</p>
                                     <p className="flex items-start gap-2"><strong>UTR/TxHash:</strong> <span className="font-mono text-right break-all">{order.utr}</span></p>
                                      {order.paymentProvider && (
                                         <p className="flex items-center gap-2">
