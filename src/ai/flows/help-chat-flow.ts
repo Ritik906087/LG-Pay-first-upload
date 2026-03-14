@@ -23,7 +23,7 @@ async function createHumanAgentRequest(input: {
     uid?: string;
     enteredIdentifier: string;
     chatHistory: any[];
-}): Promise<{ success: boolean, error?: string }> {
+}): Promise<{ success: boolean, error?: string, chatId?: string }> {
     let userNumericId: string | undefined;
     if (input.uid) {
         try {
@@ -50,7 +50,7 @@ async function createHumanAgentRequest(input: {
             docData.userNumericId = userNumericId;
         }
 
-        await addDoc(collection(db, 'chatRequests'), docData);
+        const newDocRef = await addDoc(collection(db, 'chatRequests'), docData);
         
         // Wait for the notification to be sent to ensure reliability
         await sendNewChatRequestToTelegram({
@@ -58,7 +58,7 @@ async function createHumanAgentRequest(input: {
             enteredIdentifier: input.enteredIdentifier,
         });
 
-        return { success: true };
+        return { success: true, chatId: newDocRef.id };
     } catch (e) {
         console.error("Failed to create chat request:", e);
         return { success: false, error: (e as Error).message };
@@ -69,6 +69,6 @@ export async function escalateToHuman(input: {
     uid?: string;
     enteredIdentifier: string;
     chatHistory: any[];
-}): Promise<{ success: boolean; error?: string }> {
+}): Promise<{ success: boolean; error?: string, chatId?: string }> {
     return await createHumanAgentRequest(input);
 }

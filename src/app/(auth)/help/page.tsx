@@ -41,6 +41,7 @@ import { Loader } from '@/components/ui/loader';
 const defaultAvatarUrl = "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/LG%20PAY%20AVATAR.png?alt=media&token=707ce79d-15fa-4e58-9d1d-a7d774cfe5ec";
 
 const SOUND_PREF_KEY = 'lg-pay-help-sound-pref';
+const GUEST_CHAT_ID_KEY = 'lg-pay-guest-chat-id';
 
 type Attachment = {
   name: string;
@@ -93,6 +94,7 @@ export default function HelpPage() {
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
   const [isSoundOn, setIsSoundOn] = useState(true);
+  const [guestChatId, setGuestChatId] = useState<string | null>(null);
 
   // Audio Context Refs
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -166,13 +168,30 @@ export default function HelpPage() {
 
   const { data: allUserChatRequests, loading: chatRequestsLoading } = useCollection<ChatRequest>(allUserChatRequestsQuery);
   
-  const activeRequest = useMemo(() => {
+  const loggedInActiveRequest = useMemo(() => {
       if (!allUserChatRequests || allUserChatRequests.length === 0) return null;
       // Sort client-side to avoid needing a composite index
       return allUserChatRequests
         .filter(req => ['pending', 'active'].includes(req.status))
         .sort((a, b) => b.createdAt.seconds - a.createdAt.seconds)[0];
   }, [allUserChatRequests]);
+
+  const guestChatRequestRef = useMemo(() => {
+    if (!firestore || !guestChatId || user) return null;
+    return doc(firestore, 'chatRequests', guestChatId);
+  }, [firestore, guestChatId, user]);
+
+  const { data: guestChatRequest, loading: guestChatLoading } = useDoc<ChatRequest>(guestChatRequestRef);
+
+  const activeRequest = useMemo(() => {
+    if (user) {
+        return loggedInActiveRequest;
+    }
+    if (guestChatRequest && ['pending', 'active'].includes(guestChatRequest.status)) {
+        return guestChatRequest;
+    }
+    return null;
+  }, [user, loggedInActiveRequest, guestChatRequest]);
 
   const activeChatRequestRef = useMemo(() => {
     if (!firestore || !activeRequest) return null;
@@ -187,20 +206,31 @@ export default function HelpPage() {
   const displayedMessages = liveChat?.chatHistory || [];
   const prevMessagesCount = useRef(displayedMessages?.length ?? 0);
 
-  // Load sound preference from localStorage
+  // Load from storage
   useEffect(() => {
     try {
         const savedSoundPref = localStorage.getItem(SOUND_PREF_KEY);
         if (savedSoundPref !== null) {
             setIsSoundOn(JSON.parse(savedSoundPref));
         }
-        if (activeRequest) {
+
+        let currentChatId: string | null = null;
+        if (!user) {
+            const savedGuestChatId = sessionStorage.getItem(GUEST_CHAT_ID_KEY);
+            if (savedGuestChatId) {
+                setGuestChatId(savedGuestChatId);
+                currentChatId = savedGuestChatId;
+            }
+        }
+        
+        if (activeRequest || currentChatId) {
             autoUnlockAudio();
         }
+
     } catch (error) {
         console.error("Failed to load data from storage:", error);
     }
-  }, [activeRequest]);
+  }, [user, activeRequest]);
 
 
    // Countdown Timer Logic
@@ -312,8 +342,12 @@ export default function HelpPage() {
         title: 'Failed to Start Chat',
         description: result.error || 'Could not create a support request. Please try again.',
       });
+    } else {
+        if (!user && result.chatId) {
+            sessionStorage.setItem(GUEST_CHAT_ID_KEY, result.chatId);
+            setGuestChatId(result.chatId);
+        }
     }
-    // The hooks will automatically detect the new request and switch the UI.
   };
 
     const handleSendMessage = async () => {
@@ -350,15 +384,18 @@ export default function HelpPage() {
     };
     
     const handleCloseChat = async () => {
-        // If there's an active human agent request, update it in Firestore
         if (firestore && activeRequest) {
             const requestRef = doc(firestore, 'chatRequests', activeRequest.id);
             try {
                 await updateDoc(requestRef, { status: 'closed' });
             } catch (error: any) {
-                // If Firestore update fails, show an error but still close the local chat
                 toast({ variant: 'destructive', title: 'Could not close server chat', description: error.message });
             }
+        }
+        
+        if (guestChatId) {
+            sessionStorage.removeItem(GUEST_CHAT_ID_KEY);
+            setGuestChatId(null);
         }
         toast({ title: 'Chat Closed' });
     };
@@ -387,7 +424,9 @@ export default function HelpPage() {
     }
   };
 
-  if (authLoading || (user && chatRequestsLoading)) {
+  const loading = authLoading || (user && chatRequestsLoading) || (!user && guestChatId ? guestChatLoading : false);
+
+  if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-secondary">
         <Loader size="md" />
