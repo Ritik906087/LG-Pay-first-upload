@@ -52,8 +52,13 @@ ${tags}
                 text: message,
                 parse_mode: 'Markdown',
             }),
+        }).then(async (response) => {
+            if (!response.ok) {
+                const errorBody = await response.json();
+                console.error(`[TelegramBot] Failed to send PAYMENT message to chat ID ${chatId}. Status: ${response.status}`, errorBody);
+            }
         }).catch(error => {
-            console.error(`Failed to send message to chat ID ${chatId}:`, error);
+            console.error(`[TelegramBot] Network error sending PAYMENT message to chat ID ${chatId}:`, error);
         });
     });
 
@@ -70,7 +75,7 @@ export async function sendNewChatRequestToTelegram(details: ChatRequestDetails) 
     const chatIds = process.env.TELEGRAM_SUPPORT_CHAT_IDS?.split(',') || [];
 
     if (!botToken || chatIds.length === 0) {
-        console.error('Telegram support bot token or chat ID are not configured for chat requests.');
+        console.error('Telegram support bot token or chat IDs are not configured for chat requests.');
         return;
     }
 
@@ -99,8 +104,13 @@ ${tags}
                 text: message,
                 parse_mode: 'Markdown',
             }),
+        }).then(async (response) => {
+            if (!response.ok) {
+                const errorBody = await response.json();
+                console.error(`[TelegramBot] Failed to send SUPPORT message to chat ID ${chatId}. Status: ${response.status}`, errorBody);
+            }
         }).catch(error => {
-            console.error(`Failed to send message to chat ID ${chatId}:`, error);
+            console.error(`[TelegramBot] Network error sending SUPPORT message to chat ID ${chatId}:`, error);
         });
     });
 
