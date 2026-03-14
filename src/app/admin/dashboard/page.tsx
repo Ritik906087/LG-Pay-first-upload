@@ -527,7 +527,7 @@ const PaymentReceipt = React.forwardRef<HTMLDivElement, { order: SellOrder; utr:
         hour12: true
     });
     
-    const isBank = order.withdrawalMethod.type === 'bank';
+    const isBank = order.withdrawalMethod?.type === 'bank';
 
     return (
         <div ref={ref} className="bg-white p-6 rounded-lg shadow-lg w-[360px] relative overflow-hidden font-sans">
@@ -544,11 +544,11 @@ const PaymentReceipt = React.forwardRef<HTMLDivElement, { order: SellOrder; utr:
                 <div className="space-y-3 text-sm border-t border-dashed pt-4">
                     <div className="flex justify-between">
                         <span className="text-gray-500">To</span>
-                        <span className="font-medium text-right">{isBank ? order.withdrawalMethod.accountHolderName : order.withdrawalMethod.name}</span>
+                        <span className="font-medium text-right">{isBank ? order.withdrawalMethod?.accountHolderName : order.withdrawalMethod?.name}</span>
                     </div>
                      <div className="flex justify-between">
                         <span className="text-gray-500">{isBank ? 'Account No.' : 'UPI ID'}</span>
-                        <span className="font-medium text-right">{isBank ? order.withdrawalMethod.accountNumber : order.withdrawalMethod.upiId}</span>
+                        <span className="font-medium text-right">{isBank ? order.withdrawalMethod?.accountNumber : order.withdrawalMethod?.upiId}</span>
                     </div>
                     <div className="flex justify-between">
                         <span className="text-gray-500">From</span>
@@ -588,7 +588,7 @@ function ProcessWithdrawalDialog({ order, onProcessed }: { order: SellOrder, onP
 
     // This is the user's destination account (either bank or UPI).
     const withdrawalDetails = order.withdrawalMethod;
-    const isBankWithdrawal = withdrawalDetails.type === 'bank';
+    const isBankWithdrawal = withdrawalDetails?.type === 'bank';
 
     const handleConfirm = async () => {
         if (utr.length !== 12 || !/^\d+$/.test(utr)) {
@@ -708,17 +708,19 @@ function ProcessWithdrawalDialog({ order, onProcessed }: { order: SellOrder, onP
                             <p><strong>Amount:</strong> <span className="font-bold text-lg text-primary">₹{order.amount}</span></p>
                             <p><strong>User UID:</strong> {order.userNumericId}</p>
                             <p><strong>Phone:</strong> {order.userPhoneNumber}</p>
-                            <p><strong>Method:</strong> {withdrawalDetails.type.toUpperCase()}</p>
+                            
+                            <p><strong>Method:</strong> {withdrawalDetails?.type?.toUpperCase() ?? 'N/A'}</p>
                             {isBankWithdrawal ? (
                                 <>
-                                <p><strong>Bank:</strong> {withdrawalDetails.bankName}</p>
-                                <p><strong>Holder:</strong> {withdrawalDetails.accountHolderName}</p>
-                                <p><strong>Account No:</strong> {withdrawalDetails.accountNumber}</p>
-                                <p><strong>IFSC:</strong> {withdrawalDetails.ifscCode}</p>
+                                <p><strong>Bank:</strong> {withdrawalDetails.bankName ?? 'N/A'}</p>
+                                <p><strong>Holder:</strong> {withdrawalDetails.accountHolderName ?? 'N/A'}</p>
+                                <p><strong>Account No:</strong> {withdrawalDetails.accountNumber ?? 'N/A'}</p>
+                                <p><strong>IFSC:</strong> {withdrawalDetails.ifscCode ?? 'N/A'}</p>
                                 </>
                             ) : (
-                                <p><strong>To ({withdrawalDetails.name}):</strong> {withdrawalDetails.upiId}</p>
+                                <p><strong>To ({withdrawalDetails?.name || 'N/A'}):</strong> {withdrawalDetails?.upiId || 'N/A'}</p>
                             )}
+
                             <div className="space-y-2 pt-2">
                                 <Label htmlFor="utr">12-Digit UTR Number</Label>
                                 <Input id="utr" value={utr} onChange={(e) => setUtr(e.target.value)} maxLength={12} placeholder="Enter payment UTR" />
@@ -2051,3 +2053,4 @@ export default function AdminDashboardPage() {
 
     return <AdminDashboard />;
 }
+
