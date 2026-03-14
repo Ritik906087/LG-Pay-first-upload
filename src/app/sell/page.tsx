@@ -244,8 +244,10 @@ export default function SellPage() {
                         className="space-y-3"
                     >
                         {userProfile.paymentMethods.map((method, index) => {
-                            const isUpi = method.type === 'upi';
-                            const isBank = method.type === 'bank';
+                            const methodType = method.type || (method.upiId ? 'upi' : 'bank');
+                            const isUpi = methodType === 'upi';
+                            const isBank = methodType === 'bank';
+
                             const key = isUpi ? method.upiId : (isBank ? method.accountNumber : `method-${index}`);
                             const id = isUpi ? method.upiId : (isBank ? `bank-${index}` : `method-id-${index}`);
                             
@@ -255,8 +257,8 @@ export default function SellPage() {
                             if (!key || !id) return null;
 
                             return (
-                                <Label key={key} htmlFor={id!} className={cn("flex items-center gap-4 rounded-xl p-3 border-2 border-transparent has-[:checked]:border-primary", bgColor)}>
-                                    <RadioGroupItem value={JSON.stringify(method)} id={id!} className="border-white text-white ring-offset-0" />
+                                <Label key={key} htmlFor={id} className={cn("flex items-center gap-4 rounded-xl p-3 border-2 border-transparent has-[:checked]:border-primary", bgColor)}>
+                                    <RadioGroupItem value={JSON.stringify(method)} id={id} className="border-white text-white ring-offset-0" />
                                     
                                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white p-1">
                                         {isUpi && upiDetails ? (
