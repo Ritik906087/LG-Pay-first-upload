@@ -142,18 +142,19 @@ export default function AddCollectionPage() {
   };
   
   const validateUpi = (upi: string, methodName: string): boolean => {
+    const upiLower = upi.toLowerCase();
     const upiRegexMap: { [key: string]: RegExp } = {
-        "PhonePe": /^[a-zA-Z0-9.\-_]{2,256}@(ybl|ibl|axl)$/,
-        "Paytm": /^[a-zA-Z0-9.\-_]{2,256}@(paytm)$/,
-        "MobiKwik": /^[a-zA-Z0-9.\-_]{2,256}@(ikwik)$/,
-        "Freecharge": /^[a-zA-Z0-9.\-_]{2,256}@(freecharge)$/,
+        "PhonePe": /^[a-z0-9.\-_]{2,256}@(ybl|ibl|axl)$/,
+        "Paytm": /^[a-z0-9.\-_]{2,256}@(paytm|ptaap|ptpy|pthdfc|ptsbi|ptaxis|ptyes)$/,
+        "MobiKwik": /^[a-z0-9.\-_]{2,256}@(ikwik|mbk|mbkns)$/,
+        "Freecharge": /^[a-z0-9.\-_]{2,256}@(freecharge|axisbank)$/,
     };
 
     const regex = upiRegexMap[methodName];
     if (regex) {
-        return regex.test(upi);
+        return regex.test(upiLower);
     }
-    return /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/.test(upi);
+    return /^[a-z0-9.\-_]{2,256}@[a-z]{2,64}$/.test(upiLower);
   }
 
   const handleLinkSubmit = async (methodData: any) => {
