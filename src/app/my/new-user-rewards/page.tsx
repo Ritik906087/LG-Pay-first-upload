@@ -30,8 +30,8 @@ const UpiIcons = () => (
 );
 
 const newbieTasksList = [
-    { id: 'nb_telegram', title: 'Subscribe to Official Channel', icon: <TelegramIcon />, action: "go", href: "https://t.me/LGB_PAY" },
-    { id: 'nb_tutorial', title: 'Watch Beginner Tutorial', icon: <PlaySquare className="h-6 w-6 text-blue-500" />, action: "go", href: "#" },
+    { id: 'nb_telegram', title: 'Subscribe to Official Channel', icon: <TelegramIcon />, action: "go", href: "https://t.me/+-W0tnyDk3jBiYjQ1" },
+    { id: 'nb_tutorial', title: 'Watch Beginner Tutorial', icon: <PlaySquare className="h-6 w-6 text-blue-500" />, action: "go", href: "/my/tutorial" },
     { id: 'nb_upi', title: 'Link Mobikwik/Freecharge', icon: <UpiIcons />, action: "go", href: "/my/collection/add" },
     { id: 'nb_purchase', title: 'Purchase 1000 LG', icon: <CircleDollarSign className="h-6 w-6 text-yellow-500" />, action: 'go', href: '/buy', goal: 1000 },
 ];
