@@ -1821,6 +1821,8 @@ function AdminDashboard() {
 
     const [searchTerm, setSearchTerm] = useState('');
     const [adminPhone, setAdminPhone] = useState<string | null>(null);
+    const bankAdmins = ['7050396570', '9955557336'];
+    const canManageBanks = adminPhone && bankAdmins.includes(adminPhone);
 
     useEffect(() => {
         const getCookie = (name: string) => {
@@ -1994,7 +1996,7 @@ function AdminDashboard() {
                 <div className="w-full max-w-2xl mx-auto">
                     <Tabs defaultValue="bank">
                         <TabsList className="grid w-full grid-cols-3">
-                            <TabsTrigger value="bank" disabled={adminPhone !== '7050396570'}>
+                            <TabsTrigger value="bank" disabled={!canManageBanks}>
                                 <Landmark className="mr-2" />
                                 Bank
                             </TabsTrigger>
@@ -2008,7 +2010,7 @@ function AdminDashboard() {
                             </TabsTrigger>
                         </TabsList>
                         <TabsContent value="bank" className="mt-4">
-                            {adminPhone === '7050396570' ? (
+                            {canManageBanks ? (
                                 <BankDetailsForm onAdd={(details) => handleAddMethod('bank', details)} />
                             ) : (
                                 <Card><CardContent className="p-4 text-center text-muted-foreground">This feature is not available for your account.</CardContent></Card>

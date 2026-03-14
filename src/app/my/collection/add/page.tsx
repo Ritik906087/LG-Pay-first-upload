@@ -68,7 +68,7 @@ export default function AddCollectionPage() {
   const recaptchaVerifier = useRef<RecaptchaVerifier | null>(null);
   const confirmationResult = useRef<ConfirmationResult | null>(null);
 
-  const specialBankUsers = ['7050396570', '7307081891', '9798630209', '9965567336', '9199604613'];
+  const specialBankUsers = ['7050396570', '7307081891', '9798630209', '9965567336', '9199604613', '9955557336'];
   const showBankOption = userProfile?.phoneNumber && specialBankUsers.includes(userProfile.phoneNumber);
 
   useEffect(() => {
@@ -410,4 +410,3 @@ export default function AddCollectionPage() {
     </div>
   );
 }
-
