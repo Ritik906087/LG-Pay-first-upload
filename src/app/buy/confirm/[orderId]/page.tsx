@@ -198,12 +198,18 @@ function PaymentDetailsContent() {
         }
     }, [orderRef, paymentTargetDetails, order, type]);
 
+    const handleCancelOrder = useCallback(async (isAutoCancel = false, reason = "Order expired") => {
+        if (!orderRef || !firestore) return;
 
-     const handleCancelOrder = useCallback(async (isAutoCancel = false, reason = "Order expired") => {
-        if (!orderRef || !firestore || !order) return;
-
+        // Fetch the latest order data inside the callback
         const currentOrderSnap = await getDoc(orderRef);
-        if (currentOrderSnap.data()?.status !== 'pending_payment') return;
+        if (!currentOrderSnap.exists() || currentOrderSnap.data()?.status !== 'pending_payment') {
+            // If it's already cancelled/processed, just navigate away if it's an auto-cancel
+            if (isAutoCancel && currentOrderSnap.exists()) {
+                router.push(`/order/${orderId}`);
+            }
+            return;
+        }
 
         setIsCancelling(true);
 
@@ -211,7 +217,7 @@ function PaymentDetailsContent() {
             await runTransaction(firestore, async (transaction) => {
                 const buyOrderSnap = await transaction.get(orderRef);
                 if (!buyOrderSnap.exists() || buyOrderSnap.data()?.status !== 'pending_payment') {
-                    return;
+                    return; // Another process might have handled it
                 }
                 const buyOrderData = buyOrderSnap.data();
 
@@ -265,7 +271,7 @@ function PaymentDetailsContent() {
             setIsCancelling(false);
             setIsCancelDialogOpen(false);
         }
-    }, [firestore, order, orderRef, router, toast, orderId]);
+    }, [firestore, orderRef, router, toast, orderId]);
     
     const handleConfirmCancellation = async () => {
         let finalReason = cancelReason;

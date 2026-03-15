@@ -1907,7 +1907,7 @@ function AdminDashboard() {
     const firestore = useFirestore();
     const { toast } = useToast();
     
-    const usersQuery = useMemo(() => firestore ? query(collection(firestore, "users"), orderBy('createdAt', 'desc'), limit(50)) : null, [firestore]);
+    const usersQuery = useMemo(() => firestore ? query(collection(firestore, "users"), orderBy('createdAt', 'desc')) : null, [firestore]);
     const { data: allUsers, loading, error } = useCollection<UserProfile>(usersQuery);
     
     const paymentMethodsQuery = useMemo(() => firestore ? collection(firestore, "paymentMethods") : null, [firestore]);
