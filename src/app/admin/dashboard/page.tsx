@@ -1441,34 +1441,39 @@ function ConfirmationsTabContent() {
         setOrdersLoading(true);
         setError(null);
         try {
-            // This query fetches ALL orders and will be slow, but avoids the index error.
-            const q = query(collectionGroup(firestore, 'orders'));
+            // This query is much more efficient as it filters on the database server.
+            // It might require a new Firestore index. If this page shows an error,
+            // check the browser's developer console for a link to create the index.
+            const q = query(
+                collectionGroup(firestore, 'orders'), 
+                where('status', 'in', ['pending_confirmation', 'in_applied'])
+            );
             const snapshot = await getDocs(q);
 
-            const allFetchedOrders = snapshot.docs.map(orderDoc => ({
+            const pendingOrders = snapshot.docs.map(orderDoc => ({
                 id: orderDoc.id,
                 ...orderDoc.data(),
                 path: orderDoc.ref.path,
             } as Order));
-
-            const pendingOrders = allFetchedOrders.filter(order => 
-                ['pending_confirmation', 'in_applied'].includes(order.status)
-            );
             
             setAllOrders(pendingOrders);
 
             if (pendingOrders.length > 0) {
                 const userIds = [...new Set(pendingOrders.map(order => order.userId))];
-                const newUserPromises = [];
+                // Using 'in' query is limited to 30 elements in the array.
+                // We need to chunk the userIds array.
+                const userPromises = [];
                 for (let i = 0; i < userIds.length; i += 30) {
                     const chunk = userIds.slice(i, i + 30);
                     const usersQuery = query(collection(firestore, 'users'), where('__name__', 'in', chunk));
-                    newUserPromises.push(getDocs(usersQuery));
+                    userPromises.push(getDocs(usersQuery));
                 }
-                const userSnapshots = await Promise.all(newUserPromises);
+                const userSnapshots = await Promise.all(userPromises);
+
                 const newUsersData: UserProfile[] = userSnapshots.flatMap(snapshot => 
                     snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile))
                 );
+
                 const newUsersMap = new Map<string, UserProfile>();
                 newUsersData.forEach(user => newUsersMap.set(user.id, user));
                 setUsersMap(newUsersMap);
@@ -1533,6 +1538,7 @@ function ConfirmationsTabContent() {
                     <CardTitle className="text-destructive">Error Fetching Confirmations</CardTitle>
                     <CardDescription className="text-destructive/80">
                         Could not retrieve pending payments. This might be due to Firestore security rules or a network issue.
+                        If you see an error in the browser console about a missing index, please click the link in the error to create it in Firebase.
                     </CardDescription>
                 </CardHeader>
                  <CardContent>
