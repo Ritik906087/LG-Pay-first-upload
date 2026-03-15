@@ -88,7 +88,6 @@ export default function InvitePage() {
       return;
     }
     
-    // Check if Web Share API is available
     if (navigator.share) {
       try {
         await navigator.share({
@@ -100,7 +99,6 @@ export default function InvitePage() {
         console.log('Sharing was cancelled or failed.', error);
       }
     } else {
-      // Fallback: open custom share sheet
       setIsShareSheetOpen(true);
     }
   };
@@ -110,7 +108,7 @@ export default function InvitePage() {
     if (!details) {
       toast({
         variant: 'destructive',
-        title: 'Could not get invitation code',
+        title: 'Could not get invitation link',
       });
       return;
     }
@@ -119,7 +117,6 @@ export default function InvitePage() {
             title: 'Link Copied!',
             description: 'Invitation link copied to clipboard.',
         });
-        setIsShareSheetOpen(false); // Close sheet after copying
     }).catch(err => {
         console.error('Failed to copy text: ', err);
         toast({
@@ -178,9 +175,15 @@ export default function InvitePage() {
 
                   <p className="text-xs text-center text-yellow-700 bg-yellow-100 p-2 rounded-md">Note: The more your team trades, the more you earn. Bonuses are credited instantly.</p>
                   
-                  <Button onClick={handleInvite} className="w-full btn-gradient rounded-full font-semibold h-12 text-base" disabled={profileLoading}>
-                    {profileLoading ? <Loader size="xs" className="mr-2" /> : "Invite Now"}
-                  </Button>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button variant="outline" className="h-12 text-base" onClick={handleCopyLink} disabled={profileLoading}>
+                        <Clipboard className="mr-2 h-5 w-5"/>
+                        Copy Link
+                    </Button>
+                    <Button onClick={handleInvite} className="w-full btn-gradient rounded-full font-semibold h-12 text-base" disabled={profileLoading}>
+                        {profileLoading ? <Loader size="xs" className="mr-2" /> : "Invite Now"}
+                    </Button>
+                  </div>
 
                   <Button asChild variant="ghost" className="w-full text-muted-foreground">
                     <Link href="/my/team">View Invitation Data</Link>

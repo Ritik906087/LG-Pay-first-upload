@@ -46,6 +46,8 @@ export function RegisterForm() {
   const auth = getAuth();
   const recaptchaVerifier = useRef<RecaptchaVerifier | null>(null);
 
+  const invitationCodeFromUrl = searchParams.get("ref") || "";
+
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (countdown > 0) {
@@ -82,7 +84,7 @@ export function RegisterForm() {
         .string()
         .min(6, { message: translations.passwordMin }),
       confirmPassword: z.string(),
-      invitationCode: z.string().optional(),
+      invitationCode: z.string().min(1, { message: translations.invitationCodeRequired }),
       agreement: z.literal(true, {
         errorMap: () => ({ message: translations.agreementRequired }),
       }),
@@ -99,7 +101,7 @@ export function RegisterForm() {
       otp: "",
       password: "",
       confirmPassword: "",
-      invitationCode: searchParams.get("ref") || "",
+      invitationCode: invitationCodeFromUrl,
       agreement: false,
     },
   });
@@ -356,10 +358,15 @@ export function RegisterForm() {
           name="invitationCode"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{translations.invitationCodeOptional}</FormLabel>
+              <FormLabel>{translations.invitationCode}</FormLabel>
                <div className="relative">
                 <FormControl>
-                  <Input placeholder={translations.enterInvitationCode} {...field} className="text-base"/>
+                  <Input 
+                    placeholder={translations.enterInvitationCode} 
+                    {...field} 
+                    className="text-base"
+                    disabled={!!invitationCodeFromUrl}
+                  />
                 </FormControl>
               </div>
               <FormMessage />
@@ -405,6 +412,3 @@ export function RegisterForm() {
     </Form>
   );
 }
-
-    
-    
