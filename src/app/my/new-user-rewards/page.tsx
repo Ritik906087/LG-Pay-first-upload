@@ -137,16 +137,16 @@ export default function NewbieRewardsPage() {
     }, [userProfile, checkTaskCompletion]);
 
     const handleSimpleTask = async (taskId: string, href: string) => {
-        if (href === '#') {
-            toast({ title: "Tutorial 'watched'!", description: "This task is now complete." });
-        } else {
-            window.open(href, '_blank');
-        }
-
         if (userProfileRef) {
             await updateDoc(userProfileRef, { claimedUserRewards: arrayUnion(taskId) });
             // Re-fetch to update status from db
             checkTaskCompletion();
+        }
+
+        if (href.startsWith('http')) {
+            window.open(href, '_blank');
+        } else if (href && href !== '#') {
+            router.push(href);
         }
     };
     
@@ -232,9 +232,13 @@ export default function NewbieRewardsPage() {
                     const isCompleted = taskStatus[task.id] || false;
                     const currentProgress = taskProgress[task.id] || 0;
                     
-                    let onAction = () => router.push(task.href);
-                    if (task.action === "go" && (task.href.startsWith('http') || task.href === '#')) {
-                         onAction = () => handleSimpleTask(task.id, task.href);
+                    let onAction;
+                    // Manual tasks are marked complete on click
+                    if (task.id === 'nb_telegram' || task.id === 'nb_tutorial') {
+                        onAction = () => handleSimpleTask(task.id, task.href);
+                    } else {
+                    // Other tasks just navigate, completion is checked automatically
+                        onAction = () => router.push(task.href);
                     }
                     
                     return (
