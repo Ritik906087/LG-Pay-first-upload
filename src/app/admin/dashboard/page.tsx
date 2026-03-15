@@ -1935,8 +1935,6 @@ function AdminDashboard() {
                 }
 
                 try {
-                    // Fetch all orders and sellOrders and filter them client-side to avoid index requirement.
-                    // This is less performant for large datasets.
                     const buyOrdersQuery = query(collectionGroup(firestore, 'orders'));
                     const sellOrdersQuery = query(collectionGroup(firestore, 'sellOrders'));
 
@@ -1944,27 +1942,47 @@ function AdminDashboard() {
                         getDocs(buyOrdersQuery),
                         getDocs(sellOrdersQuery),
                     ]);
+                    
+                    const foundUserIds = new Set<string>();
 
-                    let userId: string | null = null;
-
-                    const buyMatch = buyOrdersSnapshot.docs.find(doc => doc.data().orderId === term);
-                    if (buyMatch) {
-                        userId = buyMatch.data().userId;
-                    } else {
-                        const sellMatch = sellOrdersSnapshot.docs.find(doc => doc.data().orderId === term);
-                        if (sellMatch) {
-                            userId = sellMatch.data().userId;
+                    const matchingBuyOrders = buyOrdersSnapshot.docs.filter(doc => doc.data().orderId === term);
+                    for (const buyDoc of matchingBuyOrders) {
+                        const buyData = buyDoc.data();
+                        foundUserIds.add(buyData.userId);
+                        if (buyData.matchedSellOrderPath) {
+                            const sellMatch = sellOrdersSnapshot.docs.find(doc => doc.ref.path === buyData.matchedSellOrderPath);
+                            if (sellMatch) {
+                                foundUserIds.add(sellMatch.data().userId);
+                            }
                         }
                     }
 
-                    if (userId) {
-                        const userRef = doc(firestore, 'users', userId);
-                        const userSnap = await getDoc(userRef);
-                        if (userSnap.exists()) {
-                            setOrderIdSearchedUser([{ id: userSnap.id, ...userSnap.data() } as UserProfile]);
-                        } else {
-                            setOrderIdSearchedUser([]); // Found order but not user
+                    const matchingSellOrders = sellOrdersSnapshot.docs.filter(doc => doc.data().orderId === term);
+                    for (const sellDoc of matchingSellOrders) {
+                        const sellData = sellDoc.data();
+                        foundUserIds.add(sellData.userId);
+                        if (Array.isArray(sellData.matchedBuyOrders)) {
+                            sellData.matchedBuyOrders.forEach((bo: any) => {
+                                if (bo.buyerId) foundUserIds.add(bo.buyerId);
+                            });
                         }
+                    }
+
+                    const userIds = Array.from(foundUserIds);
+
+                    if (userIds.length > 0) {
+                        const userProfilePromises = [];
+                        for (let i = 0; i < userIds.length; i += 30) {
+                            const chunk = userIds.slice(i, i + 30);
+                            const usersQuery = query(collection(firestore, 'users'), where('__name__', 'in', chunk));
+                            userProfilePromises.push(getDocs(usersQuery));
+                        }
+                        
+                        const userSnapshots = await Promise.all(userProfilePromises);
+                        const usersData = userSnapshots.flatMap(snapshot =>
+                            snapshot.docs.map(d => ({ id: d.id, ...d.data() } as UserProfile))
+                        );
+                        setOrderIdSearchedUser(usersData);
                     } else {
                         setOrderIdSearchedUser([]); // No order found
                     }
