@@ -456,7 +456,7 @@ function UsdtDetailsForm({ onAdd }: { onAdd: (details: Omit<PaymentMethod, 'id' 
     );
 }
 
-function PaymentMethodsList({ methods, loading, onDelete }: { methods: PaymentMethod[], loading: boolean, onDelete: (id: string) => void }) {
+function PaymentMethodsList({ methods, loading, onDelete, canDelete }: { methods: PaymentMethod[], loading: boolean, onDelete: (id: string) => void, canDelete: boolean }) {
     if (loading) {
         return <Skeleton className="h-32 w-full mt-8"/>
     }
@@ -483,9 +483,11 @@ function PaymentMethodsList({ methods, loading, onDelete }: { methods: PaymentMe
                                     <p><span className="font-semibold">Account No:</span> {method.accountNumber}</p>
                                     <p><span className="font-semibold">IFSC:</span> {method.ifscCode}</p>
                                 </div>
-                                <Button variant="ghost" size="icon" onClick={() => onDelete(method.id)} className="text-destructive hover:text-destructive">
-                                    <Trash2 className="h-4 w-4"/>
-                                </Button>
+                                {canDelete && (
+                                    <Button variant="ghost" size="icon" onClick={() => onDelete(method.id)} className="text-destructive hover:text-destructive">
+                                        <Trash2 className="h-4 w-4"/>
+                                    </Button>
+                                )}
                             </Card>
                         ))}
                     </CardContent>
@@ -501,9 +503,11 @@ function PaymentMethodsList({ methods, loading, onDelete }: { methods: PaymentMe
                                     <p><span className="font-semibold">Name:</span> {method.upiHolderName}</p>
                                     <p><span className="font-semibold">UPI ID:</span> {method.upiId}</p>
                                 </div>
-                                <Button variant="ghost" size="icon" onClick={() => onDelete(method.id)} className="text-destructive hover:text-destructive">
-                                    <Trash2 className="h-4 w-4"/>
-                                </Button>
+                                {canDelete && (
+                                    <Button variant="ghost" size="icon" onClick={() => onDelete(method.id)} className="text-destructive hover:text-destructive">
+                                        <Trash2 className="h-4 w-4"/>
+                                    </Button>
+                                )}
                             </Card>
                         ))}
                     </CardContent>
@@ -519,9 +523,11 @@ function PaymentMethodsList({ methods, loading, onDelete }: { methods: PaymentMe
                                     <p><span className="font-semibold">Network:</span> USDT (TRC20)</p>
                                     <p><span className="font-semibold">Address:</span> {method.usdtWalletAddress}</p>
                                 </div>
-                                <Button variant="ghost" size="icon" onClick={() => onDelete(method.id)} className="text-destructive hover:text-destructive">
-                                    <Trash2 className="h-4 w-4"/>
-                                </Button>
+                                {canDelete && (
+                                    <Button variant="ghost" size="icon" onClick={() => onDelete(method.id)} className="text-destructive hover:text-destructive">
+                                        <Trash2 className="h-4 w-4"/>
+                                    </Button>
+                                )}
                             </Card>
                         ))}
                     </CardContent>
@@ -1964,10 +1970,7 @@ function AdminDashboard() {
     const { data: paymentMethods, loading: paymentMethodsLoading } = useCollection<PaymentMethod>(paymentMethodsQuery);
 
     const [searchTerm, setSearchTerm] = useState('');
-    const [adminPhone, setAdminPhone] = useState<string | null>(null);
-    const bankAdmins = ['7050396570', '9955557336'];
-    const canManageBanks = adminPhone && bankAdmins.includes(adminPhone);
-
+    const [isMasterAdmin, setIsMasterAdmin] = useState(false);
     const [isSearchingOrders, setIsSearchingOrders] = useState(false);
     const [orderIdSearchedUser, setOrderIdSearchedUser] = useState<UserProfile[] | null>(null);
 
@@ -2078,7 +2081,10 @@ function AdminDashboard() {
             const parts = value.split(`; ${name}=`);
             if (parts.length === 2) return parts.pop()?.split(';').shift();
         }
-        setAdminPhone(getCookie('admin-phone') || null);
+        const phone = getCookie('admin-phone');
+        if (phone === '9060873927') {
+            setIsMasterAdmin(true);
+        }
     }, []);
 
     const handleLogout = () => {
@@ -2233,36 +2239,43 @@ function AdminDashboard() {
             </TabsContent>
             <TabsContent value="payment-methods" className="mt-0">
                 <div className="w-full max-w-2xl mx-auto">
-                    <Tabs defaultValue="bank">
-                        <TabsList className="grid w-full grid-cols-3">
-                            <TabsTrigger value="bank" disabled={!canManageBanks}>
-                                <Landmark className="mr-2" />
-                                Bank
-                            </TabsTrigger>
-                            <TabsTrigger value="upi">
-                                <Banknote className="mr-2" />
-                                UPI
-                            </TabsTrigger>
-                            <TabsTrigger value="usdt">
-                                <Wallet className="mr-2" />
-                                USDT
-                            </TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="bank" className="mt-4">
-                            {canManageBanks ? (
+                    {isMasterAdmin ? (
+                        <Tabs defaultValue="bank">
+                            <TabsList className="grid w-full grid-cols-3">
+                                <TabsTrigger value="bank">
+                                    <Landmark className="mr-2" />
+                                    Bank
+                                </TabsTrigger>
+                                <TabsTrigger value="upi">
+                                    <Banknote className="mr-2" />
+                                    UPI
+                                </TabsTrigger>
+                                <TabsTrigger value="usdt">
+                                    <Wallet className="mr-2" />
+                                    USDT
+                                </TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="bank" className="mt-4">
                                 <BankDetailsForm onAdd={(details) => handleAddMethod('bank', details)} />
-                            ) : (
-                                <Card><CardContent className="p-4 text-center text-muted-foreground">This feature is not available for your account.</CardContent></Card>
-                            )}
-                        </TabsContent>
-                        <TabsContent value="upi" className="mt-4">
-                            <UpiDetailsForm onAdd={(details) => handleAddMethod('upi', details)} />
-                        </TabsContent>
-                        <TabsContent value="usdt" className="mt-4">
-                            <UsdtDetailsForm onAdd={(details) => handleAddMethod('usdt', details)} />
-                        </TabsContent>
-                    </Tabs>
-                    <PaymentMethodsList methods={paymentMethods || []} loading={paymentMethodsLoading} onDelete={handleDeleteMethod}/>
+                            </TabsContent>
+                            <TabsContent value="upi" className="mt-4">
+                                <UpiDetailsForm onAdd={(details) => handleAddMethod('upi', details)} />
+                            </TabsContent>
+                            <TabsContent value="usdt" className="mt-4">
+                                <UsdtDetailsForm onAdd={(details) => handleAddMethod('usdt', details)} />
+                            </TabsContent>
+                        </Tabs>
+                    ) : (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Payment Methods</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-muted-foreground text-center">You do not have permission to add new payment methods.</p>
+                            </CardContent>
+                        </Card>
+                    )}
+                    <PaymentMethodsList methods={paymentMethods || []} loading={paymentMethodsLoading} onDelete={handleDeleteMethod} canDelete={isMasterAdmin}/>
                 </div>
             </TabsContent>
           </div>
