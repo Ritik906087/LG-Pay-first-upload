@@ -774,7 +774,7 @@ function WithdrawalsTabContent() {
             const q = query(
                 collectionGroup(firestore, 'sellOrders'), 
                 where('status', '==', 'pending'),
-                orderBy('createdAt', 'asc')
+                orderBy('createdAt', 'desc')
             );
             const sellOrdersSnapshot = await getDocs(q);
             const pendingWithdrawals = sellOrdersSnapshot.docs
@@ -1444,25 +1444,15 @@ function ConfirmationsTabContent() {
         setOrdersLoading(true);
         setError(null);
         try {
-            const confirmationsQuery = query(
+            const q = query(
                 collectionGroup(firestore, 'orders'),
-                where('status', '==', 'pending_confirmation')
-            );
-    
-            const inAppliedQuery = query(
-                collectionGroup(firestore, 'orders'),
-                where('status', '==', 'in_applied')
+                where('status', 'in', ['pending_confirmation', 'in_applied']),
+                orderBy('createdAt', 'desc')
             );
             
-            const [confirmationsSnapshot, inAppliedSnapshot] = await Promise.all([
-                getDocs(confirmationsQuery),
-                getDocs(inAppliedQuery),
-            ]);
+            const snapshot = await getDocs(q);
     
-            const pendingOrders = [
-                ...confirmationsSnapshot.docs.map(orderDoc => ({ id: orderDoc.id, ...orderDoc.data(), path: orderDoc.ref.path } as Order)),
-                ...inAppliedSnapshot.docs.map(orderDoc => ({ id: orderDoc.id, ...orderDoc.data(), path: orderDoc.ref.path } as Order)),
-            ];
+            const pendingOrders = snapshot.docs.map(orderDoc => ({ id: orderDoc.id, ...orderDoc.data(), path: orderDoc.ref.path } as Order));
             
             setAllOrders(pendingOrders);
 
@@ -1517,8 +1507,8 @@ function ConfirmationsTabContent() {
 
 
     const ordersWithUserData = useMemo(() => {
-        const sortedOrders = [...allOrders].sort((a, b) => (b.submittedAt?.seconds || b.createdAt.seconds) - (a.submittedAt?.seconds || a.createdAt.seconds));
-        return sortedOrders.map(order => ({
+        // Data is now pre-sorted by `createdAt` from Firestore
+        return allOrders.map(order => ({
             ...order,
             user: usersMap.get(order.userId)
         }));
