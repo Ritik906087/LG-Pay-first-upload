@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
@@ -15,7 +16,7 @@ import { Button } from '@/components/ui/button';
 import { useCollection, useDoc, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { LogOut, Users, LayoutDashboard, Wallet, Eye, Search, Landmark, Banknote, Trash2, Clock, History, CheckCircle, Download, XCircle, MessageSquare, Send, Paperclip, X, FileClock, AlertCircle, FileWarning, MessageCircleQuestion, Video, Image as ImageIcon, Loader2, RefreshCw } from 'lucide-react';
+import { LogOut, Users, LayoutDashboard, Wallet, Eye, Search, Landmark, Banknote, Trash2, Clock, History, CheckCircle, Download, XCircle, MessageSquare, Send, Paperclip, X, FileClock, AlertCircle, FileWarning, MessageCircleQuestion, Video, Image as ImageIcon, Loader2, RefreshCw, Copy } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -1122,6 +1123,12 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
         return adminPaymentMethods.find(m => m.id === order.adminPaymentMethodId);
     }, [order, adminPaymentMethods, isP2P]);
 
+    const copyToClipboard = (text: string | undefined, label: string) => {
+        if (!text) return;
+        navigator.clipboard.writeText(text);
+        toast({ title: `${label} Copied!`, description: text });
+    };
+
     const handleApprove = async () => {
         if (!firestore || !order.path) return;
         setIsApproving(true);
@@ -1368,13 +1375,19 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                                                 <span className="text-muted-foreground">Holder:</span>
                                                 <span className="font-semibold">{receiverDetails.accountHolderName}</span>
                                             </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-muted-foreground">Account No:</span>
-                                                <span className="font-mono">{receiverDetails.accountNumber}</span>
+                                            <div className="flex justify-between items-start gap-2">
+                                                <span className="text-muted-foreground shrink-0">Account No:</span>
+                                                <div className="flex items-center gap-1 text-right">
+                                                    <span className="font-mono break-all">{receiverDetails.accountNumber}</span>
+                                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard(receiverDetails.accountNumber, 'Account No.')}><Copy className="h-3.5 w-3.5" /></Button>
+                                                </div>
                                             </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-muted-foreground">IFSC:</span>
-                                                <span className="font-mono">{receiverDetails.ifscCode}</span>
+                                            <div className="flex justify-between items-start gap-2">
+                                                <span className="text-muted-foreground shrink-0">IFSC:</span>
+                                                <div className="flex items-center gap-1 text-right">
+                                                    <span className="font-mono break-all">{receiverDetails.ifscCode}</span>
+                                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard(receiverDetails.ifscCode, 'IFSC Code')}><Copy className="h-3.5 w-3.5" /></Button>
+                                                </div>
                                             </div>
                                         </>
                                     )}
@@ -1384,16 +1397,22 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                                                 <span className="text-muted-foreground">Name:</span>
                                                 <span className="font-semibold">{(receiverDetails as any).upiHolderName || receiverDetails.name}</span>
                                             </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-muted-foreground">UPI ID:</span>
-                                                <span className="font-mono">{receiverDetails.upiId}</span>
+                                            <div className="flex justify-between items-start gap-2">
+                                                <span className="text-muted-foreground shrink-0">UPI ID:</span>
+                                                <div className="flex items-center gap-1 text-right">
+                                                    <span className="font-mono break-all">{receiverDetails.upiId}</span>
+                                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard(receiverDetails.upiId, 'UPI ID')}><Copy className="h-3.5 w-3.5" /></Button>
+                                                </div>
                                             </div>
                                         </>
                                     )}
                                     {receiverDetails.type === 'usdt' && (
-                                        <div className="flex justify-between">
-                                            <span className="text-muted-foreground">Wallet:</span>
-                                            <span className="font-mono break-all">{(receiverDetails as any).usdtWalletAddress}</span>
+                                        <div className="flex justify-between items-start gap-2">
+                                            <span className="text-muted-foreground shrink-0">Wallet:</span>
+                                            <div className="flex items-center gap-1 text-right">
+                                                <span className="font-mono break-all">{(receiverDetails as any).usdtWalletAddress}</span>
+                                                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard((receiverDetails as any).usdtWalletAddress, 'Wallet Address')}><Copy className="h-3.5 w-3.5" /></Button>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
