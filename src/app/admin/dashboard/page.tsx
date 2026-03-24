@@ -2131,16 +2131,20 @@ function AdminDashboard() {
             const fetchTopDestinations = async () => {
                 setLoading(true);
                 try {
-                    const q = query(
-                        collectionGroup(firestore, 'sellOrders'),
-                        where('status', '==', 'completed')
-                    );
+                    // Removed the `where` clause to avoid needing an index
+                    const q = collectionGroup(firestore, 'sellOrders');
                     const querySnapshot = await getDocs(q);
                     
                     const totals = new Map<string, { total: number; name: string; type: 'UPI' | 'Bank' }>();
     
                     querySnapshot.forEach(doc => {
                         const order = doc.data() as SellOrder;
+
+                        // Filter for completed orders client-side
+                        if (order.status !== 'completed') {
+                            return;
+                        }
+
                         const method = order.withdrawalMethod;
     
                         if (method?.type === 'upi' && method.upiId) {
@@ -2164,7 +2168,7 @@ function AdminDashboard() {
                     setTopDestinations(sortedTop10);
                 } catch (error) {
                     console.error("Error fetching top sell destinations:", error);
-                    toast({ variant: 'destructive', title: 'Error fetching leaderboard', description: 'This may be due to missing Firestore indexes. Please check the browser console for an error link to create the index.' });
+                    toast({ variant: 'destructive', title: 'Error fetching leaderboard', description: 'Could not load data. Please try refreshing.' });
                 } finally {
                     setLoading(false);
                 }
