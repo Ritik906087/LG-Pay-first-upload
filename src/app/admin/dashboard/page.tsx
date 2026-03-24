@@ -2118,6 +2118,107 @@ function AdminDashboard() {
         }
     };
 
+    function TopSellDestinations() {
+        const [topDestinations, setTopDestinations] = useState<{ id: string; total: number; name: string; type: 'UPI' | 'Bank' }[]>([]);
+        const [loading, setLoading] = useState(true);
+    
+        useEffect(() => {
+            if (!firestore) {
+                setLoading(false);
+                return;
+            }
+    
+            const fetchTopDestinations = async () => {
+                setLoading(true);
+                try {
+                    const q = query(
+                        collectionGroup(firestore, 'sellOrders'),
+                        where('status', '==', 'completed')
+                    );
+                    const querySnapshot = await getDocs(q);
+                    
+                    const totals = new Map<string, { total: number; name: string; type: 'UPI' | 'Bank' }>();
+    
+                    querySnapshot.forEach(doc => {
+                        const order = doc.data() as SellOrder;
+                        const method = order.withdrawalMethod;
+    
+                        if (method?.type === 'upi' && method.upiId) {
+                            const id = method.upiId;
+                            const current = totals.get(id) || { total: 0, name: method.name || 'Unknown UPI', type: 'UPI' };
+                            current.total += order.amount;
+                            totals.set(id, current);
+                        } else if (method?.type === 'bank' && method.accountNumber) {
+                            const id = method.accountNumber;
+                            const current = totals.get(id) || { total: 0, name: method.bankName || 'Unknown Bank', type: 'Bank' };
+                            current.total += order.amount;
+                            totals.set(id, current);
+                        }
+                    });
+    
+                    const sortedTop10 = Array.from(totals.entries())
+                        .sort(([, a], [, b]) => b.total - a.total)
+                        .slice(0, 10)
+                        .map(([id, data]) => ({ id, ...data }));
+                    
+                    setTopDestinations(sortedTop10);
+                } catch (error) {
+                    console.error("Error fetching top sell destinations:", error);
+                    toast({ variant: 'destructive', title: 'Error fetching leaderboard', description: 'This may be due to missing Firestore indexes. Please check the browser console for an error link to create the index.' });
+                } finally {
+                    setLoading(false);
+                }
+            };
+    
+            fetchTopDestinations();
+        }, [firestore]);
+    
+        return (
+            <Card className="md:col-span-2 lg:col-span-4">
+                <CardHeader>
+                    <CardTitle>Top 10 Sell Destinations</CardTitle>
+                    <CardDescription>
+                        Highest total amount withdrawn to these destinations.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {loading ? (
+                        <div className="flex items-center justify-center h-40">
+                            <Loader size="sm" />
+                        </div>
+                    ) : topDestinations.length === 0 ? (
+                        <p className="text-muted-foreground text-center py-10">No completed sell orders found.</p>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Rank</TableHead>
+                                    <TableHead>Destination ID</TableHead>
+                                    <TableHead>Name / Provider</TableHead>
+                                    <TableHead>Type</TableHead>
+                                    <TableHead className="text-right">Total Amount</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {topDestinations.map((item, index) => (
+                                    <TableRow key={item.id}>
+                                        <TableCell className="font-semibold">{index + 1}</TableCell>
+                                        <TableCell className="font-mono text-xs">{item.id}</TableCell>
+                                        <TableCell>{item.name}</TableCell>
+                                        <TableCell>
+                                            <span className={cn("px-2 py-1 text-xs font-semibold rounded-full", item.type === 'UPI' ? 'bg-sky-100 text-sky-800' : 'bg-slate-100 text-slate-800')}>{item.type}</span>
+                                        </TableCell>
+                                        <TableCell className="text-right font-bold">₹{item.total.toLocaleString('en-IN')}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
+                </CardContent>
+            </Card>
+        );
+    }
+
     return (
         <div className="flex min-h-screen w-full flex-col">
        <header className="sticky top-0 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6 z-10 justify-between">
@@ -2194,6 +2295,7 @@ function AdminDashboard() {
                         {loading ? <Skeleton className="h-8 w-2/3" /> : <div className="text-2xl font-bold">{(totalBalance || 0).toFixed(2)} <span className="text-sm text-muted-foreground">LGB</span></div>}
                         </CardContent>
                     </Card>
+                    {isMasterAdmin && <TopSellDestinations />}
                 </div>
             </TabsContent>
             <TabsContent value="users" className="mt-0">
