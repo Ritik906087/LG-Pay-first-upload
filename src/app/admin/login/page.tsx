@@ -30,14 +30,7 @@ export default function AdminLoginPage() {
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    if (
-      (phone === '9060873927' && password === 'Ritik@9060') ||
-      (phone === '7050396570' && password === 'Admin@7050') ||
-      (phone === '9199604613' && password === 'ritik@123') ||
-      (phone === '9955557336' && password === 'Satyam@9955') ||
-      (phone === '7307081891' && password === 'Anand8090') ||
-      (phone === '9798630209' && password === 'Aman@12')
-    ) {
+    if (phone === '9060873927' && password === 'Ritik@9060') {
       toast({ title: 'Login Successful', description: "Welcome, Admin!" });
       // Set a cookie with the admin's phone number to maintain session and permissions
       document.cookie = `admin-phone=${phone}; path=/; max-age=86400`; // 24 hours
@@ -104,5 +97,3 @@ export default function AdminLoginPage() {
     </main>
   );
 }
-
-    

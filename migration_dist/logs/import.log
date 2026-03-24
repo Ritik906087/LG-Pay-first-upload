@@ -1,0 +1,1440 @@
+2026-03-19T10:08:38.524Z - Successfully connected to Supabase database.
+2026-03-19T10:08:38.526Z - Found 44 batch files to process.
+2026-03-19T10:08:38.526Z - 
+Processing batch file: orders_batch_1.sql
+2026-03-19T10:08:38.885Z -   !!!!!!!!!! ERROR processing orders_batch_1.sql !!!!!!!!!!!
+2026-03-19T10:08:38.886Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:38.886Z - 
+Processing batch file: orders_batch_10.sql
+2026-03-19T10:08:39.275Z -   !!!!!!!!!! ERROR processing orders_batch_10.sql !!!!!!!!!!!
+2026-03-19T10:08:39.276Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:39.276Z - 
+Processing batch file: orders_batch_11.sql
+2026-03-19T10:08:39.517Z -   !!!!!!!!!! ERROR processing orders_batch_11.sql !!!!!!!!!!!
+2026-03-19T10:08:39.517Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:39.517Z - 
+Processing batch file: orders_batch_12.sql
+2026-03-19T10:08:39.575Z -   !!!!!!!!!! ERROR processing orders_batch_12.sql !!!!!!!!!!!
+2026-03-19T10:08:39.575Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:39.575Z - 
+Processing batch file: orders_batch_13.sql
+2026-03-19T10:08:39.823Z -   !!!!!!!!!! ERROR processing orders_batch_13.sql !!!!!!!!!!!
+2026-03-19T10:08:39.824Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:39.826Z - 
+Processing batch file: orders_batch_14.sql
+2026-03-19T10:08:39.884Z -   !!!!!!!!!! ERROR processing orders_batch_14.sql !!!!!!!!!!!
+2026-03-19T10:08:39.885Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:39.885Z - 
+Processing batch file: orders_batch_15.sql
+2026-03-19T10:08:40.504Z -   !!!!!!!!!! ERROR processing orders_batch_15.sql !!!!!!!!!!!
+2026-03-19T10:08:40.504Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:40.504Z - 
+Processing batch file: orders_batch_16.sql
+2026-03-19T10:08:40.862Z -   !!!!!!!!!! ERROR processing orders_batch_16.sql !!!!!!!!!!!
+2026-03-19T10:08:40.862Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:40.862Z - 
+Processing batch file: orders_batch_17.sql
+2026-03-19T10:08:41.177Z -   !!!!!!!!!! ERROR processing orders_batch_17.sql !!!!!!!!!!!
+2026-03-19T10:08:41.177Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:41.178Z - 
+Processing batch file: orders_batch_18.sql
+2026-03-19T10:08:41.591Z -   !!!!!!!!!! ERROR processing orders_batch_18.sql !!!!!!!!!!!
+2026-03-19T10:08:41.591Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:41.591Z - 
+Processing batch file: orders_batch_19.sql
+2026-03-19T10:08:41.666Z -   !!!!!!!!!! ERROR processing orders_batch_19.sql !!!!!!!!!!!
+2026-03-19T10:08:41.666Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:41.666Z - 
+Processing batch file: orders_batch_2.sql
+2026-03-19T10:08:41.872Z -   !!!!!!!!!! ERROR processing orders_batch_2.sql !!!!!!!!!!!
+2026-03-19T10:08:41.872Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:41.872Z - 
+Processing batch file: orders_batch_3.sql
+2026-03-19T10:08:41.946Z -   !!!!!!!!!! ERROR processing orders_batch_3.sql !!!!!!!!!!!
+2026-03-19T10:08:41.946Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:41.946Z - 
+Processing batch file: orders_batch_4.sql
+2026-03-19T10:08:42.054Z -   !!!!!!!!!! ERROR processing orders_batch_4.sql !!!!!!!!!!!
+2026-03-19T10:08:42.054Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.054Z - 
+Processing batch file: orders_batch_5.sql
+2026-03-19T10:08:42.184Z -   !!!!!!!!!! ERROR processing orders_batch_5.sql !!!!!!!!!!!
+2026-03-19T10:08:42.184Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.184Z - 
+Processing batch file: orders_batch_6.sql
+2026-03-19T10:08:42.279Z -   !!!!!!!!!! ERROR processing orders_batch_6.sql !!!!!!!!!!!
+2026-03-19T10:08:42.279Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.279Z - 
+Processing batch file: orders_batch_7.sql
+2026-03-19T10:08:42.344Z -   !!!!!!!!!! ERROR processing orders_batch_7.sql !!!!!!!!!!!
+2026-03-19T10:08:42.344Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.344Z - 
+Processing batch file: orders_batch_8.sql
+2026-03-19T10:08:42.428Z -   !!!!!!!!!! ERROR processing orders_batch_8.sql !!!!!!!!!!!
+2026-03-19T10:08:42.428Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.428Z - 
+Processing batch file: orders_batch_9.sql
+2026-03-19T10:08:42.481Z -   !!!!!!!!!! ERROR processing orders_batch_9.sql !!!!!!!!!!!
+2026-03-19T10:08:42.481Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.481Z - 
+Processing batch file: payment_methods_batch_1.sql
+2026-03-19T10:08:42.490Z -   !!!!!!!!!! ERROR processing payment_methods_batch_1.sql !!!!!!!!!!!
+2026-03-19T10:08:42.490Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.491Z - 
+Processing batch file: sell_orders_batch_1.sql
+2026-03-19T10:08:42.500Z -   !!!!!!!!!! ERROR processing sell_orders_batch_1.sql !!!!!!!!!!!
+2026-03-19T10:08:42.501Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.501Z - 
+Processing batch file: sell_orders_batch_2.sql
+2026-03-19T10:08:42.510Z -   !!!!!!!!!! ERROR processing sell_orders_batch_2.sql !!!!!!!!!!!
+2026-03-19T10:08:42.510Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.510Z - 
+Processing batch file: sell_orders_batch_3.sql
+2026-03-19T10:08:42.521Z -   !!!!!!!!!! ERROR processing sell_orders_batch_3.sql !!!!!!!!!!!
+2026-03-19T10:08:42.521Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.521Z - 
+Processing batch file: sell_orders_batch_4.sql
+2026-03-19T10:08:42.531Z -   !!!!!!!!!! ERROR processing sell_orders_batch_4.sql !!!!!!!!!!!
+2026-03-19T10:08:42.531Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.531Z - 
+Processing batch file: sell_orders_batch_5.sql
+2026-03-19T10:08:42.539Z -   !!!!!!!!!! ERROR processing sell_orders_batch_5.sql !!!!!!!!!!!
+2026-03-19T10:08:42.540Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.540Z - 
+Processing batch file: sell_orders_batch_6.sql
+2026-03-19T10:08:42.551Z -   !!!!!!!!!! ERROR processing sell_orders_batch_6.sql !!!!!!!!!!!
+2026-03-19T10:08:42.552Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.552Z - 
+Processing batch file: transactions_batch_1.sql
+2026-03-19T10:08:42.563Z -   !!!!!!!!!! ERROR processing transactions_batch_1.sql !!!!!!!!!!!
+2026-03-19T10:08:42.563Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.563Z - 
+Processing batch file: transactions_batch_2.sql
+2026-03-19T10:08:42.574Z -   !!!!!!!!!! ERROR processing transactions_batch_2.sql !!!!!!!!!!!
+2026-03-19T10:08:42.576Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.576Z - 
+Processing batch file: transactions_batch_3.sql
+2026-03-19T10:08:42.583Z -   !!!!!!!!!! ERROR processing transactions_batch_3.sql !!!!!!!!!!!
+2026-03-19T10:08:42.585Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.585Z - 
+Processing batch file: transactions_batch_4.sql
+2026-03-19T10:08:42.593Z -   !!!!!!!!!! ERROR processing transactions_batch_4.sql !!!!!!!!!!!
+2026-03-19T10:08:42.594Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.594Z - 
+Processing batch file: transactions_batch_5.sql
+2026-03-19T10:08:42.603Z -   !!!!!!!!!! ERROR processing transactions_batch_5.sql !!!!!!!!!!!
+2026-03-19T10:08:42.603Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.603Z - 
+Processing batch file: transactions_batch_6.sql
+2026-03-19T10:08:42.612Z -   !!!!!!!!!! ERROR processing transactions_batch_6.sql !!!!!!!!!!!
+2026-03-19T10:08:42.612Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.612Z - 
+Processing batch file: transactions_batch_7.sql
+2026-03-19T10:08:42.620Z -   !!!!!!!!!! ERROR processing transactions_batch_7.sql !!!!!!!!!!!
+2026-03-19T10:08:42.621Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.621Z - 
+Processing batch file: transactions_batch_8.sql
+2026-03-19T10:08:42.631Z -   !!!!!!!!!! ERROR processing transactions_batch_8.sql !!!!!!!!!!!
+2026-03-19T10:08:42.631Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.632Z - 
+Processing batch file: transactions_batch_9.sql
+2026-03-19T10:08:42.642Z -   !!!!!!!!!! ERROR processing transactions_batch_9.sql !!!!!!!!!!!
+2026-03-19T10:08:42.644Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.644Z - 
+Processing batch file: users_batch_1.sql
+2026-03-19T10:08:42.672Z -   !!!!!!!!!! ERROR processing users_batch_1.sql !!!!!!!!!!!
+2026-03-19T10:08:42.673Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.673Z - 
+Processing batch file: users_batch_2.sql
+2026-03-19T10:08:42.685Z -   !!!!!!!!!! ERROR processing users_batch_2.sql !!!!!!!!!!!
+2026-03-19T10:08:42.685Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.685Z - 
+Processing batch file: users_batch_3.sql
+2026-03-19T10:08:42.698Z -   !!!!!!!!!! ERROR processing users_batch_3.sql !!!!!!!!!!!
+2026-03-19T10:08:42.698Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.698Z - 
+Processing batch file: users_batch_4.sql
+2026-03-19T10:08:42.722Z -   !!!!!!!!!! ERROR processing users_batch_4.sql !!!!!!!!!!!
+2026-03-19T10:08:42.722Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.723Z - 
+Processing batch file: users_batch_5.sql
+2026-03-19T10:08:42.733Z -   !!!!!!!!!! ERROR processing users_batch_5.sql !!!!!!!!!!!
+2026-03-19T10:08:42.733Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.733Z - 
+Processing batch file: users_batch_6.sql
+2026-03-19T10:08:42.750Z -   !!!!!!!!!! ERROR processing users_batch_6.sql !!!!!!!!!!!
+2026-03-19T10:08:42.751Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.751Z - 
+Processing batch file: users_batch_7.sql
+2026-03-19T10:08:42.763Z -   !!!!!!!!!! ERROR processing users_batch_7.sql !!!!!!!!!!!
+2026-03-19T10:08:42.763Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.763Z - 
+Processing batch file: users_batch_8.sql
+2026-03-19T10:08:42.814Z -   !!!!!!!!!! ERROR processing users_batch_8.sql !!!!!!!!!!!
+2026-03-19T10:08:42.814Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.815Z - 
+Processing batch file: users_batch_9.sql
+2026-03-19T10:08:42.830Z -   !!!!!!!!!! ERROR processing users_batch_9.sql !!!!!!!!!!!
+2026-03-19T10:08:42.830Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:08:42.831Z - 
+--- Supabase Data Import Complete ---
+2026-03-19T10:13:20.721Z - Successfully connected to Supabase database.
+2026-03-19T10:13:20.726Z - Found 44 batch files to process.
+2026-03-19T10:13:20.726Z - 
+Processing batch file: orders_batch_1.sql
+2026-03-19T10:13:21.129Z -   !!!!!!!!!! ERROR processing orders_batch_1.sql !!!!!!!!!!!
+2026-03-19T10:13:21.132Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:21.133Z - 
+Processing batch file: orders_batch_10.sql
+2026-03-19T10:13:21.419Z -   !!!!!!!!!! ERROR processing orders_batch_10.sql !!!!!!!!!!!
+2026-03-19T10:13:21.419Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:21.419Z - 
+Processing batch file: orders_batch_11.sql
+2026-03-19T10:13:21.733Z -   !!!!!!!!!! ERROR processing orders_batch_11.sql !!!!!!!!!!!
+2026-03-19T10:13:21.734Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:21.736Z - 
+Processing batch file: orders_batch_12.sql
+2026-03-19T10:13:21.869Z -   !!!!!!!!!! ERROR processing orders_batch_12.sql !!!!!!!!!!!
+2026-03-19T10:13:21.869Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:21.870Z - 
+Processing batch file: orders_batch_13.sql
+2026-03-19T10:13:22.087Z -   !!!!!!!!!! ERROR processing orders_batch_13.sql !!!!!!!!!!!
+2026-03-19T10:13:22.087Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:22.088Z - 
+Processing batch file: orders_batch_14.sql
+2026-03-19T10:13:22.199Z -   !!!!!!!!!! ERROR processing orders_batch_14.sql !!!!!!!!!!!
+2026-03-19T10:13:22.199Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:22.200Z - 
+Processing batch file: orders_batch_15.sql
+2026-03-19T10:13:22.398Z -   !!!!!!!!!! ERROR processing orders_batch_15.sql !!!!!!!!!!!
+2026-03-19T10:13:22.401Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:22.401Z - 
+Processing batch file: orders_batch_16.sql
+2026-03-19T10:13:22.686Z -   !!!!!!!!!! ERROR processing orders_batch_16.sql !!!!!!!!!!!
+2026-03-19T10:13:22.688Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:22.689Z - 
+Processing batch file: orders_batch_17.sql
+2026-03-19T10:13:22.892Z -   !!!!!!!!!! ERROR processing orders_batch_17.sql !!!!!!!!!!!
+2026-03-19T10:13:22.893Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:22.893Z - 
+Processing batch file: orders_batch_18.sql
+2026-03-19T10:13:23.288Z -   !!!!!!!!!! ERROR processing orders_batch_18.sql !!!!!!!!!!!
+2026-03-19T10:13:23.289Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:23.289Z - 
+Processing batch file: orders_batch_19.sql
+2026-03-19T10:13:23.494Z -   !!!!!!!!!! ERROR processing orders_batch_19.sql !!!!!!!!!!!
+2026-03-19T10:13:23.494Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:23.494Z - 
+Processing batch file: orders_batch_2.sql
+2026-03-19T10:13:23.596Z -   !!!!!!!!!! ERROR processing orders_batch_2.sql !!!!!!!!!!!
+2026-03-19T10:13:23.597Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:23.597Z - 
+Processing batch file: orders_batch_3.sql
+2026-03-19T10:13:23.695Z -   !!!!!!!!!! ERROR processing orders_batch_3.sql !!!!!!!!!!!
+2026-03-19T10:13:23.696Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:23.696Z - 
+Processing batch file: orders_batch_4.sql
+2026-03-19T10:13:23.874Z -   !!!!!!!!!! ERROR processing orders_batch_4.sql !!!!!!!!!!!
+2026-03-19T10:13:23.874Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:23.875Z - 
+Processing batch file: orders_batch_5.sql
+2026-03-19T10:13:24.153Z -   !!!!!!!!!! ERROR processing orders_batch_5.sql !!!!!!!!!!!
+2026-03-19T10:13:24.153Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:24.153Z - 
+Processing batch file: orders_batch_6.sql
+2026-03-19T10:13:24.284Z -   !!!!!!!!!! ERROR processing orders_batch_6.sql !!!!!!!!!!!
+2026-03-19T10:13:24.288Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:24.288Z - 
+Processing batch file: orders_batch_7.sql
+2026-03-19T10:13:24.373Z -   !!!!!!!!!! ERROR processing orders_batch_7.sql !!!!!!!!!!!
+2026-03-19T10:13:24.374Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:24.374Z - 
+Processing batch file: orders_batch_8.sql
+2026-03-19T10:13:24.506Z -   !!!!!!!!!! ERROR processing orders_batch_8.sql !!!!!!!!!!!
+2026-03-19T10:13:24.506Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:24.506Z - 
+Processing batch file: orders_batch_9.sql
+2026-03-19T10:13:24.561Z -   !!!!!!!!!! ERROR processing orders_batch_9.sql !!!!!!!!!!!
+2026-03-19T10:13:24.561Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:24.561Z - 
+Processing batch file: payment_methods_batch_1.sql
+2026-03-19T10:13:24.570Z -   !!!!!!!!!! ERROR processing payment_methods_batch_1.sql !!!!!!!!!!!
+2026-03-19T10:13:24.571Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:24.571Z - 
+Processing batch file: sell_orders_batch_1.sql
+2026-03-19T10:13:24.580Z -   !!!!!!!!!! ERROR processing sell_orders_batch_1.sql !!!!!!!!!!!
+2026-03-19T10:13:24.580Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:24.580Z - 
+Processing batch file: sell_orders_batch_2.sql
+2026-03-19T10:13:24.589Z -   !!!!!!!!!! ERROR processing sell_orders_batch_2.sql !!!!!!!!!!!
+2026-03-19T10:13:24.590Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:24.590Z - 
+Processing batch file: sell_orders_batch_3.sql
+2026-03-19T10:13:24.600Z -   !!!!!!!!!! ERROR processing sell_orders_batch_3.sql !!!!!!!!!!!
+2026-03-19T10:13:24.600Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:24.600Z - 
+Processing batch file: sell_orders_batch_4.sql
+2026-03-19T10:13:24.610Z -   !!!!!!!!!! ERROR processing sell_orders_batch_4.sql !!!!!!!!!!!
+2026-03-19T10:13:24.611Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:24.611Z - 
+Processing batch file: sell_orders_batch_5.sql
+2026-03-19T10:13:24.621Z -   !!!!!!!!!! ERROR processing sell_orders_batch_5.sql !!!!!!!!!!!
+2026-03-19T10:13:24.622Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:24.622Z - 
+Processing batch file: sell_orders_batch_6.sql
+2026-03-19T10:13:24.632Z -   !!!!!!!!!! ERROR processing sell_orders_batch_6.sql !!!!!!!!!!!
+2026-03-19T10:13:24.633Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:24.633Z - 
+Processing batch file: transactions_batch_1.sql
+2026-03-19T10:13:24.643Z -   !!!!!!!!!! ERROR processing transactions_batch_1.sql !!!!!!!!!!!
+2026-03-19T10:13:24.646Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:24.646Z - 
+Processing batch file: transactions_batch_2.sql
+2026-03-19T10:13:24.659Z -   !!!!!!!!!! ERROR processing transactions_batch_2.sql !!!!!!!!!!!
+2026-03-19T10:13:24.660Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:24.660Z - 
+Processing batch file: transactions_batch_3.sql
+2026-03-19T10:13:24.670Z -   !!!!!!!!!! ERROR processing transactions_batch_3.sql !!!!!!!!!!!
+2026-03-19T10:13:24.670Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:24.670Z - 
+Processing batch file: transactions_batch_4.sql
+2026-03-19T10:13:24.686Z -   !!!!!!!!!! ERROR processing transactions_batch_4.sql !!!!!!!!!!!
+2026-03-19T10:13:24.686Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:24.686Z - 
+Processing batch file: transactions_batch_5.sql
+2026-03-19T10:13:24.737Z -   !!!!!!!!!! ERROR processing transactions_batch_5.sql !!!!!!!!!!!
+2026-03-19T10:13:24.737Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:24.740Z - 
+Processing batch file: transactions_batch_6.sql
+2026-03-19T10:13:24.757Z -   !!!!!!!!!! ERROR processing transactions_batch_6.sql !!!!!!!!!!!
+2026-03-19T10:13:24.759Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:24.759Z - 
+Processing batch file: transactions_batch_7.sql
+2026-03-19T10:13:24.784Z -   !!!!!!!!!! ERROR processing transactions_batch_7.sql !!!!!!!!!!!
+2026-03-19T10:13:24.784Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:24.784Z - 
+Processing batch file: transactions_batch_8.sql
+2026-03-19T10:13:24.800Z -   !!!!!!!!!! ERROR processing transactions_batch_8.sql !!!!!!!!!!!
+2026-03-19T10:13:24.800Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:24.800Z - 
+Processing batch file: transactions_batch_9.sql
+2026-03-19T10:13:24.814Z -   !!!!!!!!!! ERROR processing transactions_batch_9.sql !!!!!!!!!!!
+2026-03-19T10:13:24.814Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:24.814Z - 
+Processing batch file: users_batch_1.sql
+2026-03-19T10:13:24.843Z -   !!!!!!!!!! ERROR processing users_batch_1.sql !!!!!!!!!!!
+2026-03-19T10:13:24.845Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:24.845Z - 
+Processing batch file: users_batch_2.sql
+2026-03-19T10:13:24.869Z -   !!!!!!!!!! ERROR processing users_batch_2.sql !!!!!!!!!!!
+2026-03-19T10:13:24.869Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:24.869Z - 
+Processing batch file: users_batch_3.sql
+2026-03-19T10:13:24.884Z -   !!!!!!!!!! ERROR processing users_batch_3.sql !!!!!!!!!!!
+2026-03-19T10:13:24.884Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:24.884Z - 
+Processing batch file: users_batch_4.sql
+2026-03-19T10:13:24.932Z -   !!!!!!!!!! ERROR processing users_batch_4.sql !!!!!!!!!!!
+2026-03-19T10:13:24.934Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:24.934Z - 
+Processing batch file: users_batch_5.sql
+2026-03-19T10:13:24.950Z -   !!!!!!!!!! ERROR processing users_batch_5.sql !!!!!!!!!!!
+2026-03-19T10:13:24.950Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:24.950Z - 
+Processing batch file: users_batch_6.sql
+2026-03-19T10:13:25.006Z -   !!!!!!!!!! ERROR processing users_batch_6.sql !!!!!!!!!!!
+2026-03-19T10:13:25.006Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:25.007Z - 
+Processing batch file: users_batch_7.sql
+2026-03-19T10:13:25.033Z -   !!!!!!!!!! ERROR processing users_batch_7.sql !!!!!!!!!!!
+2026-03-19T10:13:25.033Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:25.033Z - 
+Processing batch file: users_batch_8.sql
+2026-03-19T10:13:25.080Z -   !!!!!!!!!! ERROR processing users_batch_8.sql !!!!!!!!!!!
+2026-03-19T10:13:25.080Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:25.080Z - 
+Processing batch file: users_batch_9.sql
+2026-03-19T10:13:25.110Z -   !!!!!!!!!! ERROR processing users_batch_9.sql !!!!!!!!!!!
+2026-03-19T10:13:25.110Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:13:25.111Z - 
+--- Supabase Data Import Complete ---
+2026-03-19T10:35:43.969Z - Successfully connected to Supabase database.
+2026-03-19T10:35:43.970Z - Found 44 batch files to process.
+2026-03-19T10:35:43.971Z - 
+Processing batch file: orders_batch_1.sql
+2026-03-19T10:35:44.074Z -   !!!!!!!!!! ERROR processing orders_batch_1.sql !!!!!!!!!!!
+2026-03-19T10:35:44.074Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:44.074Z - 
+Processing batch file: orders_batch_10.sql
+2026-03-19T10:35:44.484Z -   !!!!!!!!!! ERROR processing orders_batch_10.sql !!!!!!!!!!!
+2026-03-19T10:35:44.484Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:44.484Z - 
+Processing batch file: orders_batch_11.sql
+2026-03-19T10:35:44.854Z -   !!!!!!!!!! ERROR processing orders_batch_11.sql !!!!!!!!!!!
+2026-03-19T10:35:44.855Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:44.855Z - 
+Processing batch file: orders_batch_12.sql
+2026-03-19T10:35:45.009Z -   !!!!!!!!!! ERROR processing orders_batch_12.sql !!!!!!!!!!!
+2026-03-19T10:35:45.009Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:45.010Z - 
+Processing batch file: orders_batch_13.sql
+2026-03-19T10:35:45.321Z -   !!!!!!!!!! ERROR processing orders_batch_13.sql !!!!!!!!!!!
+2026-03-19T10:35:45.321Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:45.321Z - 
+Processing batch file: orders_batch_14.sql
+2026-03-19T10:35:45.539Z -   !!!!!!!!!! ERROR processing orders_batch_14.sql !!!!!!!!!!!
+2026-03-19T10:35:45.539Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:45.539Z - 
+Processing batch file: orders_batch_15.sql
+2026-03-19T10:35:45.731Z -   !!!!!!!!!! ERROR processing orders_batch_15.sql !!!!!!!!!!!
+2026-03-19T10:35:45.731Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:45.731Z - 
+Processing batch file: orders_batch_16.sql
+2026-03-19T10:35:46.012Z -   !!!!!!!!!! ERROR processing orders_batch_16.sql !!!!!!!!!!!
+2026-03-19T10:35:46.012Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:46.012Z - 
+Processing batch file: orders_batch_17.sql
+2026-03-19T10:35:46.309Z -   !!!!!!!!!! ERROR processing orders_batch_17.sql !!!!!!!!!!!
+2026-03-19T10:35:46.309Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:46.310Z - 
+Processing batch file: orders_batch_18.sql
+2026-03-19T10:35:46.623Z -   !!!!!!!!!! ERROR processing orders_batch_18.sql !!!!!!!!!!!
+2026-03-19T10:35:46.623Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:46.623Z - 
+Processing batch file: orders_batch_19.sql
+2026-03-19T10:35:46.758Z -   !!!!!!!!!! ERROR processing orders_batch_19.sql !!!!!!!!!!!
+2026-03-19T10:35:46.758Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:46.758Z - 
+Processing batch file: orders_batch_2.sql
+2026-03-19T10:35:46.814Z -   !!!!!!!!!! ERROR processing orders_batch_2.sql !!!!!!!!!!!
+2026-03-19T10:35:46.814Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:46.814Z - 
+Processing batch file: orders_batch_3.sql
+2026-03-19T10:35:46.882Z -   !!!!!!!!!! ERROR processing orders_batch_3.sql !!!!!!!!!!!
+2026-03-19T10:35:46.883Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:46.883Z - 
+Processing batch file: orders_batch_4.sql
+2026-03-19T10:35:46.996Z -   !!!!!!!!!! ERROR processing orders_batch_4.sql !!!!!!!!!!!
+2026-03-19T10:35:46.996Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:46.996Z - 
+Processing batch file: orders_batch_5.sql
+2026-03-19T10:35:47.116Z -   !!!!!!!!!! ERROR processing orders_batch_5.sql !!!!!!!!!!!
+2026-03-19T10:35:47.116Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.116Z - 
+Processing batch file: orders_batch_6.sql
+2026-03-19T10:35:47.205Z -   !!!!!!!!!! ERROR processing orders_batch_6.sql !!!!!!!!!!!
+2026-03-19T10:35:47.205Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.205Z - 
+Processing batch file: orders_batch_7.sql
+2026-03-19T10:35:47.261Z -   !!!!!!!!!! ERROR processing orders_batch_7.sql !!!!!!!!!!!
+2026-03-19T10:35:47.262Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.262Z - 
+Processing batch file: orders_batch_8.sql
+2026-03-19T10:35:47.328Z -   !!!!!!!!!! ERROR processing orders_batch_8.sql !!!!!!!!!!!
+2026-03-19T10:35:47.328Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.328Z - 
+Processing batch file: orders_batch_9.sql
+2026-03-19T10:35:47.542Z -   !!!!!!!!!! ERROR processing orders_batch_9.sql !!!!!!!!!!!
+2026-03-19T10:35:47.543Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.543Z - 
+Processing batch file: payment_methods_batch_1.sql
+2026-03-19T10:35:47.551Z -   !!!!!!!!!! ERROR processing payment_methods_batch_1.sql !!!!!!!!!!!
+2026-03-19T10:35:47.552Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.552Z - 
+Processing batch file: sell_orders_batch_1.sql
+2026-03-19T10:35:47.563Z -   !!!!!!!!!! ERROR processing sell_orders_batch_1.sql !!!!!!!!!!!
+2026-03-19T10:35:47.565Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.565Z - 
+Processing batch file: sell_orders_batch_2.sql
+2026-03-19T10:35:47.576Z -   !!!!!!!!!! ERROR processing sell_orders_batch_2.sql !!!!!!!!!!!
+2026-03-19T10:35:47.577Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.578Z - 
+Processing batch file: sell_orders_batch_3.sql
+2026-03-19T10:35:47.587Z -   !!!!!!!!!! ERROR processing sell_orders_batch_3.sql !!!!!!!!!!!
+2026-03-19T10:35:47.588Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.588Z - 
+Processing batch file: sell_orders_batch_4.sql
+2026-03-19T10:35:47.598Z -   !!!!!!!!!! ERROR processing sell_orders_batch_4.sql !!!!!!!!!!!
+2026-03-19T10:35:47.599Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.600Z - 
+Processing batch file: sell_orders_batch_5.sql
+2026-03-19T10:35:47.610Z -   !!!!!!!!!! ERROR processing sell_orders_batch_5.sql !!!!!!!!!!!
+2026-03-19T10:35:47.612Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.612Z - 
+Processing batch file: sell_orders_batch_6.sql
+2026-03-19T10:35:47.621Z -   !!!!!!!!!! ERROR processing sell_orders_batch_6.sql !!!!!!!!!!!
+2026-03-19T10:35:47.622Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.622Z - 
+Processing batch file: transactions_batch_1.sql
+2026-03-19T10:35:47.631Z -   !!!!!!!!!! ERROR processing transactions_batch_1.sql !!!!!!!!!!!
+2026-03-19T10:35:47.631Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.632Z - 
+Processing batch file: transactions_batch_2.sql
+2026-03-19T10:35:47.641Z -   !!!!!!!!!! ERROR processing transactions_batch_2.sql !!!!!!!!!!!
+2026-03-19T10:35:47.643Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.643Z - 
+Processing batch file: transactions_batch_3.sql
+2026-03-19T10:35:47.653Z -   !!!!!!!!!! ERROR processing transactions_batch_3.sql !!!!!!!!!!!
+2026-03-19T10:35:47.654Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.654Z - 
+Processing batch file: transactions_batch_4.sql
+2026-03-19T10:35:47.664Z -   !!!!!!!!!! ERROR processing transactions_batch_4.sql !!!!!!!!!!!
+2026-03-19T10:35:47.665Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.665Z - 
+Processing batch file: transactions_batch_5.sql
+2026-03-19T10:35:47.678Z -   !!!!!!!!!! ERROR processing transactions_batch_5.sql !!!!!!!!!!!
+2026-03-19T10:35:47.678Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.679Z - 
+Processing batch file: transactions_batch_6.sql
+2026-03-19T10:35:47.691Z -   !!!!!!!!!! ERROR processing transactions_batch_6.sql !!!!!!!!!!!
+2026-03-19T10:35:47.691Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.691Z - 
+Processing batch file: transactions_batch_7.sql
+2026-03-19T10:35:47.699Z -   !!!!!!!!!! ERROR processing transactions_batch_7.sql !!!!!!!!!!!
+2026-03-19T10:35:47.700Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.700Z - 
+Processing batch file: transactions_batch_8.sql
+2026-03-19T10:35:47.711Z -   !!!!!!!!!! ERROR processing transactions_batch_8.sql !!!!!!!!!!!
+2026-03-19T10:35:47.711Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.711Z - 
+Processing batch file: transactions_batch_9.sql
+2026-03-19T10:35:47.721Z -   !!!!!!!!!! ERROR processing transactions_batch_9.sql !!!!!!!!!!!
+2026-03-19T10:35:47.722Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.722Z - 
+Processing batch file: users_batch_1.sql
+2026-03-19T10:35:47.731Z -   !!!!!!!!!! ERROR processing users_batch_1.sql !!!!!!!!!!!
+2026-03-19T10:35:47.732Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.732Z - 
+Processing batch file: users_batch_2.sql
+2026-03-19T10:35:47.739Z -   !!!!!!!!!! ERROR processing users_batch_2.sql !!!!!!!!!!!
+2026-03-19T10:35:47.740Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.740Z - 
+Processing batch file: users_batch_3.sql
+2026-03-19T10:35:47.749Z -   !!!!!!!!!! ERROR processing users_batch_3.sql !!!!!!!!!!!
+2026-03-19T10:35:47.750Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.750Z - 
+Processing batch file: users_batch_4.sql
+2026-03-19T10:35:47.759Z -   !!!!!!!!!! ERROR processing users_batch_4.sql !!!!!!!!!!!
+2026-03-19T10:35:47.760Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.761Z - 
+Processing batch file: users_batch_5.sql
+2026-03-19T10:35:47.770Z -   !!!!!!!!!! ERROR processing users_batch_5.sql !!!!!!!!!!!
+2026-03-19T10:35:47.771Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.771Z - 
+Processing batch file: users_batch_6.sql
+2026-03-19T10:35:47.787Z -   !!!!!!!!!! ERROR processing users_batch_6.sql !!!!!!!!!!!
+2026-03-19T10:35:47.788Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.788Z - 
+Processing batch file: users_batch_7.sql
+2026-03-19T10:35:47.796Z -   !!!!!!!!!! ERROR processing users_batch_7.sql !!!!!!!!!!!
+2026-03-19T10:35:47.796Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.796Z - 
+Processing batch file: users_batch_8.sql
+2026-03-19T10:35:47.803Z -   !!!!!!!!!! ERROR processing users_batch_8.sql !!!!!!!!!!!
+2026-03-19T10:35:47.804Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.804Z - 
+Processing batch file: users_batch_9.sql
+2026-03-19T10:35:47.813Z -   !!!!!!!!!! ERROR processing users_batch_9.sql !!!!!!!!!!!
+2026-03-19T10:35:47.815Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:35:47.815Z - 
+--- Supabase Data Import Complete ---
+2026-03-19T10:42:16.053Z - Successfully connected to Supabase database.
+2026-03-19T10:42:16.054Z - Found 44 batch files to process.
+2026-03-19T10:42:16.054Z - 
+Processing batch file: orders_batch_1.sql
+2026-03-19T10:42:16.157Z -   !!!!!!!!!! ERROR processing orders_batch_1.sql !!!!!!!!!!!
+2026-03-19T10:42:16.158Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:16.158Z - 
+Processing batch file: orders_batch_10.sql
+2026-03-19T10:42:16.250Z -   !!!!!!!!!! ERROR processing orders_batch_10.sql !!!!!!!!!!!
+2026-03-19T10:42:16.250Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:16.250Z - 
+Processing batch file: orders_batch_11.sql
+2026-03-19T10:42:16.374Z -   !!!!!!!!!! ERROR processing orders_batch_11.sql !!!!!!!!!!!
+2026-03-19T10:42:16.374Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:16.374Z - 
+Processing batch file: orders_batch_12.sql
+2026-03-19T10:42:16.435Z -   !!!!!!!!!! ERROR processing orders_batch_12.sql !!!!!!!!!!!
+2026-03-19T10:42:16.436Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:16.436Z - 
+Processing batch file: orders_batch_13.sql
+2026-03-19T10:42:16.525Z -   !!!!!!!!!! ERROR processing orders_batch_13.sql !!!!!!!!!!!
+2026-03-19T10:42:16.526Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:16.526Z - 
+Processing batch file: orders_batch_14.sql
+2026-03-19T10:42:16.583Z -   !!!!!!!!!! ERROR processing orders_batch_14.sql !!!!!!!!!!!
+2026-03-19T10:42:16.583Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:16.583Z - 
+Processing batch file: orders_batch_15.sql
+2026-03-19T10:42:16.663Z -   !!!!!!!!!! ERROR processing orders_batch_15.sql !!!!!!!!!!!
+2026-03-19T10:42:16.664Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:16.664Z - 
+Processing batch file: orders_batch_16.sql
+2026-03-19T10:42:16.753Z -   !!!!!!!!!! ERROR processing orders_batch_16.sql !!!!!!!!!!!
+2026-03-19T10:42:16.754Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:16.754Z - 
+Processing batch file: orders_batch_17.sql
+2026-03-19T10:42:16.810Z -   !!!!!!!!!! ERROR processing orders_batch_17.sql !!!!!!!!!!!
+2026-03-19T10:42:16.811Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:16.811Z - 
+Processing batch file: orders_batch_18.sql
+2026-03-19T10:42:16.904Z -   !!!!!!!!!! ERROR processing orders_batch_18.sql !!!!!!!!!!!
+2026-03-19T10:42:16.904Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:16.904Z - 
+Processing batch file: orders_batch_19.sql
+2026-03-19T10:42:16.985Z -   !!!!!!!!!! ERROR processing orders_batch_19.sql !!!!!!!!!!!
+2026-03-19T10:42:16.985Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:16.985Z - 
+Processing batch file: orders_batch_2.sql
+2026-03-19T10:42:17.050Z -   !!!!!!!!!! ERROR processing orders_batch_2.sql !!!!!!!!!!!
+2026-03-19T10:42:17.050Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.050Z - 
+Processing batch file: orders_batch_3.sql
+2026-03-19T10:42:17.133Z -   !!!!!!!!!! ERROR processing orders_batch_3.sql !!!!!!!!!!!
+2026-03-19T10:42:17.133Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.134Z - 
+Processing batch file: orders_batch_4.sql
+2026-03-19T10:42:17.236Z -   !!!!!!!!!! ERROR processing orders_batch_4.sql !!!!!!!!!!!
+2026-03-19T10:42:17.236Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.236Z - 
+Processing batch file: orders_batch_5.sql
+2026-03-19T10:42:17.347Z -   !!!!!!!!!! ERROR processing orders_batch_5.sql !!!!!!!!!!!
+2026-03-19T10:42:17.349Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.349Z - 
+Processing batch file: orders_batch_6.sql
+2026-03-19T10:42:17.431Z -   !!!!!!!!!! ERROR processing orders_batch_6.sql !!!!!!!!!!!
+2026-03-19T10:42:17.431Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.431Z - 
+Processing batch file: orders_batch_7.sql
+2026-03-19T10:42:17.485Z -   !!!!!!!!!! ERROR processing orders_batch_7.sql !!!!!!!!!!!
+2026-03-19T10:42:17.485Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.485Z - 
+Processing batch file: orders_batch_8.sql
+2026-03-19T10:42:17.547Z -   !!!!!!!!!! ERROR processing orders_batch_8.sql !!!!!!!!!!!
+2026-03-19T10:42:17.547Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.547Z - 
+Processing batch file: orders_batch_9.sql
+2026-03-19T10:42:17.603Z -   !!!!!!!!!! ERROR processing orders_batch_9.sql !!!!!!!!!!!
+2026-03-19T10:42:17.603Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.603Z - 
+Processing batch file: payment_methods_batch_1.sql
+2026-03-19T10:42:17.614Z -   !!!!!!!!!! ERROR processing payment_methods_batch_1.sql !!!!!!!!!!!
+2026-03-19T10:42:17.614Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.615Z - 
+Processing batch file: sell_orders_batch_1.sql
+2026-03-19T10:42:17.624Z -   !!!!!!!!!! ERROR processing sell_orders_batch_1.sql !!!!!!!!!!!
+2026-03-19T10:42:17.624Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.625Z - 
+Processing batch file: sell_orders_batch_2.sql
+2026-03-19T10:42:17.637Z -   !!!!!!!!!! ERROR processing sell_orders_batch_2.sql !!!!!!!!!!!
+2026-03-19T10:42:17.637Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.637Z - 
+Processing batch file: sell_orders_batch_3.sql
+2026-03-19T10:42:17.647Z -   !!!!!!!!!! ERROR processing sell_orders_batch_3.sql !!!!!!!!!!!
+2026-03-19T10:42:17.648Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.648Z - 
+Processing batch file: sell_orders_batch_4.sql
+2026-03-19T10:42:17.657Z -   !!!!!!!!!! ERROR processing sell_orders_batch_4.sql !!!!!!!!!!!
+2026-03-19T10:42:17.657Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.657Z - 
+Processing batch file: sell_orders_batch_5.sql
+2026-03-19T10:42:17.672Z -   !!!!!!!!!! ERROR processing sell_orders_batch_5.sql !!!!!!!!!!!
+2026-03-19T10:42:17.673Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.673Z - 
+Processing batch file: sell_orders_batch_6.sql
+2026-03-19T10:42:17.688Z -   !!!!!!!!!! ERROR processing sell_orders_batch_6.sql !!!!!!!!!!!
+2026-03-19T10:42:17.688Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.688Z - 
+Processing batch file: transactions_batch_1.sql
+2026-03-19T10:42:17.702Z -   !!!!!!!!!! ERROR processing transactions_batch_1.sql !!!!!!!!!!!
+2026-03-19T10:42:17.703Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.704Z - 
+Processing batch file: transactions_batch_2.sql
+2026-03-19T10:42:17.715Z -   !!!!!!!!!! ERROR processing transactions_batch_2.sql !!!!!!!!!!!
+2026-03-19T10:42:17.715Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.715Z - 
+Processing batch file: transactions_batch_3.sql
+2026-03-19T10:42:17.725Z -   !!!!!!!!!! ERROR processing transactions_batch_3.sql !!!!!!!!!!!
+2026-03-19T10:42:17.726Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.726Z - 
+Processing batch file: transactions_batch_4.sql
+2026-03-19T10:42:17.734Z -   !!!!!!!!!! ERROR processing transactions_batch_4.sql !!!!!!!!!!!
+2026-03-19T10:42:17.735Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.735Z - 
+Processing batch file: transactions_batch_5.sql
+2026-03-19T10:42:17.743Z -   !!!!!!!!!! ERROR processing transactions_batch_5.sql !!!!!!!!!!!
+2026-03-19T10:42:17.743Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.744Z - 
+Processing batch file: transactions_batch_6.sql
+2026-03-19T10:42:17.752Z -   !!!!!!!!!! ERROR processing transactions_batch_6.sql !!!!!!!!!!!
+2026-03-19T10:42:17.754Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.754Z - 
+Processing batch file: transactions_batch_7.sql
+2026-03-19T10:42:17.764Z -   !!!!!!!!!! ERROR processing transactions_batch_7.sql !!!!!!!!!!!
+2026-03-19T10:42:17.764Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.765Z - 
+Processing batch file: transactions_batch_8.sql
+2026-03-19T10:42:17.776Z -   !!!!!!!!!! ERROR processing transactions_batch_8.sql !!!!!!!!!!!
+2026-03-19T10:42:17.777Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.777Z - 
+Processing batch file: transactions_batch_9.sql
+2026-03-19T10:42:17.785Z -   !!!!!!!!!! ERROR processing transactions_batch_9.sql !!!!!!!!!!!
+2026-03-19T10:42:17.785Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.786Z - 
+Processing batch file: users_batch_1.sql
+2026-03-19T10:42:17.796Z -   !!!!!!!!!! ERROR processing users_batch_1.sql !!!!!!!!!!!
+2026-03-19T10:42:17.797Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.798Z - 
+Processing batch file: users_batch_2.sql
+2026-03-19T10:42:17.805Z -   !!!!!!!!!! ERROR processing users_batch_2.sql !!!!!!!!!!!
+2026-03-19T10:42:17.806Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.806Z - 
+Processing batch file: users_batch_3.sql
+2026-03-19T10:42:17.813Z -   !!!!!!!!!! ERROR processing users_batch_3.sql !!!!!!!!!!!
+2026-03-19T10:42:17.814Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.814Z - 
+Processing batch file: users_batch_4.sql
+2026-03-19T10:42:17.825Z -   !!!!!!!!!! ERROR processing users_batch_4.sql !!!!!!!!!!!
+2026-03-19T10:42:17.825Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.826Z - 
+Processing batch file: users_batch_5.sql
+2026-03-19T10:42:17.838Z -   !!!!!!!!!! ERROR processing users_batch_5.sql !!!!!!!!!!!
+2026-03-19T10:42:17.839Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.839Z - 
+Processing batch file: users_batch_6.sql
+2026-03-19T10:42:17.863Z -   !!!!!!!!!! ERROR processing users_batch_6.sql !!!!!!!!!!!
+2026-03-19T10:42:17.864Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.864Z - 
+Processing batch file: users_batch_7.sql
+2026-03-19T10:42:17.874Z -   !!!!!!!!!! ERROR processing users_batch_7.sql !!!!!!!!!!!
+2026-03-19T10:42:17.875Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.875Z - 
+Processing batch file: users_batch_8.sql
+2026-03-19T10:42:17.884Z -   !!!!!!!!!! ERROR processing users_batch_8.sql !!!!!!!!!!!
+2026-03-19T10:42:17.884Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.884Z - 
+Processing batch file: users_batch_9.sql
+2026-03-19T10:42:17.892Z -   !!!!!!!!!! ERROR processing users_batch_9.sql !!!!!!!!!!!
+2026-03-19T10:42:17.894Z - Error: getaddrinfo ENOTFOUND db.gfpzygqegzakluihhkkr.supabase.co
+2026-03-19T10:42:17.894Z - 
+--- Supabase Data Import Complete ---
+2026-03-19T11:15:26.155Z - Successfully connected to Supabase database.
+2026-03-19T11:15:26.156Z - Found 44 batch files to process.
+2026-03-19T11:15:26.156Z - 
+Processing batch file: orders_batch_1.sql
+2026-03-19T11:15:32.118Z -   !!!!!!!!!! ERROR processing orders_batch_1.sql !!!!!!!!!!!
+2026-03-19T11:15:32.119Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:15:32.119Z - 
+Processing batch file: orders_batch_10.sql
+2026-03-19T11:15:39.070Z -   !!!!!!!!!! ERROR processing orders_batch_10.sql !!!!!!!!!!!
+2026-03-19T11:15:39.070Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:15:39.070Z - 
+Processing batch file: orders_batch_11.sql
+2026-03-19T11:15:45.674Z -   !!!!!!!!!! ERROR processing orders_batch_11.sql !!!!!!!!!!!
+2026-03-19T11:15:45.677Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:15:45.677Z - 
+Processing batch file: orders_batch_12.sql
+2026-03-19T11:19:24.073Z -   !!!!!!!!!! ERROR processing orders_batch_12.sql !!!!!!!!!!!
+2026-03-19T11:19:24.073Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:19:24.073Z - 
+Processing batch file: orders_batch_13.sql
+2026-03-19T11:28:02.962Z -   !!!!!!!!!! ERROR processing orders_batch_13.sql !!!!!!!!!!!
+2026-03-19T11:28:02.962Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:28:02.962Z - 
+Processing batch file: orders_batch_14.sql
+2026-03-19T11:28:23.319Z -   !!!!!!!!!! ERROR processing orders_batch_14.sql !!!!!!!!!!!
+2026-03-19T11:28:23.319Z - error: numeric field overflow
+2026-03-19T11:28:23.319Z - 
+Processing batch file: orders_batch_15.sql
+2026-03-19T11:28:54.760Z -   !!!!!!!!!! ERROR processing orders_batch_15.sql !!!!!!!!!!!
+2026-03-19T11:28:54.760Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:28:54.760Z - 
+Processing batch file: orders_batch_16.sql
+2026-03-19T11:29:24.384Z -   !!!!!!!!!! ERROR processing orders_batch_16.sql !!!!!!!!!!!
+2026-03-19T11:29:24.384Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:29:24.384Z - 
+Processing batch file: orders_batch_17.sql
+2026-03-19T11:29:57.553Z -   !!!!!!!!!! ERROR processing orders_batch_17.sql !!!!!!!!!!!
+2026-03-19T11:29:57.553Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:29:57.553Z - 
+Processing batch file: orders_batch_18.sql
+2026-03-19T11:30:14.754Z -   !!!!!!!!!! ERROR processing orders_batch_18.sql !!!!!!!!!!!
+2026-03-19T11:30:14.754Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:30:14.755Z - 
+Processing batch file: orders_batch_19.sql
+2026-03-19T11:30:29.098Z -   !!!!!!!!!! ERROR processing orders_batch_19.sql !!!!!!!!!!!
+2026-03-19T11:30:29.098Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:30:29.098Z - 
+Processing batch file: orders_batch_2.sql
+2026-03-19T11:30:32.126Z - Successfully connected to Supabase database.
+2026-03-19T11:30:32.128Z - Found 44 batch files to process.
+2026-03-19T11:30:32.128Z - 
+Processing batch file: orders_batch_1.sql
+2026-03-19T11:30:56.234Z -   !!!!!!!!!! ERROR processing orders_batch_2.sql !!!!!!!!!!!
+2026-03-19T11:30:56.234Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:30:56.234Z - 
+Processing batch file: orders_batch_3.sql
+2026-03-19T11:31:09.770Z -   !!!!!!!!!! ERROR processing orders_batch_1.sql !!!!!!!!!!!
+2026-03-19T11:31:09.771Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:31:09.771Z - 
+Processing batch file: orders_batch_10.sql
+2026-03-19T11:31:31.545Z -   !!!!!!!!!! ERROR processing orders_batch_3.sql !!!!!!!!!!!
+2026-03-19T11:31:31.545Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:31:31.545Z - 
+Processing batch file: orders_batch_4.sql
+2026-03-19T11:32:00.773Z -   !!!!!!!!!! ERROR processing orders_batch_10.sql !!!!!!!!!!!
+2026-03-19T11:32:00.774Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:32:00.775Z - 
+Processing batch file: orders_batch_11.sql
+2026-03-19T11:32:53.467Z -   !!!!!!!!!! ERROR processing orders_batch_4.sql !!!!!!!!!!!
+2026-03-19T11:32:53.467Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:32:53.467Z - 
+Processing batch file: orders_batch_5.sql
+2026-03-19T11:33:11.016Z -   !!!!!!!!!! ERROR processing orders_batch_11.sql !!!!!!!!!!!
+2026-03-19T11:33:11.017Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:33:11.017Z - 
+Processing batch file: orders_batch_12.sql
+2026-03-19T11:34:00.646Z -   !!!!!!!!!! ERROR processing orders_batch_5.sql !!!!!!!!!!!
+2026-03-19T11:34:00.646Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:34:00.646Z - 
+Processing batch file: orders_batch_6.sql
+2026-03-19T11:34:45.911Z -   !!!!!!!!!! ERROR processing orders_batch_12.sql !!!!!!!!!!!
+2026-03-19T11:34:45.911Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:34:45.911Z - 
+Processing batch file: orders_batch_13.sql
+2026-03-19T11:35:32.470Z -   !!!!!!!!!! ERROR processing orders_batch_6.sql !!!!!!!!!!!
+2026-03-19T11:35:32.470Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:35:32.470Z - 
+Processing batch file: orders_batch_7.sql
+2026-03-19T11:36:00.083Z -   !!!!!!!!!! ERROR processing orders_batch_7.sql !!!!!!!!!!!
+2026-03-19T11:36:00.083Z - error: numeric field overflow
+2026-03-19T11:36:00.085Z - 
+Processing batch file: orders_batch_8.sql
+2026-03-19T11:36:10.737Z -   !!!!!!!!!! ERROR processing orders_batch_13.sql !!!!!!!!!!!
+2026-03-19T11:36:10.738Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:36:10.738Z - 
+Processing batch file: orders_batch_14.sql
+2026-03-19T11:37:03.275Z -   !!!!!!!!!! ERROR processing orders_batch_14.sql !!!!!!!!!!!
+2026-03-19T11:37:03.275Z - error: numeric field overflow
+2026-03-19T11:37:03.275Z - 
+Processing batch file: orders_batch_15.sql
+2026-03-19T11:37:08.236Z -   !!!!!!!!!! ERROR processing orders_batch_8.sql !!!!!!!!!!!
+2026-03-19T11:37:08.236Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:37:08.236Z - 
+Processing batch file: orders_batch_9.sql
+2026-03-19T11:37:31.837Z -   !!!!!!!!!! ERROR processing orders_batch_15.sql !!!!!!!!!!!
+2026-03-19T11:37:31.838Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:37:31.838Z - 
+Processing batch file: orders_batch_16.sql
+2026-03-19T11:37:53.403Z - Successfully connected to Supabase database.
+2026-03-19T11:37:53.404Z - Found 44 batch files to process.
+2026-03-19T11:37:53.404Z - 
+Processing batch file: orders_batch_1.sql
+2026-03-19T11:37:57.523Z -   !!!!!!!!!! ERROR processing orders_batch_9.sql !!!!!!!!!!!
+2026-03-19T11:37:57.523Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:37:57.523Z - 
+Processing batch file: payment_methods_batch_1.sql
+2026-03-19T11:37:59.881Z -   !!!!!!!!!! ERROR processing payment_methods_batch_1.sql !!!!!!!!!!!
+2026-03-19T11:37:59.882Z - error: column "type" of relation "payment_methods" does not exist
+2026-03-19T11:37:59.882Z - 
+Processing batch file: sell_orders_batch_1.sql
+2026-03-19T11:38:03.266Z -   !!!!!!!!!! ERROR processing sell_orders_batch_1.sql !!!!!!!!!!!
+2026-03-19T11:38:03.268Z - error: column "order_id" of relation "sell_orders" does not exist
+2026-03-19T11:38:03.268Z - 
+Processing batch file: sell_orders_batch_2.sql
+2026-03-19T11:38:06.681Z -   !!!!!!!!!! ERROR processing sell_orders_batch_2.sql !!!!!!!!!!!
+2026-03-19T11:38:06.681Z - error: column "order_id" of relation "sell_orders" does not exist
+2026-03-19T11:38:06.681Z - 
+Processing batch file: sell_orders_batch_3.sql
+2026-03-19T11:38:11.468Z -   !!!!!!!!!! ERROR processing sell_orders_batch_3.sql !!!!!!!!!!!
+2026-03-19T11:38:11.468Z - error: column "order_id" of relation "sell_orders" does not exist
+2026-03-19T11:38:11.469Z - 
+Processing batch file: sell_orders_batch_4.sql
+2026-03-19T11:38:14.530Z -   !!!!!!!!!! ERROR processing sell_orders_batch_4.sql !!!!!!!!!!!
+2026-03-19T11:38:14.534Z - error: column "order_id" of relation "sell_orders" does not exist
+2026-03-19T11:38:14.534Z - 
+Processing batch file: sell_orders_batch_5.sql
+2026-03-19T11:38:18.004Z -   !!!!!!!!!! ERROR processing sell_orders_batch_5.sql !!!!!!!!!!!
+2026-03-19T11:38:18.004Z - error: column "order_id" of relation "sell_orders" does not exist
+2026-03-19T11:38:18.005Z - 
+Processing batch file: sell_orders_batch_6.sql
+2026-03-19T11:38:21.271Z -   !!!!!!!!!! ERROR processing sell_orders_batch_6.sql !!!!!!!!!!!
+2026-03-19T11:38:21.272Z - error: column "order_id" of relation "sell_orders" does not exist
+2026-03-19T11:38:21.272Z - 
+Processing batch file: transactions_batch_1.sql
+2026-03-19T11:38:23.439Z -   !!!!!!!!!! ERROR processing transactions_batch_1.sql !!!!!!!!!!!
+2026-03-19T11:38:23.440Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:38:23.440Z - 
+Processing batch file: transactions_batch_2.sql
+2026-03-19T11:38:24.608Z -   !!!!!!!!!! ERROR processing transactions_batch_2.sql !!!!!!!!!!!
+2026-03-19T11:38:24.609Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:38:24.609Z - 
+Processing batch file: transactions_batch_3.sql
+2026-03-19T11:38:27.463Z -   !!!!!!!!!! ERROR processing transactions_batch_3.sql !!!!!!!!!!!
+2026-03-19T11:38:27.463Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:38:27.464Z - 
+Processing batch file: transactions_batch_4.sql
+2026-03-19T11:38:28.507Z -   !!!!!!!!!! ERROR processing transactions_batch_4.sql !!!!!!!!!!!
+2026-03-19T11:38:28.507Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:38:28.507Z - 
+Processing batch file: transactions_batch_5.sql
+2026-03-19T11:38:29.610Z -   !!!!!!!!!! ERROR processing transactions_batch_5.sql !!!!!!!!!!!
+2026-03-19T11:38:29.610Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:38:29.611Z - 
+Processing batch file: transactions_batch_6.sql
+2026-03-19T11:38:31.260Z -   !!!!!!!!!! ERROR processing transactions_batch_6.sql !!!!!!!!!!!
+2026-03-19T11:38:31.261Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:38:31.262Z - 
+Processing batch file: transactions_batch_7.sql
+2026-03-19T11:38:32.289Z -   !!!!!!!!!! ERROR processing transactions_batch_7.sql !!!!!!!!!!!
+2026-03-19T11:38:32.290Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:38:32.290Z - 
+Processing batch file: transactions_batch_8.sql
+2026-03-19T11:38:33.229Z -   !!!!!!!!!! ERROR processing transactions_batch_8.sql !!!!!!!!!!!
+2026-03-19T11:38:33.230Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:38:33.231Z - 
+Processing batch file: transactions_batch_9.sql
+2026-03-19T11:38:33.920Z -   !!!!!!!!!! ERROR processing transactions_batch_9.sql !!!!!!!!!!!
+2026-03-19T11:38:33.920Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:38:33.920Z - 
+Processing batch file: users_batch_1.sql
+2026-03-19T11:38:35.191Z -   !!!!!!!!!! ERROR processing orders_batch_1.sql !!!!!!!!!!!
+2026-03-19T11:38:35.193Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:38:35.193Z - 
+Processing batch file: orders_batch_10.sql
+2026-03-19T11:38:36.037Z -   !!!!!!!!!! ERROR processing users_batch_1.sql !!!!!!!!!!!
+2026-03-19T11:38:36.037Z - error: insert or update on table "users" violates foreign key constraint "users_inviter_uid_fkey"
+2026-03-19T11:38:36.038Z - 
+Processing batch file: users_batch_2.sql
+2026-03-19T11:38:37.380Z -   !!!!!!!!!! ERROR processing users_batch_2.sql !!!!!!!!!!!
+2026-03-19T11:38:37.380Z - error: insert or update on table "users" violates foreign key constraint "users_inviter_uid_fkey"
+2026-03-19T11:38:37.380Z - 
+Processing batch file: users_batch_3.sql
+2026-03-19T11:38:39.788Z -   !!!!!!!!!! ERROR processing users_batch_3.sql !!!!!!!!!!!
+2026-03-19T11:38:39.788Z - error: insert or update on table "users" violates foreign key constraint "users_inviter_uid_fkey"
+2026-03-19T11:38:39.788Z - 
+Processing batch file: users_batch_4.sql
+2026-03-19T11:38:41.870Z -   !!!!!!!!!! ERROR processing orders_batch_16.sql !!!!!!!!!!!
+2026-03-19T11:38:41.870Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:38:41.871Z - 
+Processing batch file: orders_batch_17.sql
+2026-03-19T11:38:43.132Z -   !!!!!!!!!! ERROR processing users_batch_4.sql !!!!!!!!!!!
+2026-03-19T11:38:43.132Z - error: null value in column "id" of relation "users" violates not-null constraint
+2026-03-19T11:38:43.132Z - 
+Processing batch file: users_batch_5.sql
+2026-03-19T11:38:46.796Z -   !!!!!!!!!! ERROR processing users_batch_5.sql !!!!!!!!!!!
+2026-03-19T11:38:46.797Z - error: insert or update on table "users" violates foreign key constraint "users_inviter_uid_fkey"
+2026-03-19T11:38:46.797Z - 
+Processing batch file: users_batch_6.sql
+2026-03-19T11:38:49.878Z -   !!!!!!!!!! ERROR processing users_batch_6.sql !!!!!!!!!!!
+2026-03-19T11:38:49.879Z - error: null value in column "id" of relation "users" violates not-null constraint
+2026-03-19T11:38:49.881Z - 
+Processing batch file: users_batch_7.sql
+2026-03-19T11:38:53.148Z -   !!!!!!!!!! ERROR processing users_batch_7.sql !!!!!!!!!!!
+2026-03-19T11:38:53.150Z - error: insert or update on table "users" violates foreign key constraint "users_inviter_uid_fkey"
+2026-03-19T11:38:53.150Z - 
+Processing batch file: users_batch_8.sql
+2026-03-19T11:38:55.543Z -   !!!!!!!!!! ERROR processing users_batch_8.sql !!!!!!!!!!!
+2026-03-19T11:38:55.544Z - error: null value in column "id" of relation "users" violates not-null constraint
+2026-03-19T11:38:55.544Z - 
+Processing batch file: users_batch_9.sql
+2026-03-19T11:38:56.676Z -   !!!!!!!!!! ERROR processing users_batch_9.sql !!!!!!!!!!!
+2026-03-19T11:38:56.676Z - error: insert or update on table "users" violates foreign key constraint "users_inviter_uid_fkey"
+2026-03-19T11:38:56.677Z - 
+--- Supabase Data Import Complete ---
+2026-03-19T11:38:58.990Z -   !!!!!!!!!! ERROR processing orders_batch_10.sql !!!!!!!!!!!
+2026-03-19T11:38:58.993Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:38:58.994Z - 
+Processing batch file: orders_batch_11.sql
+2026-03-19T11:39:17.071Z -   !!!!!!!!!! ERROR processing orders_batch_17.sql !!!!!!!!!!!
+2026-03-19T11:39:17.071Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:39:17.071Z - 
+Processing batch file: orders_batch_18.sql
+2026-03-19T11:39:44.113Z -   !!!!!!!!!! ERROR processing orders_batch_11.sql !!!!!!!!!!!
+2026-03-19T11:39:44.113Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:39:44.113Z - 
+Processing batch file: orders_batch_12.sql
+2026-03-19T11:40:15.047Z -   !!!!!!!!!! ERROR processing orders_batch_18.sql !!!!!!!!!!!
+2026-03-19T11:40:15.047Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:40:15.047Z - 
+Processing batch file: orders_batch_19.sql
+2026-03-19T11:40:27.811Z -   !!!!!!!!!! ERROR processing orders_batch_12.sql !!!!!!!!!!!
+2026-03-19T11:40:27.811Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:40:27.812Z - 
+Processing batch file: orders_batch_13.sql
+2026-03-19T11:40:47.973Z -   !!!!!!!!!! ERROR processing orders_batch_19.sql !!!!!!!!!!!
+2026-03-19T11:40:47.973Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:40:47.973Z - 
+Processing batch file: orders_batch_2.sql
+2026-03-19T11:41:00.993Z -   !!!!!!!!!! ERROR processing orders_batch_13.sql !!!!!!!!!!!
+2026-03-19T11:41:00.993Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:41:00.993Z - 
+Processing batch file: orders_batch_14.sql
+2026-03-19T11:41:19.737Z -   !!!!!!!!!! ERROR processing orders_batch_2.sql !!!!!!!!!!!
+2026-03-19T11:41:19.737Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:41:19.737Z - 
+Processing batch file: orders_batch_3.sql
+2026-03-19T11:41:32.843Z -   !!!!!!!!!! ERROR processing orders_batch_14.sql !!!!!!!!!!!
+2026-03-19T11:41:32.843Z - error: numeric field overflow
+2026-03-19T11:41:32.843Z - 
+Processing batch file: orders_batch_15.sql
+2026-03-19T11:42:03.847Z -   !!!!!!!!!! ERROR processing orders_batch_15.sql !!!!!!!!!!!
+2026-03-19T11:42:03.847Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:42:03.847Z - 
+Processing batch file: orders_batch_16.sql
+2026-03-19T11:42:31.967Z -   !!!!!!!!!! ERROR processing orders_batch_16.sql !!!!!!!!!!!
+2026-03-19T11:42:31.968Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:42:31.968Z - 
+Processing batch file: orders_batch_17.sql
+2026-03-19T11:43:37.692Z -   !!!!!!!!!! ERROR processing orders_batch_3.sql !!!!!!!!!!!
+2026-03-19T11:43:37.692Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:43:37.692Z - 
+Processing batch file: orders_batch_4.sql
+2026-03-19T11:43:41.895Z -   !!!!!!!!!! ERROR processing orders_batch_17.sql !!!!!!!!!!!
+2026-03-19T11:43:41.895Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:43:41.896Z - 
+Processing batch file: orders_batch_18.sql
+2026-03-19T11:44:08.823Z -   !!!!!!!!!! ERROR processing orders_batch_4.sql !!!!!!!!!!!
+2026-03-19T11:44:08.823Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:44:08.823Z - 
+Processing batch file: orders_batch_5.sql
+2026-03-19T11:44:31.826Z -   !!!!!!!!!! ERROR processing orders_batch_18.sql !!!!!!!!!!!
+2026-03-19T11:44:31.826Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:44:31.827Z - 
+Processing batch file: orders_batch_19.sql
+2026-03-19T11:45:01.038Z -   !!!!!!!!!! ERROR processing orders_batch_5.sql !!!!!!!!!!!
+2026-03-19T11:45:01.039Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:45:01.039Z - 
+Processing batch file: orders_batch_6.sql
+2026-03-19T11:45:15.009Z -   !!!!!!!!!! ERROR processing orders_batch_19.sql !!!!!!!!!!!
+2026-03-19T11:45:15.009Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:45:15.009Z - 
+Processing batch file: orders_batch_2.sql
+2026-03-19T11:45:40.017Z -   !!!!!!!!!! ERROR processing orders_batch_6.sql !!!!!!!!!!!
+2026-03-19T11:45:40.017Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:45:40.017Z - 
+Processing batch file: orders_batch_7.sql
+2026-03-19T11:46:14.567Z -   !!!!!!!!!! ERROR processing orders_batch_7.sql !!!!!!!!!!!
+2026-03-19T11:46:14.567Z - error: numeric field overflow
+2026-03-19T11:46:14.569Z - 
+Processing batch file: orders_batch_8.sql
+2026-03-19T11:46:19.016Z -   !!!!!!!!!! ERROR processing orders_batch_2.sql !!!!!!!!!!!
+2026-03-19T11:46:19.017Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:46:19.017Z - 
+Processing batch file: orders_batch_3.sql
+2026-03-19T11:46:22.877Z - Successfully connected to Supabase database.
+2026-03-19T11:46:22.881Z - Found 44 batch files to process.
+2026-03-19T11:46:22.882Z - 
+Processing batch file: orders_batch_1.sql
+2026-03-19T11:46:54.376Z -   !!!!!!!!!! ERROR processing orders_batch_8.sql !!!!!!!!!!!
+2026-03-19T11:46:54.377Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:46:54.377Z - 
+Processing batch file: orders_batch_9.sql
+2026-03-19T11:47:40.013Z -   !!!!!!!!!! ERROR processing orders_batch_1.sql !!!!!!!!!!!
+2026-03-19T11:47:40.015Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:47:40.015Z - 
+Processing batch file: orders_batch_10.sql
+2026-03-19T11:48:07.811Z -   !!!!!!!!!! ERROR processing orders_batch_3.sql !!!!!!!!!!!
+2026-03-19T11:48:07.814Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:48:07.814Z - 
+Processing batch file: orders_batch_4.sql
+2026-03-19T11:48:19.219Z -   !!!!!!!!!! ERROR processing orders_batch_9.sql !!!!!!!!!!!
+2026-03-19T11:48:19.219Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:48:19.219Z - 
+Processing batch file: payment_methods_batch_1.sql
+2026-03-19T11:48:21.626Z -   !!!!!!!!!! ERROR processing payment_methods_batch_1.sql !!!!!!!!!!!
+2026-03-19T11:48:21.626Z - error: column "type" of relation "payment_methods" does not exist
+2026-03-19T11:48:21.626Z - 
+Processing batch file: sell_orders_batch_1.sql
+2026-03-19T11:48:24.346Z -   !!!!!!!!!! ERROR processing sell_orders_batch_1.sql !!!!!!!!!!!
+2026-03-19T11:48:24.347Z - error: column "order_id" of relation "sell_orders" does not exist
+2026-03-19T11:48:24.347Z - 
+Processing batch file: sell_orders_batch_2.sql
+2026-03-19T11:48:25.587Z -   !!!!!!!!!! ERROR processing sell_orders_batch_2.sql !!!!!!!!!!!
+2026-03-19T11:48:25.589Z - error: column "order_id" of relation "sell_orders" does not exist
+2026-03-19T11:48:25.589Z - 
+Processing batch file: sell_orders_batch_3.sql
+2026-03-19T11:48:27.239Z -   !!!!!!!!!! ERROR processing sell_orders_batch_3.sql !!!!!!!!!!!
+2026-03-19T11:48:27.242Z - error: column "order_id" of relation "sell_orders" does not exist
+2026-03-19T11:48:27.242Z - 
+Processing batch file: sell_orders_batch_4.sql
+2026-03-19T11:48:28.516Z -   !!!!!!!!!! ERROR processing sell_orders_batch_4.sql !!!!!!!!!!!
+2026-03-19T11:48:28.516Z - error: column "order_id" of relation "sell_orders" does not exist
+2026-03-19T11:48:28.516Z - 
+Processing batch file: sell_orders_batch_5.sql
+2026-03-19T11:48:30.153Z -   !!!!!!!!!! ERROR processing sell_orders_batch_5.sql !!!!!!!!!!!
+2026-03-19T11:48:30.153Z - error: column "order_id" of relation "sell_orders" does not exist
+2026-03-19T11:48:30.153Z - 
+Processing batch file: sell_orders_batch_6.sql
+2026-03-19T11:48:31.452Z -   !!!!!!!!!! ERROR processing sell_orders_batch_6.sql !!!!!!!!!!!
+2026-03-19T11:48:31.453Z - error: column "order_id" of relation "sell_orders" does not exist
+2026-03-19T11:48:31.453Z - 
+Processing batch file: transactions_batch_1.sql
+2026-03-19T11:48:32.373Z -   !!!!!!!!!! ERROR processing transactions_batch_1.sql !!!!!!!!!!!
+2026-03-19T11:48:32.373Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:48:32.373Z - 
+Processing batch file: transactions_batch_2.sql
+2026-03-19T11:48:32.858Z -   !!!!!!!!!! ERROR processing orders_batch_10.sql !!!!!!!!!!!
+2026-03-19T11:48:32.859Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:48:32.864Z - 
+Processing batch file: orders_batch_11.sql
+2026-03-19T11:48:33.412Z -   !!!!!!!!!! ERROR processing transactions_batch_2.sql !!!!!!!!!!!
+2026-03-19T11:48:33.412Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:48:33.412Z - 
+Processing batch file: transactions_batch_3.sql
+2026-03-19T11:48:34.936Z -   !!!!!!!!!! ERROR processing transactions_batch_3.sql !!!!!!!!!!!
+2026-03-19T11:48:34.937Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:48:34.937Z - 
+Processing batch file: transactions_batch_4.sql
+2026-03-19T11:48:37.693Z -   !!!!!!!!!! ERROR processing transactions_batch_4.sql !!!!!!!!!!!
+2026-03-19T11:48:37.694Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:48:37.694Z - 
+Processing batch file: transactions_batch_5.sql
+2026-03-19T11:48:40.623Z -   !!!!!!!!!! ERROR processing transactions_batch_5.sql !!!!!!!!!!!
+2026-03-19T11:48:40.623Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:48:40.623Z - 
+Processing batch file: transactions_batch_6.sql
+2026-03-19T11:48:43.144Z -   !!!!!!!!!! ERROR processing transactions_batch_6.sql !!!!!!!!!!!
+2026-03-19T11:48:43.146Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:48:43.147Z - 
+Processing batch file: transactions_batch_7.sql
+2026-03-19T11:48:45.805Z -   !!!!!!!!!! ERROR processing transactions_batch_7.sql !!!!!!!!!!!
+2026-03-19T11:48:45.806Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:48:45.807Z - 
+Processing batch file: transactions_batch_8.sql
+2026-03-19T11:48:49.249Z -   !!!!!!!!!! ERROR processing transactions_batch_8.sql !!!!!!!!!!!
+2026-03-19T11:48:49.250Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:48:49.250Z - 
+Processing batch file: transactions_batch_9.sql
+2026-03-19T11:48:51.519Z -   !!!!!!!!!! ERROR processing transactions_batch_9.sql !!!!!!!!!!!
+2026-03-19T11:48:51.521Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:48:51.522Z - 
+Processing batch file: users_batch_1.sql
+2026-03-19T11:48:56.296Z -   !!!!!!!!!! ERROR processing users_batch_1.sql !!!!!!!!!!!
+2026-03-19T11:48:56.297Z - error: insert or update on table "users" violates foreign key constraint "users_inviter_uid_fkey"
+2026-03-19T11:48:56.298Z - 
+Processing batch file: users_batch_2.sql
+2026-03-19T11:49:01.280Z -   !!!!!!!!!! ERROR processing users_batch_2.sql !!!!!!!!!!!
+2026-03-19T11:49:01.280Z - error: insert or update on table "users" violates foreign key constraint "users_inviter_uid_fkey"
+2026-03-19T11:49:01.280Z - 
+Processing batch file: users_batch_3.sql
+2026-03-19T11:49:04.040Z -   !!!!!!!!!! ERROR processing users_batch_3.sql !!!!!!!!!!!
+2026-03-19T11:49:04.040Z - error: insert or update on table "users" violates foreign key constraint "users_inviter_uid_fkey"
+2026-03-19T11:49:04.040Z - 
+Processing batch file: users_batch_4.sql
+2026-03-19T11:49:07.068Z -   !!!!!!!!!! ERROR processing users_batch_4.sql !!!!!!!!!!!
+2026-03-19T11:49:07.070Z - error: null value in column "id" of relation "users" violates not-null constraint
+2026-03-19T11:49:07.070Z - 
+Processing batch file: users_batch_5.sql
+2026-03-19T11:49:11.933Z -   !!!!!!!!!! ERROR processing users_batch_5.sql !!!!!!!!!!!
+2026-03-19T11:49:11.933Z - error: insert or update on table "users" violates foreign key constraint "users_inviter_uid_fkey"
+2026-03-19T11:49:11.933Z - 
+Processing batch file: users_batch_6.sql
+2026-03-19T11:49:13.291Z -   !!!!!!!!!! ERROR processing users_batch_6.sql !!!!!!!!!!!
+2026-03-19T11:49:13.293Z - error: null value in column "id" of relation "users" violates not-null constraint
+2026-03-19T11:49:13.293Z - 
+Processing batch file: users_batch_7.sql
+2026-03-19T11:49:14.652Z -   !!!!!!!!!! ERROR processing users_batch_7.sql !!!!!!!!!!!
+2026-03-19T11:49:14.652Z - error: insert or update on table "users" violates foreign key constraint "users_inviter_uid_fkey"
+2026-03-19T11:49:14.653Z - 
+Processing batch file: users_batch_8.sql
+2026-03-19T11:49:16.789Z -   !!!!!!!!!! ERROR processing users_batch_8.sql !!!!!!!!!!!
+2026-03-19T11:49:16.789Z - error: null value in column "id" of relation "users" violates not-null constraint
+2026-03-19T11:49:16.790Z - 
+Processing batch file: users_batch_9.sql
+2026-03-19T11:49:16.816Z -   !!!!!!!!!! ERROR processing orders_batch_4.sql !!!!!!!!!!!
+2026-03-19T11:49:16.817Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:49:16.821Z - 
+Processing batch file: orders_batch_5.sql
+2026-03-19T11:49:18.506Z -   !!!!!!!!!! ERROR processing users_batch_9.sql !!!!!!!!!!!
+2026-03-19T11:49:18.506Z - error: insert or update on table "users" violates foreign key constraint "users_inviter_uid_fkey"
+2026-03-19T11:49:18.507Z - 
+--- Supabase Data Import Complete ---
+2026-03-19T11:49:59.242Z -   !!!!!!!!!! ERROR processing orders_batch_11.sql !!!!!!!!!!!
+2026-03-19T11:49:59.242Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:49:59.243Z - 
+Processing batch file: orders_batch_12.sql
+2026-03-19T11:50:13.709Z -   !!!!!!!!!! ERROR processing orders_batch_5.sql !!!!!!!!!!!
+2026-03-19T11:50:13.709Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:50:13.709Z - 
+Processing batch file: orders_batch_6.sql
+2026-03-19T11:50:36.381Z -   !!!!!!!!!! ERROR processing orders_batch_12.sql !!!!!!!!!!!
+2026-03-19T11:50:36.381Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:50:36.381Z - 
+Processing batch file: orders_batch_13.sql
+2026-03-19T11:51:16.188Z -   !!!!!!!!!! ERROR processing orders_batch_6.sql !!!!!!!!!!!
+2026-03-19T11:51:16.188Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:51:16.188Z - 
+Processing batch file: orders_batch_7.sql
+2026-03-19T11:51:57.027Z -   !!!!!!!!!! ERROR processing orders_batch_13.sql !!!!!!!!!!!
+2026-03-19T11:51:57.027Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:51:57.027Z - 
+Processing batch file: orders_batch_14.sql
+2026-03-19T11:52:03.800Z -   !!!!!!!!!! ERROR processing orders_batch_7.sql !!!!!!!!!!!
+2026-03-19T11:52:03.800Z - error: numeric field overflow
+2026-03-19T11:52:03.800Z - 
+Processing batch file: orders_batch_8.sql
+2026-03-19T11:52:59.216Z -   !!!!!!!!!! ERROR processing orders_batch_14.sql !!!!!!!!!!!
+2026-03-19T11:52:59.216Z - error: numeric field overflow
+2026-03-19T11:52:59.216Z - 
+Processing batch file: orders_batch_15.sql
+2026-03-19T11:53:01.576Z -   !!!!!!!!!! ERROR processing orders_batch_8.sql !!!!!!!!!!!
+2026-03-19T11:53:01.576Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:53:01.576Z - 
+Processing batch file: orders_batch_9.sql
+2026-03-19T11:53:56.586Z -   !!!!!!!!!! ERROR processing orders_batch_15.sql !!!!!!!!!!!
+2026-03-19T11:53:56.586Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:53:56.586Z - 
+Processing batch file: orders_batch_16.sql
+2026-03-19T11:54:17.148Z -   !!!!!!!!!! ERROR processing orders_batch_9.sql !!!!!!!!!!!
+2026-03-19T11:54:17.148Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:54:17.148Z - 
+Processing batch file: payment_methods_batch_1.sql
+2026-03-19T11:54:18.972Z -   !!!!!!!!!! ERROR processing payment_methods_batch_1.sql !!!!!!!!!!!
+2026-03-19T11:54:18.972Z - error: column "type" of relation "payment_methods" does not exist
+2026-03-19T11:54:18.972Z - 
+Processing batch file: sell_orders_batch_1.sql
+2026-03-19T11:54:24.338Z -   !!!!!!!!!! ERROR processing sell_orders_batch_1.sql !!!!!!!!!!!
+2026-03-19T11:54:24.339Z - error: column "order_id" of relation "sell_orders" does not exist
+2026-03-19T11:54:24.339Z - 
+Processing batch file: sell_orders_batch_2.sql
+2026-03-19T11:54:27.844Z -   !!!!!!!!!! ERROR processing sell_orders_batch_2.sql !!!!!!!!!!!
+2026-03-19T11:54:27.844Z - error: column "order_id" of relation "sell_orders" does not exist
+2026-03-19T11:54:27.844Z - 
+Processing batch file: sell_orders_batch_3.sql
+2026-03-19T11:54:31.763Z -   !!!!!!!!!! ERROR processing sell_orders_batch_3.sql !!!!!!!!!!!
+2026-03-19T11:54:31.763Z - error: column "order_id" of relation "sell_orders" does not exist
+2026-03-19T11:54:31.763Z - 
+Processing batch file: sell_orders_batch_4.sql
+2026-03-19T11:54:34.390Z -   !!!!!!!!!! ERROR processing sell_orders_batch_4.sql !!!!!!!!!!!
+2026-03-19T11:54:34.391Z - error: column "order_id" of relation "sell_orders" does not exist
+2026-03-19T11:54:34.391Z - 
+Processing batch file: sell_orders_batch_5.sql
+2026-03-19T11:54:37.865Z -   !!!!!!!!!! ERROR processing sell_orders_batch_5.sql !!!!!!!!!!!
+2026-03-19T11:54:37.867Z - error: column "order_id" of relation "sell_orders" does not exist
+2026-03-19T11:54:37.867Z - 
+Processing batch file: sell_orders_batch_6.sql
+2026-03-19T11:54:39.003Z -   !!!!!!!!!! ERROR processing sell_orders_batch_6.sql !!!!!!!!!!!
+2026-03-19T11:54:39.005Z - error: column "order_id" of relation "sell_orders" does not exist
+2026-03-19T11:54:39.005Z - 
+Processing batch file: transactions_batch_1.sql
+2026-03-19T11:54:39.900Z -   !!!!!!!!!! ERROR processing transactions_batch_1.sql !!!!!!!!!!!
+2026-03-19T11:54:39.902Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:54:39.902Z - 
+Processing batch file: transactions_batch_2.sql
+2026-03-19T11:54:41.722Z -   !!!!!!!!!! ERROR processing transactions_batch_2.sql !!!!!!!!!!!
+2026-03-19T11:54:41.722Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:54:41.722Z - 
+Processing batch file: transactions_batch_3.sql
+2026-03-19T11:54:42.567Z -   !!!!!!!!!! ERROR processing transactions_batch_3.sql !!!!!!!!!!!
+2026-03-19T11:54:42.567Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:54:42.567Z - 
+Processing batch file: transactions_batch_4.sql
+2026-03-19T11:54:43.515Z -   !!!!!!!!!! ERROR processing transactions_batch_4.sql !!!!!!!!!!!
+2026-03-19T11:54:43.515Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:54:43.515Z - 
+Processing batch file: transactions_batch_5.sql
+2026-03-19T11:54:44.605Z -   !!!!!!!!!! ERROR processing orders_batch_16.sql !!!!!!!!!!!
+2026-03-19T11:54:44.606Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:54:44.606Z - 
+Processing batch file: orders_batch_17.sql
+2026-03-19T11:54:45.179Z -   !!!!!!!!!! ERROR processing transactions_batch_5.sql !!!!!!!!!!!
+2026-03-19T11:54:45.180Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:54:45.180Z - 
+Processing batch file: transactions_batch_6.sql
+2026-03-19T11:54:46.047Z -   !!!!!!!!!! ERROR processing transactions_batch_6.sql !!!!!!!!!!!
+2026-03-19T11:54:46.047Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:54:46.047Z - 
+Processing batch file: transactions_batch_7.sql
+2026-03-19T11:54:48.032Z -   !!!!!!!!!! ERROR processing transactions_batch_7.sql !!!!!!!!!!!
+2026-03-19T11:54:48.032Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:54:48.032Z - 
+Processing batch file: transactions_batch_8.sql
+2026-03-19T11:54:52.903Z -   !!!!!!!!!! ERROR processing transactions_batch_8.sql !!!!!!!!!!!
+2026-03-19T11:54:52.903Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:54:52.903Z - 
+Processing batch file: transactions_batch_9.sql
+2026-03-19T11:54:54.202Z -   !!!!!!!!!! ERROR processing transactions_batch_9.sql !!!!!!!!!!!
+2026-03-19T11:54:54.203Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:54:54.205Z - 
+Processing batch file: users_batch_1.sql
+2026-03-19T11:54:57.214Z -   !!!!!!!!!! ERROR processing users_batch_1.sql !!!!!!!!!!!
+2026-03-19T11:54:57.214Z - error: insert or update on table "users" violates foreign key constraint "users_inviter_uid_fkey"
+2026-03-19T11:54:57.214Z - 
+Processing batch file: users_batch_2.sql
+2026-03-19T11:55:00.273Z -   !!!!!!!!!! ERROR processing users_batch_2.sql !!!!!!!!!!!
+2026-03-19T11:55:00.274Z - error: insert or update on table "users" violates foreign key constraint "users_inviter_uid_fkey"
+2026-03-19T11:55:00.274Z - 
+Processing batch file: users_batch_3.sql
+2026-03-19T11:55:03.911Z -   !!!!!!!!!! ERROR processing users_batch_3.sql !!!!!!!!!!!
+2026-03-19T11:55:03.911Z - error: insert or update on table "users" violates foreign key constraint "users_inviter_uid_fkey"
+2026-03-19T11:55:03.911Z - 
+Processing batch file: users_batch_4.sql
+2026-03-19T11:55:07.067Z -   !!!!!!!!!! ERROR processing users_batch_4.sql !!!!!!!!!!!
+2026-03-19T11:55:07.067Z - error: null value in column "id" of relation "users" violates not-null constraint
+2026-03-19T11:55:07.067Z - 
+Processing batch file: users_batch_5.sql
+2026-03-19T11:55:09.644Z -   !!!!!!!!!! ERROR processing users_batch_5.sql !!!!!!!!!!!
+2026-03-19T11:55:09.644Z - error: insert or update on table "users" violates foreign key constraint "users_inviter_uid_fkey"
+2026-03-19T11:55:09.644Z - 
+Processing batch file: users_batch_6.sql
+2026-03-19T11:55:10.908Z -   !!!!!!!!!! ERROR processing users_batch_6.sql !!!!!!!!!!!
+2026-03-19T11:55:10.908Z - error: null value in column "id" of relation "users" violates not-null constraint
+2026-03-19T11:55:10.908Z - 
+Processing batch file: users_batch_7.sql
+2026-03-19T11:55:12.389Z -   !!!!!!!!!! ERROR processing users_batch_7.sql !!!!!!!!!!!
+2026-03-19T11:55:12.391Z - error: insert or update on table "users" violates foreign key constraint "users_inviter_uid_fkey"
+2026-03-19T11:55:12.391Z - 
+Processing batch file: users_batch_8.sql
+2026-03-19T11:55:13.299Z -   !!!!!!!!!! ERROR processing orders_batch_17.sql !!!!!!!!!!!
+2026-03-19T11:55:13.299Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:55:13.299Z - 
+Processing batch file: orders_batch_18.sql
+2026-03-19T11:55:13.765Z -   !!!!!!!!!! ERROR processing users_batch_8.sql !!!!!!!!!!!
+2026-03-19T11:55:13.766Z - error: null value in column "id" of relation "users" violates not-null constraint
+2026-03-19T11:55:13.766Z - 
+Processing batch file: users_batch_9.sql
+2026-03-19T11:55:14.909Z -   !!!!!!!!!! ERROR processing users_batch_9.sql !!!!!!!!!!!
+2026-03-19T11:55:14.909Z - error: insert or update on table "users" violates foreign key constraint "users_inviter_uid_fkey"
+2026-03-19T11:55:14.912Z - 
+--- Supabase Data Import Complete ---
+2026-03-19T11:56:09.281Z -   !!!!!!!!!! ERROR processing orders_batch_18.sql !!!!!!!!!!!
+2026-03-19T11:56:09.281Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:56:09.281Z - 
+Processing batch file: orders_batch_19.sql
+2026-03-19T11:56:28.943Z -   !!!!!!!!!! ERROR processing orders_batch_19.sql !!!!!!!!!!!
+2026-03-19T11:56:28.943Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:56:28.943Z - 
+Processing batch file: orders_batch_2.sql
+2026-03-19T11:56:37.566Z -   !!!!!!!!!! ERROR processing orders_batch_2.sql !!!!!!!!!!!
+2026-03-19T11:56:37.566Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:56:37.566Z - 
+Processing batch file: orders_batch_3.sql
+2026-03-19T11:56:59.534Z -   !!!!!!!!!! ERROR processing orders_batch_3.sql !!!!!!!!!!!
+2026-03-19T11:56:59.534Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:56:59.534Z - 
+Processing batch file: orders_batch_4.sql
+2026-03-19T11:57:27.206Z -   !!!!!!!!!! ERROR processing orders_batch_4.sql !!!!!!!!!!!
+2026-03-19T11:57:27.206Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:57:27.206Z - 
+Processing batch file: orders_batch_5.sql
+2026-03-19T11:57:56.498Z -   !!!!!!!!!! ERROR processing orders_batch_5.sql !!!!!!!!!!!
+2026-03-19T11:57:56.498Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:57:56.498Z - 
+Processing batch file: orders_batch_6.sql
+2026-03-19T11:58:24.543Z -   !!!!!!!!!! ERROR processing orders_batch_6.sql !!!!!!!!!!!
+2026-03-19T11:58:24.543Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:58:24.543Z - 
+Processing batch file: orders_batch_7.sql
+2026-03-19T11:58:42.019Z -   !!!!!!!!!! ERROR processing orders_batch_7.sql !!!!!!!!!!!
+2026-03-19T11:58:42.019Z - error: numeric field overflow
+2026-03-19T11:58:42.019Z - 
+Processing batch file: orders_batch_8.sql
+2026-03-19T11:59:03.130Z -   !!!!!!!!!! ERROR processing orders_batch_8.sql !!!!!!!!!!!
+2026-03-19T11:59:03.130Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:59:03.131Z - 
+Processing batch file: orders_batch_9.sql
+2026-03-19T11:59:31.678Z -   !!!!!!!!!! ERROR processing orders_batch_9.sql !!!!!!!!!!!
+2026-03-19T11:59:31.679Z - error: insert or update on table "orders" violates foreign key constraint "orders_user_id_fkey"
+2026-03-19T11:59:31.679Z - 
+Processing batch file: payment_methods_batch_1.sql
+2026-03-19T11:59:32.378Z -   !!!!!!!!!! ERROR processing payment_methods_batch_1.sql !!!!!!!!!!!
+2026-03-19T11:59:32.378Z - error: column "type" of relation "payment_methods" does not exist
+2026-03-19T11:59:32.378Z - 
+Processing batch file: sell_orders_batch_1.sql
+2026-03-19T11:59:33.468Z -   !!!!!!!!!! ERROR processing sell_orders_batch_1.sql !!!!!!!!!!!
+2026-03-19T11:59:33.468Z - error: column "order_id" of relation "sell_orders" does not exist
+2026-03-19T11:59:33.468Z - 
+Processing batch file: sell_orders_batch_2.sql
+2026-03-19T11:59:34.686Z -   !!!!!!!!!! ERROR processing sell_orders_batch_2.sql !!!!!!!!!!!
+2026-03-19T11:59:34.686Z - error: column "order_id" of relation "sell_orders" does not exist
+2026-03-19T11:59:34.686Z - 
+Processing batch file: sell_orders_batch_3.sql
+2026-03-19T11:59:36.037Z -   !!!!!!!!!! ERROR processing sell_orders_batch_3.sql !!!!!!!!!!!
+2026-03-19T11:59:36.037Z - error: column "order_id" of relation "sell_orders" does not exist
+2026-03-19T11:59:36.037Z - 
+Processing batch file: sell_orders_batch_4.sql
+2026-03-19T11:59:37.258Z -   !!!!!!!!!! ERROR processing sell_orders_batch_4.sql !!!!!!!!!!!
+2026-03-19T11:59:37.258Z - error: column "order_id" of relation "sell_orders" does not exist
+2026-03-19T11:59:37.258Z - 
+Processing batch file: sell_orders_batch_5.sql
+2026-03-19T11:59:38.378Z -   !!!!!!!!!! ERROR processing sell_orders_batch_5.sql !!!!!!!!!!!
+2026-03-19T11:59:38.379Z - error: column "order_id" of relation "sell_orders" does not exist
+2026-03-19T11:59:38.379Z - 
+Processing batch file: sell_orders_batch_6.sql
+2026-03-19T11:59:39.456Z -   !!!!!!!!!! ERROR processing sell_orders_batch_6.sql !!!!!!!!!!!
+2026-03-19T11:59:39.456Z - error: column "order_id" of relation "sell_orders" does not exist
+2026-03-19T11:59:39.456Z - 
+Processing batch file: transactions_batch_1.sql
+2026-03-19T11:59:40.289Z -   !!!!!!!!!! ERROR processing transactions_batch_1.sql !!!!!!!!!!!
+2026-03-19T11:59:40.289Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:59:40.289Z - 
+Processing batch file: transactions_batch_2.sql
+2026-03-19T11:59:41.110Z -   !!!!!!!!!! ERROR processing transactions_batch_2.sql !!!!!!!!!!!
+2026-03-19T11:59:41.110Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:59:41.110Z - 
+Processing batch file: transactions_batch_3.sql
+2026-03-19T11:59:41.946Z -   !!!!!!!!!! ERROR processing transactions_batch_3.sql !!!!!!!!!!!
+2026-03-19T11:59:41.946Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:59:41.947Z - 
+Processing batch file: transactions_batch_4.sql
+2026-03-19T11:59:42.783Z -   !!!!!!!!!! ERROR processing transactions_batch_4.sql !!!!!!!!!!!
+2026-03-19T11:59:42.783Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:59:42.783Z - 
+Processing batch file: transactions_batch_5.sql
+2026-03-19T11:59:43.729Z -   !!!!!!!!!! ERROR processing transactions_batch_5.sql !!!!!!!!!!!
+2026-03-19T11:59:43.729Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:59:43.729Z - 
+Processing batch file: transactions_batch_6.sql
+2026-03-19T11:59:44.577Z -   !!!!!!!!!! ERROR processing transactions_batch_6.sql !!!!!!!!!!!
+2026-03-19T11:59:44.577Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:59:44.577Z - 
+Processing batch file: transactions_batch_7.sql
+2026-03-19T11:59:45.384Z -   !!!!!!!!!! ERROR processing transactions_batch_7.sql !!!!!!!!!!!
+2026-03-19T11:59:45.384Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:59:45.384Z - 
+Processing batch file: transactions_batch_8.sql
+2026-03-19T11:59:46.218Z -   !!!!!!!!!! ERROR processing transactions_batch_8.sql !!!!!!!!!!!
+2026-03-19T11:59:46.218Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:59:46.218Z - 
+Processing batch file: transactions_batch_9.sql
+2026-03-19T11:59:46.882Z -   !!!!!!!!!! ERROR processing transactions_batch_9.sql !!!!!!!!!!!
+2026-03-19T11:59:46.882Z - error: column "order_id" of relation "transactions" does not exist
+2026-03-19T11:59:46.882Z - 
+Processing batch file: users_batch_1.sql
+2026-03-19T11:59:47.972Z -   !!!!!!!!!! ERROR processing users_batch_1.sql !!!!!!!!!!!
+2026-03-19T11:59:47.972Z - error: insert or update on table "users" violates foreign key constraint "users_inviter_uid_fkey"
+2026-03-19T11:59:47.972Z - 
+Processing batch file: users_batch_2.sql
+2026-03-19T11:59:49.054Z -   !!!!!!!!!! ERROR processing users_batch_2.sql !!!!!!!!!!!
+2026-03-19T11:59:49.054Z - error: insert or update on table "users" violates foreign key constraint "users_inviter_uid_fkey"
+2026-03-19T11:59:49.054Z - 
+Processing batch file: users_batch_3.sql
+2026-03-19T11:59:50.146Z -   !!!!!!!!!! ERROR processing users_batch_3.sql !!!!!!!!!!!
+2026-03-19T11:59:50.146Z - error: insert or update on table "users" violates foreign key constraint "users_inviter_uid_fkey"
+2026-03-19T11:59:50.147Z - 
+Processing batch file: users_batch_4.sql
+2026-03-19T11:59:51.235Z -   !!!!!!!!!! ERROR processing users_batch_4.sql !!!!!!!!!!!
+2026-03-19T11:59:51.235Z - error: null value in column "id" of relation "users" violates not-null constraint
+2026-03-19T11:59:51.235Z - 
+Processing batch file: users_batch_5.sql
+2026-03-19T11:59:52.345Z -   !!!!!!!!!! ERROR processing users_batch_5.sql !!!!!!!!!!!
+2026-03-19T11:59:52.345Z - error: insert or update on table "users" violates foreign key constraint "users_inviter_uid_fkey"
+2026-03-19T11:59:52.345Z - 
+Processing batch file: users_batch_6.sql
+2026-03-19T11:59:53.472Z -   !!!!!!!!!! ERROR processing users_batch_6.sql !!!!!!!!!!!
+2026-03-19T11:59:53.472Z - error: null value in column "id" of relation "users" violates not-null constraint
+2026-03-19T11:59:53.473Z - 
+Processing batch file: users_batch_7.sql
+2026-03-19T11:59:54.606Z -   !!!!!!!!!! ERROR processing users_batch_7.sql !!!!!!!!!!!
+2026-03-19T11:59:54.606Z - error: insert or update on table "users" violates foreign key constraint "users_inviter_uid_fkey"
+2026-03-19T11:59:54.607Z - 
+Processing batch file: users_batch_8.sql
+2026-03-19T11:59:55.737Z -   !!!!!!!!!! ERROR processing users_batch_8.sql !!!!!!!!!!!
+2026-03-19T11:59:55.737Z - error: null value in column "id" of relation "users" violates not-null constraint
+2026-03-19T11:59:55.738Z - 
+Processing batch file: users_batch_9.sql
+2026-03-19T11:59:56.819Z -   !!!!!!!!!! ERROR processing users_batch_9.sql !!!!!!!!!!!
+2026-03-19T11:59:56.819Z - error: insert or update on table "users" violates foreign key constraint "users_inviter_uid_fkey"
+2026-03-19T11:59:56.821Z - 
+--- Supabase Data Import Complete ---
