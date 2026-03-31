@@ -1,3 +1,5 @@
+
+import 'dotenv/config'; // Ensures .env variables are loaded
 import admin from 'firebase-admin';
 
 let app: admin.app.App;
