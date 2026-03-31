@@ -77,7 +77,7 @@ export function RegisterForm() {
     try {
       const email = `${values.phone}@lgpay.app`;
       // 1. Sign up the user in Supabase Auth using email
-      const { data: { user }, error: signUpError } = await supabase.auth.signUp({
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email: email,
         password: values.password,
       });
@@ -86,9 +86,11 @@ export function RegisterForm() {
           throw signUpError;
       }
 
-      if (!user) {
+      if (!data.user) {
           throw new Error("User registration failed, please try again.");
       }
+
+      const { user } = data;
 
       // 2. Find inviter if invitation code is provided
       let inviterUid: string | null = null;
