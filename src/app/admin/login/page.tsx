@@ -30,7 +30,7 @@ export default function AdminLoginPage() {
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    if (phone === '9060873927' && password === 'Ritik@9060') {
+    if (phone === process.env.NEXT_PUBLIC_ADMIN_PHONE && password === process.env.NEXT_PUBLIC_ADMIN_PASSWORD) {
       toast({ title: 'Login Successful', description: "Welcome, Admin!" });
       // Set a cookie with the admin's phone number to maintain session and permissions
       document.cookie = `admin-phone=${phone}; path=/; max-age=86400`; // 24 hours

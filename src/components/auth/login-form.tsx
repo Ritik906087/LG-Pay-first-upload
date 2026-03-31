@@ -21,7 +21,7 @@ import Image from "next/image";
 import { useLanguage } from "@/context/language-context";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/utils";
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
