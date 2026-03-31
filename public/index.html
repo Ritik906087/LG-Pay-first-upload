@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Payment Verification</title>
+    <style>
+        :root {
+            --background-start-rgb: 15, 23, 42;
+            --background-end-rgb: 4, 7, 17;
+            --card-bg-rgb: 30, 41, 59;
+            --primary-color: #34d399; /* Emerald Green */
+            --text-color: #e2e8f0;
+            --muted-text-color: #94a3b8;
+        }
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, rgb(var(--background-start-rgb)) 0%, rgb(var(--background-end-rgb)) 100%);
+            color: var(--text-color);
+            overflow: hidden;
+            padding: 1rem;
+        }
+        .payment-card {
+            width: 100%;
+            max-width: 380px;
+            background: rgba(var(--card-bg-rgb), 0.5);
+            border-radius: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .payment-card-inner {
+            z-index: 2;
+            position: relative;
+        }
+        .title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        .amount {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+        }
+        .qr-container {
+            position: relative;
+            width: 220px;
+            height: 220px;
+            margin: 0 auto;
+            border-radius: 1rem;
+            background: rgba(var(--card-bg-rgb), 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #qr-image {
+            width: 100%;
+            height: 100%;
+            padding: 1rem;
+            border-radius: 1.25rem;
+            object-fit: contain;
+            background-color: white;
+            transition: opacity 0.5s ease;
+        }
+        #spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.2);
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        .status-container {
+            margin-top: 1.5rem;
+        }
+        #status-text {
+            color: var(--muted-text-color);
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        #status-text.verified {
+            color: var(--primary-color);
+            font-weight: 600;
+        }
+        .verified-badge {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 220px;
+        }
+        .verified-badge svg {
+            width: 80px;
+            height: 80px;
+            color: var(--primary-color);
+        }
+        .verified-badge h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 1rem;
+            color: var(--primary-color);
+        }
+        .payment-details {
+            display: none;
+            font-size: 0.8rem;
+            text-align: left;
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: rgba(var(--card-bg-rgb), 0.7);
+            border-radius: 0.75rem;
+        }
+        .payment-details p {
+            margin-bottom: 0.5rem;
+            word-break: break-all;
+        }
+        .payment-details span {
+            font-weight: 600;
+            color: var(--muted-text-color);
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="payment-card">
+        <div class="payment-card-inner">
+            <h1 class="title">Secure ₹1 Payment</h1>
+            <p class="amount">₹1.00</p>
+            <div id="payment-view">
+                <div class="qr-container" id="qr-container">
+                    <div id="spinner"></div>
+                    <img id="qr-image" style="display: none;" alt="Scan QR to Pay" />
+                </div>
+                <div class="status-container">
+                    <p id="status-text">Generating QR Code...</p>
+                </div>
+            </div>
+            <div id="success-view" style="display: none;">
+                <div class="verified-badge">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
+                    <h3>Payment Verified</h3>
+                </div>
+                <div class="payment-details">
+                    <p><span>Payer UPI:</span> <span id="payer-vpa"></span></p>
+                    <p><span>Payment ID:</span> <span id="payment-id"></span></p>
+                    <p><span>Timestamp:</span> <span id="payment-time"></span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
