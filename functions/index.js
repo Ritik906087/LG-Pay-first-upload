@@ -1,3 +1,4 @@
+
 const { onRequest } = require("firebase-functions/v2/https");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const admin = require("firebase-admin");
@@ -25,9 +26,15 @@ const razorpay = new Razorpay({
 });
 
 /**
- * API 1: Create a single-use dynamic QR code for ₹1.
+ * API 1: Create a single-use dynamic QR code for ₹1 for a specific user and method.
  */
-app.get("/create-qr", async (req, res) => {
+app.post("/create-qr", async (req, res) => {
+    const { userId, methodName } = req.body;
+
+    if (!userId || !methodName) {
+        return res.status(400).send("userId and methodName are required.");
+    }
+
     try {
         const closeBy = Math.floor(Date.now() / 1000) + 600; // 10 minutes from now
 
@@ -38,10 +45,12 @@ app.get("/create-qr", async (req, res) => {
             fixed_amount: true,
             payment_amount: 100, // 100 paise = ₹1
             currency: "INR",
-            description: "Verification Payment",
+            description: `Verification for ${methodName}`,
             close_by: closeBy,
             notes: {
-                purpose: "verification"
+                purpose: "verification",
+                userId: userId,
+                methodName: methodName,
             }
         };
 
@@ -52,7 +61,9 @@ app.get("/create-qr", async (req, res) => {
             id: qrCode.id,
             status: qrCode.status,
             created_at: admin.firestore.FieldValue.serverTimestamp(),
-            paid: false
+            paid: false,
+            userId: userId,
+            methodName: methodName,
         });
 
         res.status(200).json({
@@ -66,6 +77,7 @@ app.get("/create-qr", async (req, res) => {
         res.status(500).send("Failed to create QR code.");
     }
 });
+
 
 /**
  * API 2: Verify payment status by polling Firestore.
@@ -119,20 +131,49 @@ app.post("/razorpay-webhook", (req, res) => {
             const qrId = qrEntity.id;
             const docRef = db.collection("qr_payments").doc(qrId);
 
-            const paymentData = {
-                paid: true,
-                status: "credited",
-                payer_vpa: paymentEntity.vpa,
-                razorpay_payment_id: paymentEntity.id,
-                paid_at: admin.firestore.Timestamp.fromMillis(paymentEntity.created_at * 1000),
-                amount: paymentEntity.amount / 100
-            };
+            db.runTransaction(async (transaction) => {
+                const qrDoc = await transaction.get(docRef);
+                if (!qrDoc.exists) {
+                    throw new Error(`QR payment record not found for ID: ${qrId}`);
+                }
 
-            // Update Firestore with payment details
-            docRef.update(paymentData).then(() => {
-                console.log(`Successfully updated payment for QR ID: ${qrId}`);
+                const { userId, methodName } = qrDoc.data();
+                const payerVpa = paymentEntity.vpa;
+
+                if (!userId || !methodName || !payerVpa) {
+                    console.warn(`Missing userId, methodName, or VPA for QR ID: ${qrId}. Cannot link UPI.`);
+                } else {
+                    const userRef = db.collection('users').doc(userId);
+                    const userDoc = await transaction.get(userRef);
+                    if (userDoc.exists) {
+                        const currentMethods = userDoc.data().paymentMethods || [];
+                        const newMethod = { name: methodName, upiId: payerVpa, type: 'upi' };
+                        const isDuplicate = currentMethods.some((pm) => pm.upiId === payerVpa);
+
+                        if (!isDuplicate) {
+                            transaction.update(userRef, {
+                                paymentMethods: admin.firestore.FieldValue.arrayUnion(newMethod),
+                            });
+                        }
+                    } else {
+                         console.error(`User profile not found for userId: ${userId}. Cannot link UPI.`);
+                    }
+                }
+
+                // Update the qr_payments document
+                const paymentData = {
+                    paid: true,
+                    status: 'credited',
+                    payer_vpa: payerVpa,
+                    razorpay_payment_id: paymentEntity.id,
+                    paid_at: admin.firestore.Timestamp.fromMillis(paymentEntity.created_at * 1000),
+                    amount: paymentEntity.amount / 100,
+                };
+                transaction.update(docRef, paymentData);
+            }).then(() => {
+                console.log(`Successfully processed payment and linked UPI for QR ID: ${qrId}`);
             }).catch(error => {
-                console.error(`Error updating Firestore for QR ID ${qrId}:`, error);
+                console.error(`Transaction failed for QR ID ${qrId}:`, error);
             });
         }
         
