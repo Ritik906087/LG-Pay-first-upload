@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import {
@@ -44,19 +42,25 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-import { useUser, useFirestore, useDoc } from '@/firebase';
-import { getAuth, signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { doc } from 'firebase/firestore';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLanguage } from '@/context/language-context';
-
+import { createClient } from '@/lib/utils';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 const defaultAvatarUrl = "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/LG%20PAY%20AVATAR.png?alt=media&token=707ce79d-15fa-4e58-9d1d-a7d774cfe5ec";
+
+type UserProfile = {
+  display_name: string;
+  photo_url?: string;
+  balance: number;
+  hold_balance: number;
+  numeric_id: string;
+};
 
 const GlassCard = ({
   children,
@@ -76,19 +80,33 @@ const GlassCard = ({
 );
 
 export default function MyPage() {
-  const { user, loading } = useUser();
   const router = useRouter();
   const { toast } = useToast();
-  const firestore = useFirestore();
   const [currency, setCurrency] = useState<'LGB' | 'INR'>('LGB');
   const { language, setLanguage, translations } = useLanguage();
+  const supabase = createClient();
 
-  const userProfileRef = React.useMemo(() => {
-    if (!user || !firestore) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [user, firestore]);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const { data: userProfile, loading: profileLoading } = useDoc<{ displayName: string; photoURL?: string; balance: number; holdBalance: number; numericId: string; claimedUserRewards?: string[] }>(userProfileRef);
+  useEffect(() => {
+    async function getUserData() {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      setUser(authUser);
+      if (authUser) {
+        const { data, error } = await supabase.from('users').select('*').eq('id', authUser.id).single();
+        if (error) {
+          console.error('Error fetching profile:', error);
+          toast({ variant: 'destructive', title: 'Could not load profile.' });
+        } else {
+          setUserProfile(data);
+        }
+      }
+      setLoading(false);
+    }
+    getUserData();
+  }, [supabase, toast]);
 
   const actionItems = [
     { icon: Wallet, label: translations.collection, href: "/my/collection" },
@@ -110,19 +128,18 @@ export default function MyPage() {
   };
 
   const handleLogout = async () => {
-    const auth = getAuth();
-    try {
-      await signOut(auth);
-      // Clear the auth token cookie
-      document.cookie = 'firebase-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-      toast({ title: 'Logged out successfully' });
-      router.push('/login');
-    } catch (error) {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
       console.error('Logout error:', error);
       toast({ title: 'Logout failed', variant: 'destructive' });
+    } else {
+      toast({ title: 'Logged out successfully' });
+      // Use window.location to ensure a full refresh and state clearing
+      window.location.href = '/login';
     }
   };
-
+  
+  const profileLoading = loading;
   const showNewUserRewardButton = !profileLoading;
 
 
@@ -148,13 +165,13 @@ export default function MyPage() {
                  <Avatar className="h-12 w-12 border-2 border-yellow-400">
                   <AvatarImage src={defaultAvatarUrl} />
                   <AvatarFallback className="bg-yellow-400 text-yellow-900 font-bold">
-                     {profileLoading ? <Skeleton className="h-12 w-12 rounded-full" /> : (userProfile?.displayName?.charAt(0) || 'A')}
+                     {profileLoading ? <Skeleton className="h-12 w-12 rounded-full" /> : (userProfile?.display_name?.charAt(0) || 'A')}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h2 className="text-lg font-bold">{profileLoading ? <Skeleton className="h-5 w-24" /> : (userProfile?.displayName || '...')}</h2>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer" onClick={(e) => {e.preventDefault(); userProfile && copyToClipboard(userProfile.numericId)}}>
-                    {profileLoading ? <Skeleton className="h-4 w-20 mt-1" /> : <><span>UID:{userProfile?.numericId || '...'}</span><Copy className="h-3 w-3" /></>}
+                  <h2 className="text-lg font-bold">{profileLoading ? <Skeleton className="h-5 w-24" /> : (userProfile?.display_name || '...')}</h2>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer" onClick={(e) => {e.preventDefault(); userProfile && copyToClipboard(userProfile.numeric_id)}}>
+                    {profileLoading ? <Skeleton className="h-4 w-20 mt-1" /> : <><span>UID:{userProfile?.numeric_id || '...'}</span><Copy className="h-3 w-3" /></>}
                   </div>
                 </div>
               </div>
@@ -190,7 +207,7 @@ export default function MyPage() {
                 <div className="flex justify-between text-sm text-white/70 items-center">
                     <span className="flex items-baseline gap-1">
                         <span className="text-xs">{translations.hold}</span>
-                        {profileLoading ? <Skeleton className="h-4 w-10 bg-slate-700"/> : <span>≈ {(userProfile?.holdBalance || 0).toFixed(2)}</span>}
+                        {profileLoading ? <Skeleton className="h-4 w-10 bg-slate-700"/> : <span>≈ {(userProfile?.hold_balance || 0).toFixed(2)}</span>}
                     </span>
                     <span className="text-xs">1LG≈ 1INR</span>
                 </div>
@@ -339,9 +356,9 @@ export default function MyPage() {
                             </div>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onSelect={() => setLanguage('en')}>English</DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => setLanguage('hi')}>हिंदी</DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => setLanguage('ur')}>اردو</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setLanguage("en")}>English</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setLanguage("hi")}>हिंदी</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setLanguage("ur")}>اردو</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       )
