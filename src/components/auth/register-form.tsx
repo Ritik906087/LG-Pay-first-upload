@@ -74,86 +74,101 @@ export function RegisterForm() {
   async function onRegisterSubmit(values: z.infer<typeof registerSchema>) {
     setIsLoading(true);
 
-    try {
-      const email = `${values.phone}@lgpay.app`;
-      // 1. Sign up the user in Supabase Auth using email
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email: email,
-        password: values.password,
-      });
+    const email = `${values.phone}@lgpay.app`;
+    // 1. Sign up the user in Supabase Auth using email
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email: email,
+      password: values.password,
+    });
 
-      if (signUpError) {
-          throw signUpError;
-      }
-
-      if (!data.user) {
-          throw new Error("User registration failed, please try again.");
-      }
-
-      const { user } = data;
-
-      // 2. Find inviter if invitation code is provided
-      let inviterUid: string | null = null;
-      if (values.invitationCode) {
-        const { data: inviterData } = await supabase
-          .from('users')
-          .select('id')
-          .eq('numeric_id', values.invitationCode)
-          .single();
-        
-        if (inviterData) {
-            inviterUid = inviterData.id;
-        } else {
-            toast({
-                variant: 'destructive',
-                title: 'Invalid Invitation Code',
-                description: 'The invitation code was not found, but you can continue registration.'
-            });
-        }
-      }
-      
-      // 3. Create user profile in public.users table
-      const numericId = Math.floor(10000000 + Math.random() * 90000000).toString();
-      const { error: profileError } = await supabase
-        .from('users')
-        .insert({
-          id: user.id,
-          numeric_id: numericId,
-          phone_number: values.phone,
-          balance: 0.00,
-          hold_balance: 0.00,
-          display_name: `User${values.phone.slice(-4)}`,
-          photo_url: defaultAvatarUrl,
-          inviter_uid: inviterUid,
-          email: user.email, 
-        });
-
-      if (profileError) {
-        throw profileError;
-      }
-      
-      toast({
-        title: translations.registrationSuccessTitle,
-        description: translations.registrationSuccessMessage,
-      });
-
-      await supabase.auth.signOut();
-      router.push("/login");
-
-    } catch (error: any) {
-      console.error("Registration failed:", error);
+    if (signUpError) {
+      console.error("Registration failed:", signUpError);
       let description = "An unexpected error occurred. Please try again.";
-      if (error.message.includes('User already registered')) {
+      if (signUpError.message.includes('User already registered')) {
           description = "An account with this phone number already exists. Please log in instead.";
+      } else {
+        description = signUpError.message;
       }
+      toast({
+          variant: "destructive",
+          title: "Registration Failed",
+          description,
+      });
+      setIsLoading(false);
+      return; 
+    }
+
+    if (!data.user) {
+        toast({
+            variant: "destructive",
+            title: "Registration Failed",
+            description: "User registration failed, please try again.",
+        });
+        setIsLoading(false);
+        return; 
+    }
+
+    const { user } = data;
+
+    // 2. Find inviter if invitation code is provided
+    let inviterUid: string | null = null;
+    if (values.invitationCode) {
+      const { data: inviterData, error: inviterError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('numeric_id', values.invitationCode)
+        .single();
+      
+      if (inviterError) {
+          console.error("Inviter check failed:", inviterError);
+      }
+      
+      if (inviterData) {
+          inviterUid = inviterData.id;
+      } else {
+          toast({
+              variant: 'destructive',
+              title: 'Invalid Invitation Code',
+              description: 'The invitation code was not found, but you can continue registration.'
+          });
+      }
+    }
+    
+    // 3. Create user profile in public.users table
+    const numericId = Math.floor(10000000 + Math.random() * 90000000).toString();
+    const { error: profileError } = await supabase
+      .from('users')
+      .insert({
+        id: user.id,
+        numeric_id: numericId,
+        phone_number: values.phone,
+        balance: 0.00,
+        hold_balance: 0.00,
+        display_name: `User${values.phone.slice(-4)}`,
+        photo_url: defaultAvatarUrl,
+        inviter_uid: inviterUid,
+        email: user.email, 
+      });
+
+    if (profileError) {
+      console.error("Profile creation failed:", profileError);
       toast({
         variant: "destructive",
         title: "Registration Failed",
-        description,
+        description: "Could not create your user profile. Please contact support.",
       });
-    } finally {
       setIsLoading(false);
+      return;
     }
+    
+    toast({
+      title: translations.registrationSuccessTitle,
+      description: translations.registrationSuccessMessage,
+    });
+
+    await supabase.auth.signOut();
+    router.push("/login");
+    setIsLoading(false);
   }
 
   return (
