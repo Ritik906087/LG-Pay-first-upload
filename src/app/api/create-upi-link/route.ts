@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
 import shortid from 'shortid';
 import { getAuth } from 'firebase-admin/auth';
-import { adminApp } from '@/lib/firebase-admin'; // You need to create this file
+import { adminApp } from '@/lib/firebase-admin';
 
 export async function POST(request: Request) {
   const keyId = process.env.RAZORPAY_KEY_ID;
