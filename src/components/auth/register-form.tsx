@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,10 +27,8 @@ const defaultAvatarUrl = "https://firebasestorage.googleapis.com/v0/b/studio-763
 
 export function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false);
-  const [isOtpLoading, setIsOtpLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isOtpSent, setIsOtpSent] = useState(false);
 
   const { toast } = useToast();
   const { translations } = useLanguage();
@@ -49,12 +46,11 @@ export function RegisterForm() {
         .regex(/^[6-9]\d{9}$/, {
           message: translations.phoneInvalid,
         }),
-      otp: z.string().length(6, { message: translations.otpRequired }),
       password: z
         .string()
         .min(6, { message: translations.passwordMin }),
       confirmPassword: z.string(),
-      invitationCode: z.string().min(1, { message: translations.invitationCodeRequired }),
+      invitationCode: z.string().optional(),
       agreement: z.literal(true, {
         errorMap: () => ({ message: translations.agreementRequired }),
       }),
@@ -68,7 +64,6 @@ export function RegisterForm() {
     resolver: zodResolver(registerSchema),
     defaultValues: {
       phone: "",
-      otp: "",
       password: "",
       confirmPassword: "",
       invitationCode: invitationCodeFromUrl,
@@ -80,69 +75,73 @@ export function RegisterForm() {
     setIsLoading(true);
 
     try {
-      const { data: { user, session }, error: verifyError } = await supabase.auth.verifyOtp({
+      // 1. Sign up the user in Supabase Auth
+      const { data: { user }, error: signUpError } = await supabase.auth.signUp({
         phone: `+91${values.phone}`,
-        token: values.otp,
-        type: 'sms',
+        password: values.password,
       });
-      
-      if (verifyError || !user) {
-        throw verifyError || new Error("User not found after OTP verification.");
+
+      if (signUpError) {
+          throw signUpError;
       }
 
-      // User is verified, now create their profile in the database
-      const { data: inviterData, error: inviterError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('numeric_id', values.invitationCode)
-        .single();
-      
-      if (inviterError && inviterError.code !== 'PGRST116') { // PGRST116 is "No rows found"
-        throw new Error("Failed to validate invitation code.");
+      if (!user) {
+          throw new Error("User registration failed, please try again.");
       }
 
+      // 2. Find inviter if invitation code is provided
+      let inviterUid: string | null = null;
+      if (values.invitationCode) {
+        const { data: inviterData } = await supabase
+          .from('users')
+          .select('id')
+          .eq('numeric_id', values.invitationCode)
+          .single();
+        
+        if (inviterData) {
+            inviterUid = inviterData.id;
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'Invalid Invitation Code',
+                description: 'The invitation code was not found, but you can continue registration.'
+            });
+        }
+      }
+      
+      // 3. Create user profile in public.users table
       const numericId = Math.floor(10000000 + Math.random() * 90000000).toString();
       const { error: profileError } = await supabase
         .from('users')
         .insert({
-          id: user.id, // Link to auth.users table
+          id: user.id,
           numeric_id: numericId,
           phone_number: values.phone,
           balance: 0.00,
           hold_balance: 0.00,
           display_name: `User${values.phone.slice(-4)}`,
           photo_url: defaultAvatarUrl,
-          inviter_uid: inviterData?.id || null,
-          email: user.email, // Supabase requires email, we use the phone-based one
+          inviter_uid: inviterUid,
+          email: user.email, 
         });
 
       if (profileError) {
         throw profileError;
       }
-
-      // Update the user's password
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: values.password
-      });
-
-      if (updateError) {
-        throw updateError;
-      }
-
+      
       toast({
         title: translations.registrationSuccessTitle,
         description: translations.registrationSuccessMessage,
       });
+
       await supabase.auth.signOut();
       router.push("/login");
 
     } catch (error: any) {
       console.error("Registration failed:", error);
       let description = "An unexpected error occurred. Please try again.";
-      if (error.message.includes('already registered')) {
+      if (error.message.includes('User already registered')) {
           description = "An account with this phone number already exists. Please log in instead.";
-      } else if (error.message.includes('Invalid OTP')) {
-          description = "The OTP you entered is incorrect. Please try again.";
       }
       toast({
         variant: "destructive",
@@ -152,39 +151,6 @@ export function RegisterForm() {
     } finally {
       setIsLoading(false);
     }
-  }
-  
-  async function handleSendOtp() {
-    const phone = form.getValues("phone");
-    const phoneResult = z.string().length(10).regex(/^[6-9]\d{9}$/).safeParse(phone);
-
-    if (!phoneResult.success) {
-      form.setError("phone", { type: "manual", message: translations.phoneInvalid });
-      return;
-    }
-
-    setIsOtpLoading(true);
-    
-    const { error } = await supabase.auth.signInWithOtp({
-      phone: `+91${phone}`,
-    });
-
-    if (error) {
-        console.error("OTP send error:", error);
-        toast({
-            variant: "destructive",
-            title: "Failed to send OTP",
-            description: error.message.includes('rate limit') ? "Too many requests. Please wait before trying again." : "Please try again.",
-        });
-    } else {
-        setIsOtpSent(true);
-        toast({
-            title: translations.otpSent,
-            description: `${translations.otpSentTo.replace('{phone}', `+91${phone}`)}`,
-        });
-    }
-    
-    setIsOtpLoading(false);
   }
 
   return (
@@ -218,31 +184,6 @@ export function RegisterForm() {
                     {...field}
                   />
                 </FormControl>
-              </div>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="otp"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{translations.verificationCode}</FormLabel>
-              <div className="relative flex items-center">
-                <FormControl>
-                  <Input placeholder={translations.enterVerificationCode} {...field} className="pr-28 text-base" />
-                </FormControl>
-                <Button 
-                  type="button" 
-                  variant="secondary" 
-                  className="absolute right-1.5 h-auto rounded-md bg-accent/20 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/30"
-                  onClick={handleSendOtp}
-                  disabled={isOtpLoading}
-                >
-                  {isOtpLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (isOtpSent ? "Resend" : translations.send)}
-                </Button>
               </div>
               <FormMessage />
             </FormItem>
@@ -312,7 +253,7 @@ export function RegisterForm() {
           name="invitationCode"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{translations.invitationCode}</FormLabel>
+              <FormLabel>{translations.invitationCodeOptional}</FormLabel>
                <div className="relative">
                 <FormControl>
                   <Input 
