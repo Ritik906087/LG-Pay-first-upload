@@ -1,30 +1,82 @@
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
+import type { CookieOptions } from '@supabase/ssr';
 
-export function middleware(request: NextRequest) {
-  const userToken = request.cookies.get('firebase-auth-token');
-  const adminPhone = request.cookies.get('admin-phone'); // Check for the new cookie
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
+  });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value;
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          request.cookies.set({
+            name,
+            value,
+            ...options,
+          });
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          });
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          });
+        },
+        remove(name: string, options: CookieOptions) {
+          request.cookies.set({
+            name,
+            value: '',
+            ...options,
+          });
+          response = NextResponse.next({
+            request: {
+              headers: request.headers,
+            },
+          });
+          response.cookies.set({
+            name,
+            value: '',
+            ...options,
+          });
+        },
+      },
+    }
+  );
+
+  const { data: { session }} = await supabase.auth.getSession();
+  const user = session?.user;
+
+  const adminPhone = request.cookies.get('admin-phone');
   const { pathname } = request.nextUrl;
 
   // ===== Admin Auth Routes =====
   if (pathname.startsWith('/admin')) {
     const isAdminLoginRoute = pathname.startsWith('/admin/login');
 
-    // If logged in, trying to access login page -> redirect to dashboard
-    if (adminPhone && isAdminLoginRoute) {
+    if (adminPhone?.value === process.env.ADMIN_PHONE && isAdminLoginRoute) {
       return NextResponse.redirect(new URL('/admin/dashboard', request.url));
     }
 
-    // If not logged in, trying to access any admin page (except login) -> redirect to login
-    if (!adminPhone && !isAdminLoginRoute) {
+    if (!adminPhone?.value && !isAdminLoginRoute) {
       return NextResponse.redirect(new URL('/admin/login', request.url));
     }
     
-    // Otherwise, allow access (logged in on dashboard, or not logged in on login page)
-    return NextResponse.next();
+    return response;
   }
-
 
   // ===== User Auth Routes =====
   const authRoutes = ['/login', '/register', '/forgot-password', '/terms'];
@@ -33,15 +85,15 @@ export function middleware(request: NextRequest) {
   const protectedRoutes = ['/home', '/my', '/order', '/rewards', '/buy', '/sell'];
   const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
 
-  if (userToken && isAuthRoute) {
+  if (user && isAuthRoute) {
     return NextResponse.redirect(new URL('/home', request.url));
   }
 
-  if (!userToken && isProtectedRoute) {
+  if (!user && isProtectedRoute) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {

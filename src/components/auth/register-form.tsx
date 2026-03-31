@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,17 +16,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Eye, EyeOff } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
 import { useLanguage } from "@/context/language-context";
-import { cn } from "@/lib/utils";
-import { createUserWithEmailAndPassword, getAuth, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult, fetchSignInMethodsForEmail } from "firebase/auth";
-import { useFirestore } from "@/firebase";
-import { doc, setDoc, serverTimestamp, collection, query, where, getDocs, limit } from "firebase/firestore";
 import { useRouter, useSearchParams } from "next/navigation";
-
+import { createClient } from "@/lib/supabase/client";
 
 const defaultAvatarUrl = "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/LG%20PAY%20AVATAR.png?alt=media&token=707ce79d-15fa-4e58-9d1d-a7d774cfe5ec";
 
@@ -36,40 +31,15 @@ export function RegisterForm() {
   const [isOtpLoading, setIsOtpLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
-  const [countdown, setCountdown] = useState(0);
+  const [isOtpSent, setIsOtpSent] = useState(false);
+
   const { toast } = useToast();
   const { translations } = useLanguage();
-  const firestore = useFirestore();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const auth = getAuth();
-  const recaptchaVerifier = useRef<RecaptchaVerifier | null>(null);
-
-  const invitationCodeFromUrl = searchParams.get("ref") || "";
-
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (countdown > 0) {
-      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-    }
-    return () => clearTimeout(timer);
-  }, [countdown]);
+  const supabase = createClient();
   
-  const setupRecaptcha = () => {
-    if (!recaptchaVerifier.current) {
-        recaptchaVerifier.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
-            'size': 'invisible',
-            'callback': (response: any) => {
-                // reCAPTCHA solved, allow signInWithPhoneNumber.
-            },
-            'expired-callback': () => {
-                // Response expired. Ask user to solve reCAPTCHA again.
-            }
-        });
-    }
-    return recaptchaVerifier.current;
-  }
+  const invitationCodeFromUrl = searchParams.get("ref") || "";
 
   const registerSchema = z
     .object({
@@ -108,78 +78,76 @@ export function RegisterForm() {
 
   async function onRegisterSubmit(values: z.infer<typeof registerSchema>) {
     setIsLoading(true);
-    if (!confirmationResult) {
-        toast({
-            variant: "destructive",
-            title: "OTP not verified",
-            description: "Please send and verify your OTP first.",
-        });
-        setIsLoading(false);
-        return;
-    }
 
     try {
-      // 1. Verify OTP
-      await confirmationResult.confirm(values.otp);
+      const { data: { user, session }, error: verifyError } = await supabase.auth.verifyOtp({
+        phone: `+91${values.phone}`,
+        token: values.otp,
+        type: 'sms',
+      });
+      
+      if (verifyError || !user) {
+        throw verifyError || new Error("User not found after OTP verification.");
+      }
 
-      // 2. Create user with email/password (since phone auth session is now verified)
-      const email = `${values.phone}@lgpay.app`;
-      const userCredential = await createUserWithEmailAndPassword(auth, email, values.password);
-      const user = userCredential.user;
+      // User is verified, now create their profile in the database
+      const { data: inviterData, error: inviterError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('numeric_id', values.invitationCode)
+        .single();
+      
+      if (inviterError && inviterError.code !== 'PGRST116') { // PGRST116 is "No rows found"
+        throw new Error("Failed to validate invitation code.");
+      }
 
-      if (user && firestore) {
-        // 3. Find inviter if invitation code is provided
-        let inviterUid: string | null = null;
-        if (values.invitationCode) {
-            const inviterQuery = query(collection(firestore, "users"), where("numericId", "==", values.invitationCode), limit(1));
-            const inviterSnapshot = await getDocs(inviterQuery);
-            if (!inviterSnapshot.empty) {
-                inviterUid = inviterSnapshot.docs[0].id;
-            } else {
-                toast({ variant: "destructive", title: "Invalid Invitation Code", description: "The invitation code you entered is not valid."});
-            }
-        }
-        
-        // 4. Create a user profile document in Firestore
-        const userRef = doc(firestore, "users", user.uid);
-        const numericId = Math.floor(10000000 + Math.random() * 90000000).toString();
-        
-        const userData: any = {
-          uid: user.uid,
-          numericId: numericId,
-          phoneNumber: values.phone,
-          balance: 0.00, // Initial balance
-          holdBalance: 0.00, // Initial hold balance
-          createdAt: serverTimestamp(),
-          displayName: `User${values.phone.slice(-4)}`,
-          photoURL: defaultAvatarUrl
-        };
+      const numericId = Math.floor(10000000 + Math.random() * 90000000).toString();
+      const { error: profileError } = await supabase
+        .from('users')
+        .insert({
+          id: user.id, // Link to auth.users table
+          numeric_id: numericId,
+          phone_number: values.phone,
+          balance: 0.00,
+          hold_balance: 0.00,
+          display_name: `User${values.phone.slice(-4)}`,
+          photo_url: defaultAvatarUrl,
+          inviter_uid: inviterData?.id || null,
+          email: user.email, // Supabase requires email, we use the phone-based one
+        });
 
-        if (inviterUid) {
-            userData.inviterUid = inviterUid;
-        }
+      if (profileError) {
+        throw profileError;
+      }
 
-        await setDoc(userRef, userData);
+      // Update the user's password
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: values.password
+      });
+
+      if (updateError) {
+        throw updateError;
       }
 
       toast({
         title: translations.registrationSuccessTitle,
         description: translations.registrationSuccessMessage,
       });
+      await supabase.auth.signOut();
       router.push("/login");
 
     } catch (error: any) {
       console.error("Registration failed:", error);
       let description = "An unexpected error occurred. Please try again.";
-      if (error.code === 'auth/email-already-in-use') {
+      if (error.message.includes('already registered')) {
           description = "An account with this phone number already exists. Please log in instead.";
-      } else if (error.code === 'auth/invalid-verification-code') {
+      } else if (error.message.includes('Invalid OTP')) {
           description = "The OTP you entered is incorrect. Please try again.";
       }
       toast({
         variant: "destructive",
         title: "Registration Failed",
-        description: description,
+        description,
       });
     } finally {
       setIsLoading(false);
@@ -196,45 +164,31 @@ export function RegisterForm() {
     }
 
     setIsOtpLoading(true);
-    try {
-        const email = `${phone}@lgpay.app`;
-        const signInMethods = await fetchSignInMethodsForEmail(auth, email);
+    
+    const { error } = await supabase.auth.signInWithOtp({
+      phone: `+91${phone}`,
+    });
 
-        if (signInMethods.length > 0) {
-            toast({
-                variant: "destructive",
-                title: "User already exists",
-                description: "You are already registered, please login.",
-            });
-            router.push('/login');
-            setIsOtpLoading(false);
-            return;
-        }
-
-        const verifier = setupRecaptcha();
-        const fullPhoneNumber = `+91${phone}`;
-        const result = await signInWithPhoneNumber(auth, fullPhoneNumber, verifier);
-        setConfirmationResult(result);
-        setCountdown(59);
-        toast({
-            title: translations.otpSent,
-            description: `${translations.otpSentTo.replace('{phone}', fullPhoneNumber)}`,
-        });
-    } catch (error) {
+    if (error) {
         console.error("OTP send error:", error);
         toast({
             variant: "destructive",
             title: "Failed to send OTP",
-            description: "Please try again. Make sure you have a stable network connection.",
+            description: error.message.includes('rate limit') ? "Too many requests. Please wait before trying again." : "Please try again.",
         });
-    } finally {
-        setIsOtpLoading(false);
+    } else {
+        setIsOtpSent(true);
+        toast({
+            title: translations.otpSent,
+            description: `${translations.otpSentTo.replace('{phone}', `+91${phone}`)}`,
+        });
     }
+    
+    setIsOtpLoading(false);
   }
 
   return (
     <Form {...form}>
-       <div id="recaptcha-container"></div>
       <form
         onSubmit={form.handleSubmit(onRegisterSubmit)}
         className="space-y-4"
@@ -283,11 +237,11 @@ export function RegisterForm() {
                 <Button 
                   type="button" 
                   variant="secondary" 
-                  className={cn("absolute right-1.5 h-auto rounded-md bg-accent/20 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/30", (isOtpLoading || countdown > 0) && "px-2")}
+                  className="absolute right-1.5 h-auto rounded-md bg-accent/20 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/30"
                   onClick={handleSendOtp}
-                  disabled={isOtpLoading || countdown > 0}
+                  disabled={isOtpLoading}
                 >
-                  {isOtpLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (countdown > 0 ? `${countdown}s` : (confirmationResult ? "Resend" : translations.send))}
+                  {isOtpLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : (isOtpSent ? "Resend" : translations.send)}
                 </Button>
               </div>
               <FormMessage />
