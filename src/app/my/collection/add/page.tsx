@@ -3,7 +3,7 @@
 
 import { useState, useRef, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Landmark } from "lucide-react";
+import { ChevronLeft, Landmark, Info, Loader2 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -11,18 +11,14 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult, signOut } from "firebase/auth";
 import { useUser, useFirestore, useDoc } from '@/firebase';
-import { doc, runTransaction } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { Loader } from "@/components/ui/loader";
-import { ScrollArea } from "@/components/ui/scroll-area";
-
+import { Skeleton } from "@/components/ui/skeleton";
 
 type PaymentMethod = {
   name: string;
@@ -40,217 +36,84 @@ const initialPaymentMethods: PaymentMethod[] = [
 ];
 
 export default function AddCollectionPage() {
-  const [isUpiDialogOpen, setIsUpiDialogOpen] = useState(false);
-  const [isBankDialogOpen, setIsBankDialogOpen] = useState(false);
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
-  const [isOtpSending, setIsOtpSending] = useState(false);
-  const [isLinking, setIsLinking] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
-  const [upiId, setUpiId] = useState("");
-  const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState("");
-  const [countdown, setCountdown] = useState(0);
-
-  // Bank form state
-  const [accountHolderName, setAccountHolderName] = useState('');
-  const [bankName, setBankName] = useState('');
-  const [accountNumber, setAccountNumber] = useState('');
-  const [ifscCode, setIfscCode] = useState('');
-
-  const { toast } = useToast();
-  const auth = getAuth();
-  const { user } = useUser();
+  const { user, loading: userLoading } = useUser();
   const firestore = useFirestore();
+  const { toast } = useToast();
 
-  const userProfileRef = useMemo(() => user ? doc(firestore, 'users', user.uid) : null, [user, firestore]);
-  const { data: userProfile } = useDoc<{ phoneNumber: string }>(userProfileRef);
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
+  const [isLoadingPayment, setIsLoadingPayment] = useState(false);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
+  const [paymentDetails, setPaymentDetails] = useState<{ id: string; short_url: string } | null>(null);
 
-  const recaptchaVerifier = useRef<RecaptchaVerifier | null>(null);
-  const confirmationResult = useRef<ConfirmationResult | null>(null);
+  const userProfileRef = useMemo(() => (user ? doc(firestore, 'users', user.uid) : null), [user, firestore]);
+  const { data: userProfile, loading: profileLoading } = useDoc<{ paymentMethods?: any[] }>(userProfileRef);
 
-  const specialBankUsers = ['7050396570', '7307081891', '9798630209', '9965567336', '9199604613', '9955557336'];
-  const showBankOption = userProfile?.phoneNumber && specialBankUsers.includes(userProfile.phoneNumber);
+  const previousMethodsRef = useRef<any[] | undefined>();
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (countdown > 0) {
-      timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+    if (isPaymentDialogOpen) {
+      previousMethodsRef.current = userProfile?.paymentMethods;
     }
-    return () => clearTimeout(timer);
-  }, [countdown]);
-  
-  const setupRecaptcha = () => {
-    if (!recaptchaVerifier.current) {
-        recaptchaVerifier.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
-            'size': 'invisible',
-            'callback': (response: any) => {},
-            'expired-callback': () => {}
-        });
-    }
-    return recaptchaVerifier.current;
-  }
+  }, [isPaymentDialogOpen, userProfile?.paymentMethods]);
 
-  const handleUpiLinkClick = (method: PaymentMethod) => {
-    setSelectedMethod(method);
-    setIsUpiDialogOpen(true);
-    setOtpSent(false);
-    setPhone("");
-    setOtp("");
-    setUpiId("");
-    setCountdown(0);
-  };
-  
-  const handleBankLinkClick = () => {
-    setIsBankDialogOpen(true);
-    setOtpSent(false);
-    setPhone("");
-    setOtp("");
-    setAccountHolderName('');
-    setBankName('');
-    setAccountNumber('');
-    setIfscCode('');
-    setCountdown(0);
-  }
+  useEffect(() => {
+    if (!isPaymentDialogOpen || !userProfile || !previousMethodsRef.current || !selectedMethod) return;
 
-  const handleSendOtp = async () => {
-    if (!phone || phone.length < 10) {
-      toast({ variant: "destructive", title: "Invalid Phone Number" });
-      return;
-    }
-    setIsOtpSending(true);
-    try {
-        const verifier = setupRecaptcha();
-        const fullPhoneNumber = `+91${phone}`;
-        const result = await signInWithPhoneNumber(auth, fullPhoneNumber, verifier);
-        confirmationResult.current = result;
-        setOtpSent(true);
-        setCountdown(59);
-        toast({
-            title: "OTP Sent!",
-            description: `OTP sent to ${fullPhoneNumber}.`,
-        });
-    } catch (error) {
-        console.error("OTP send error:", error);
-        toast({
-            variant: "destructive",
-            title: "Failed to send OTP",
-            description: "Please try again later.",
-        });
-    } finally {
-        setIsOtpSending(false);
-    }
-  };
-  
-  const validateUpi = (upi: string, methodName: string): boolean => {
-    const upiLower = upi.toLowerCase();
-    const upiRegexMap: { [key: string]: RegExp } = {
-        "PhonePe": /^[a-z0-9.\-_]{2,256}@(ybl|ibl|axl)$/,
-        "Paytm": /^[a-z0-9.\-_]{2,256}@(paytm|ptaap|ptpy|pthdfc|ptsbi|ptaxis|ptyes)$/,
-        "MobiKwik": /^[a-z0-9.\-_]{2,256}@(ikwik|mbk|mbkns)$/,
-        "Freecharge": /^[a-z0-9.\-_]{2,256}@(freecharge|axisbank)$/,
-    };
+    const previouslyLinked = previousMethodsRef.current.some(pm => pm.name === selectedMethod.name);
+    const newlyLinked = userProfile.paymentMethods?.some(pm => pm.name === selectedMethod.name);
 
-    const regex = upiRegexMap[methodName];
-    if (regex) {
-        return regex.test(upiLower);
-    }
-    return /^[a-z0-9.\-_]{2,256}@[a-z]{2,64}$/.test(upiLower);
-  }
-
-  const handleLinkSubmit = async (methodData: any) => {
-    if (!user) {
-        toast({ variant: "destructive", title: "You are not logged in.", description: "Please log in and try again." });
-        return;
-    }
-    const originalUserUid = user.uid;
-
-    if (!otp) {
-        toast({ variant: "destructive", title: "Missing OTP", description: "Please enter OTP." });
-        return;
-    }
-
-    setIsLinking(true);
-    try {
-      if (!confirmationResult.current) {
-        throw new Error("OTP has not been sent yet. Please send OTP first.");
-      }
-      
-      await confirmationResult.current.confirm(otp);
-      
-      if (firestore) {
-          const userProfileRefForUpdate = doc(firestore, 'users', originalUserUid);
-
-          await runTransaction(firestore, async (transaction) => {
-              const userDoc = await transaction.get(userProfileRefForUpdate);
-              if (!userDoc.exists()) {
-                  throw new Error("Your user profile could not be found.");
-              }
-
-              const currentMethods = userDoc.data().paymentMethods || [];
-              const isDuplicate = currentMethods.some((pm: any) => (pm.upiId && pm.upiId === methodData.upiId) || (pm.accountNumber && pm.accountNumber === methodData.accountNumber));
-              if (isDuplicate) {
-                  throw new Error(methodData.type === 'upi' ? "This UPI ID is already linked." : "This Bank Account is already linked.");
-              }
-
-              const updatedMethods = [...currentMethods, methodData];
-              
-              transaction.set(userProfileRefForUpdate, {
-                  paymentMethods: updatedMethods
-              }, { merge: true });
-          });
-      }
-
+    if (!previouslyLinked && newlyLinked) {
       toast({
         title: "Success!",
-        description: `${methodData.name} has been linked successfully. Please log in again.`,
+        description: `${selectedMethod.name} has been linked successfully.`,
+        className: 'bg-green-100 border-green-400 text-green-800'
       });
-      
-      await signOut(auth);
-      document.cookie = 'firebase-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-      window.location.href = '/login';
+      setIsPaymentDialogOpen(false);
+      setPaymentDetails(null);
+      setSelectedMethod(null);
+    }
+  }, [userProfile, isPaymentDialogOpen, selectedMethod, toast]);
 
-    } catch (error: any) {
-       console.error("Linking error:", error);
-       toast({
-        variant: "destructive",
-        title: "Failed to link method",
-        description: error.message || "The verification code is incorrect or another error occurred.",
+  const handleLinkClick = async (method: PaymentMethod) => {
+    if (isLoadingPayment) return;
+    if (!user) {
+      toast({ variant: "destructive", title: "Please log in to link an account." });
+      return;
+    }
+
+    if (userProfile?.paymentMethods?.some(pm => pm.name === method.name)) {
+      toast({ title: "Already Linked", description: `Your ${method.name} account is already linked.` });
+      return;
+    }
+
+    setSelectedMethod(method);
+    setIsLoadingPayment(true);
+    try {
+      const response = await fetch('/api/create-upi-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.uid, methodName: method.name }),
       });
-       setIsLinking(false);
+
+      if (!response.ok) {
+        throw new Error('Failed to create payment link.');
+      }
+
+      const data = await response.json();
+      setPaymentDetails(data);
+      setIsPaymentDialogOpen(true);
+    } catch (error) {
+      console.error("Error creating payment link:", error);
+      toast({ variant: "destructive", title: "Error", description: "Could not initiate UPI linking. Please try again." });
+    } finally {
+      setIsLoadingPayment(false);
     }
   };
 
-  const handleUpiFormSubmit = () => {
-    if (!selectedMethod) return;
-    if (!validateUpi(upiId, selectedMethod.name)) {
-        toast({ 
-            variant: "destructive", 
-            title: "Invalid UPI ID", 
-            description: `Please enter a valid UPI ID for ${selectedMethod.name}` 
-        });
-        return;
-    }
-    handleLinkSubmit({ type: 'upi', name: selectedMethod.name, upiId });
-  }
-  
-  const handleBankFormSubmit = () => {
-    if (!accountHolderName || !bankName || !accountNumber || !ifscCode) {
-        toast({ variant: "destructive", title: "Missing Information", description: "Please fill all bank details." });
-        return;
-    }
-     handleLinkSubmit({
-        type: 'bank',
-        name: bankName,
-        accountHolderName,
-        bankName,
-        accountNumber,
-        ifscCode
-     });
-  }
+  const loading = userLoading || profileLoading;
 
   return (
     <div className="flex min-h-screen flex-col bg-secondary">
-      <div id="recaptcha-container"></div>
       <header className="sticky top-0 z-10 flex items-center justify-between border-b bg-white p-4">
         <Button asChild variant="ghost" size="icon" className="h-8 w-8">
           <Link href="/my/collection">
@@ -262,27 +125,6 @@ export default function AddCollectionPage() {
       </header>
 
       <main className="flex-grow space-y-4 p-4">
-        {showBankOption && (
-            <>
-                <h2 className="text-sm font-semibold text-muted-foreground">Link Bank Account</h2>
-                <div
-                    onClick={handleBankLinkClick}
-                    className="flex h-20 w-full items-center justify-between gap-4 rounded-xl px-4 py-2 text-white shadow-md bg-slate-700 cursor-pointer"
-                >
-                    <div className="flex items-center gap-4">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white p-1">
-                            <Landmark className="h-6 w-6 text-slate-700"/>
-                        </div>
-                        <div>
-                        <span className="text-lg font-semibold">Bank Account</span>
-                        </div>
-                    </div>
-                    <Button className="rounded-full bg-white/20 px-6 font-semibold text-white shadow-sm hover:bg-white/30">
-                        Link
-                    </Button>
-                </div>
-            </>
-        )}
         <h2 className="text-sm font-semibold text-muted-foreground pt-2">
           Select the receiving UPI to link
         </h2>
@@ -307,15 +149,16 @@ export default function AddCollectionPage() {
                 </div>
               </div>
               {method.maintenance ? (
-                  <div className="rounded-md bg-orange-100 px-3 py-1.5 text-xs font-bold uppercase text-orange-600">
-                      Maintenance
-                  </div>
+                <div className="rounded-md bg-orange-100 px-3 py-1.5 text-xs font-bold uppercase text-orange-600">
+                  Maintenance
+                </div>
               ) : (
                 <Button
-                  onClick={() => handleUpiLinkClick(method)}
+                  onClick={() => handleLinkClick(method)}
                   className="rounded-full bg-white/20 px-6 font-semibold text-white shadow-sm hover:bg-white/30"
+                  disabled={isLoadingPayment && selectedMethod?.name === method.name}
                 >
-                  Link
+                  {isLoadingPayment && selectedMethod?.name === method.name ? <Loader size="xs" /> : "Link"}
                 </Button>
               )}
             </div>
@@ -323,89 +166,37 @@ export default function AddCollectionPage() {
         </div>
       </main>
 
-      {/* UPI Dialog */}
-      {selectedMethod && (
-        <Dialog open={isUpiDialogOpen} onOpenChange={setIsUpiDialogOpen}>
-          <DialogContent className="sm:max-w-[425px] rounded-2xl">
-            <DialogHeader>
-              <DialogTitle className="text-center text-xl font-bold">
-                Link {selectedMethod.name}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="grid gap-6 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="phone">Enter your {selectedMethod.name} registered number</Label>
-                <Input id="phone" type="tel" placeholder="Phone Number" className="h-12 text-base" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={10} />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="otp">OTP</Label>
-                <div className="relative flex items-center">
-                  <Input id="otp" placeholder="Verification Code" className="h-12 pr-28 text-base" value={otp} onChange={(e) => setOtp(e.target.value)} disabled={!otpSent} />
-                   <Button type="button" variant="secondary" className={cn("absolute right-1.5 h-auto rounded-md bg-accent/20 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/30", (isOtpSending || countdown > 0) && "px-2")} onClick={handleSendOtp} disabled={isOtpSending || countdown > 0}>
-                    {isOtpSending ? <Loader size="xs" /> : (countdown > 0 ? `${countdown}s` : (otpSent ? "Resend" : "Send"))}
-                  </Button>
-                </div>
-              </div>
-              <div className="grid gap-2">
-                 <Label htmlFor="upiId">Enter your {selectedMethod.name} UPI</Label>
-                <Input id="upiId" placeholder="yourname@upi" className="h-12 text-base" value={upiId} onChange={(e) => setUpiId(e.target.value)} type="text" />
-              </div>
+      <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl font-bold">Link {selectedMethod?.name}</DialogTitle>
+            <DialogDescription className="text-center">
+              Scan the QR code to complete a ₹1 payment.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4 py-4">
+            <div className="relative rounded-lg border-4 border-primary p-2 bg-white">
+              {paymentDetails ? (
+                <Image
+                  src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(paymentDetails.short_url)}&size=200x200&qzone=2`}
+                  width={200}
+                  height={200}
+                  alt="UPI QR Code"
+                />
+              ) : <Skeleton className="h-[200px] w-[200px]" />}
             </div>
-            <DialogFooter className="sm:justify-center">
-              <Button type="submit" onClick={handleUpiFormSubmit} className="w-full h-12 rounded-full btn-gradient font-bold text-base" disabled={isLinking || !otpSent || !otp || !upiId}>
-                {isLinking && <Loader size="xs" className="mr-2" />}
-                Link
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* Bank Dialog */}
-      <Dialog open={isBankDialogOpen} onOpenChange={setIsBankDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] rounded-2xl p-0">
-            <DialogHeader className="p-6 pb-4 border-b">
-              <DialogTitle className="text-center text-xl font-bold">Link Bank Account</DialogTitle>
-            </DialogHeader>
-            <ScrollArea className="max-h-[60vh]">
-              <div className="grid gap-4 p-6">
-                  <div className="grid gap-2">
-                    <Label>Account Holder Name</Label>
-                    <Input placeholder="Full Name" className="h-12" value={accountHolderName} onChange={e => setAccountHolderName(e.target.value)} />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Bank Name</Label>
-                    <Input placeholder="e.g., State Bank of India" className="h-12" value={bankName} onChange={e => setBankName(e.target.value)} />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Account Number</Label>
-                    <Input placeholder="Bank Account Number" className="h-12" value={accountNumber} onChange={e => setAccountNumber(e.target.value)} />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>IFSC Code</Label>
-                    <Input placeholder="IFSC Code" className="h-12" value={ifscCode} onChange={e => setIfscCode(e.target.value)} />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="bank-phone">Enter Your Registered Phone Number</Label>
-                    <Input id="bank-phone" type="tel" placeholder="Phone Number" className="h-12" value={phone} onChange={e => setPhone(e.target.value)} maxLength={10} />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="bank-otp">OTP</Label>
-                    <div className="relative flex items-center">
-                      <Input id="bank-otp" placeholder="Verification Code" className="h-12 pr-28" value={otp} onChange={e => setOtp(e.target.value)} disabled={!otpSent} />
-                      <Button type="button" variant="secondary" className={cn("absolute right-1.5 h-auto rounded-md bg-accent/20 px-3 py-1.5 text-xs font-semibold text-accent hover:bg-accent/30", (isOtpSending || countdown > 0) && "px-2")} onClick={handleSendOtp} disabled={isOtpSending || countdown > 0}>
-                        {isOtpSending ? <Loader size="xs" /> : (countdown > 0 ? `${countdown}s` : (otpSent ? "Resend" : "Send"))}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-            </ScrollArea>
-            <DialogFooter className="sm:justify-center p-6 pt-4 border-t">
-              <Button type="submit" onClick={handleBankFormSubmit} className="w-full h-12 rounded-full btn-gradient font-bold text-base" disabled={isLinking || !otpSent || !otp || !accountNumber}>
-                {isLinking && <Loader size="xs" className="mr-2" />}
-                Link Bank Account
-              </Button>
-            </DialogFooter>
+            <p className="text-xl font-bold">Pay ₹1.00</p>
+            <div className="flex items-start gap-3 rounded-lg bg-orange-100 p-3 text-orange-800 text-sm">
+              <Info className="mt-0.5 h-5 w-5 shrink-0" />
+              <p>
+                <b>Important:</b> Pay only from the UPI app you wish to link. Using a different app may link the wrong UPI ID.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-muted-foreground pt-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Waiting for payment confirmation...</span>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
