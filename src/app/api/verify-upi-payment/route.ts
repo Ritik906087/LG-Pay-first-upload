@@ -5,10 +5,10 @@ import { adminDb } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
 export async function POST(request: Request) {
-  const secret = process.env.RAZORPAY_WEBHOOK_SECRET!;
+  const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
   if (!secret) {
-      console.error("RAZORPAY_WEBHOOK_SECRET is not set.");
-      return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 });
+      console.error("RAZORPAY_WEBHOOK_SECRET is not set in .env file.");
+      return NextResponse.json({ error: 'Server configuration error: Webhook secret is missing.' }, { status: 500 });
   }
 
   const body = await request.text();

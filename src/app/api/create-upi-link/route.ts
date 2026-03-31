@@ -5,6 +5,17 @@ import { getAuth } from 'firebase-admin/auth';
 import { adminApp } from '@/lib/firebase-admin'; // You need to create this file
 
 export async function POST(request: Request) {
+  const keyId = process.env.RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+
+  if (!keyId || !keySecret) {
+    console.error('Razorpay API keys are not configured in .env file.');
+    return NextResponse.json(
+      { error: 'Server configuration error: Razorpay keys are missing.' },
+      { status: 500 }
+    );
+  }
+
   const { userId, methodName } = await request.json();
 
   if (!userId || !methodName) {
@@ -20,8 +31,8 @@ export async function POST(request: Request) {
 
 
   const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID!,
-    key_secret: process.env.RAZORPAY_KEY_SECRET!,
+    key_id: keyId,
+    key_secret: keySecret,
   });
 
   const amount = 100; // ₹1 in paisa
