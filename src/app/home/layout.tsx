@@ -8,10 +8,71 @@ import { cn } from '@/lib/utils';
 import React, { useState, useEffect, useMemo } from 'react';
 import { Loader } from '@/components/ui/loader';
 import { useLanguage } from '@/context/language-context';
-import { useUser, useFirestore, useDoc } from '@/firebase';
-import { getAuth, signOut } from 'firebase/auth';
+import { createClient } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { doc } from 'firebase/firestore';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
+
+// Define a type for the user profile
+type UserProfile = {
+  session_id?: string;
+};
+
+// Custom hook to manage user session
+function useSupabaseUser() {
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const supabase = createClient();
+
+  useEffect(() => {
+    async function getUserAndProfile() {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+
+      if (user) {
+        const { data: userProfile, error } = await supabase
+          .from('users')
+          .select('session_id')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching user profile:', error);
+        } else {
+          setProfile(userProfile);
+        }
+      }
+      setLoading(false);
+    }
+
+    getUserAndProfile();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null);
+      if (event === 'SIGNED_IN' && session?.user) {
+         // on sign in, refetch profile
+        async function fetchProfileOnSignIn() {
+             const { data: userProfile, error } = await supabase
+              .from('users')
+              .select('session_id')
+              .eq('id', session.user.id)
+              .single();
+            if (!error) setProfile(userProfile);
+        }
+        fetchProfileOnSignIn();
+      } else if (event === 'SIGNED_OUT') {
+        setProfile(null);
+      }
+    });
+
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [supabase]);
+
+  return { user, profile, loading };
+}
 
 
 export default function HomeLayout({
@@ -22,29 +83,18 @@ export default function HomeLayout({
   const pathname = usePathname();
   const [isMounted, setIsMounted] = useState(false);
   const { translations } = useLanguage();
-  const { user } = useUser();
-  const firestore = useFirestore();
+  const { user, profile, loading } = useSupabaseUser();
   const router = useRouter();
   const { toast } = useToast();
-
-  const userProfileRef = useMemo(() => {
-    if (!user || !firestore) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [user, firestore]);
-
-  const { data: userProfile } = useDoc<{ sessionId?: string }>(userProfileRef);
+  const supabase = createClient();
 
   useEffect(() => {
     // Session validation logic
-    if (userProfile && userProfile.sessionId) {
+    if (profile && profile.session_id) {
       const localSessionId = localStorage.getItem('user-session-id');
-      // If there's a local session ID and it doesn't match the one from the database,
-      // it means a new login has occurred on another device.
-      if (localSessionId && localSessionId !== userProfile.sessionId) {
-        const auth = getAuth();
-        signOut(auth).then(() => {
+      if (localSessionId && localSessionId !== profile.session_id) {
+        supabase.auth.signOut().then(() => {
           localStorage.removeItem('user-session-id');
-          document.cookie = 'firebase-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
           toast({
             variant: 'destructive',
             title: 'Session Expired',
@@ -55,7 +105,7 @@ export default function HomeLayout({
         });
       }
     }
-  }, [userProfile, router, toast]);
+  }, [profile, router, toast, supabase.auth]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -68,7 +118,7 @@ export default function HomeLayout({
     { href: '/my', icon: User, label: translations.navMy },
   ];
 
-  if (!isMounted) {
+  if (!isMounted || loading) {
     return (
       <div className="home-layout md:bg-gray-200">
         <div className="relative mx-auto flex min-h-screen w-full flex-col items-center justify-center bg-background md:max-w-md md:shadow-lg">
