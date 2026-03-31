@@ -33,7 +33,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           {!isHelpPage && (
             <header className="absolute top-0 flex w-full max-w-md items-center justify-between p-6">
               <Image
-                src="https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/InShot_20260110_205628399.png?alt=media&token=5d466aa9-095b-495f-92e8-95f3b59b4367"
+                src="https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/LG%20PAY%20AVATAR.png?alt=media&token=707ce79d-15fa-4e58-9d1d-a7d774cfe5ec"
                 width={60}
                 height={60}
                 alt="Decorative corner image"
