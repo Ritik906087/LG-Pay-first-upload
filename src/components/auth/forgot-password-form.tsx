@@ -13,96 +13,65 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { KeyRound, Phone, ShieldCheck } from "lucide-react";
+import { Phone } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 import { useLanguage } from "@/context/language-context";
 import { Loader } from "@/components/ui/loader";
-
-type Step = "phone" | "reset";
+import { createClient } from "@/lib/utils";
 
 export function ForgotPasswordForm() {
-  const [step, setStep] = useState<Step>("phone");
-  const [phone, setPhone] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { translations } = useLanguage();
+  const supabase = createClient();
   
-  const phoneSchema = z.object({
+  const formSchema = z.object({
     phone: z
       .string()
-      .min(10, { message: translations.phoneRequired }),
+      .min(10, { message: translations.phoneRequired })
+      .regex(/^[6-9]\d{9}$/, {
+        message: translations.phoneInvalid,
+      }),
   });
 
-  const resetSchema = z
-    .object({
-      otp: z.string().length(6, { message: translations.otpRequired }),
-      password: z
-        .string()
-        .min(6, { message: translations.passwordMin }),
-      confirmPassword: z.string(),
-    })
-    .refine((data) => data.password === data.confirmPassword, {
-      message: translations.passwordsDontMatch,
-      path: ["confirmPassword"],
-    });
 
-  const phoneForm = useForm<z.infer<typeof phoneSchema>>({
-    resolver: zodResolver(phoneSchema),
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
     defaultValues: { phone: "" },
   });
 
-  const resetForm = useForm<z.infer<typeof resetSchema>>({
-    resolver: zodResolver(resetSchema),
-    defaultValues: {
-      otp: "",
-      password: "",
-      confirmPassword: "",
-    },
-  });
-
-  function onPhoneSubmit(values: z.infer<typeof phoneSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    // Mock API call
-    setTimeout(() => {
-      setPhone(values.phone);
-      setStep("reset");
-      setIsLoading(false);
-      toast({
-        title: translations.otpSent,
-        description: translations.otpSentReset.replace('{phone}', values.phone),
-      });
-    }, 1500);
-  }
+    
+    const email = `${values.phone}@lgpay.app`;
 
-  function onResetSubmit(values: z.infer<typeof resetSchema>) {
-    setIsLoading(true);
-    // Mock API call
-    setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: translations.passwordResetSuccess,
-        description: translations.passwordResetMessage,
-      });
-    }, 2000);
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+
+    if (error) {
+        toast({
+            variant: 'destructive',
+            title: "Error Sending Reset Link",
+            description: "Could not send password reset link. Please ensure the phone number is correct and try again."
+        });
+    } else {
+        toast({
+            title: "Password Reset Link Sent",
+            description: "If an account exists for this number, a password reset link will be sent to the associated email.",
+        });
+    }
+
+    setIsLoading(false);
   }
 
   return (
-    <div className="relative overflow-hidden h-[330px]">
-      <div
-        className={cn(
-          "w-full transition-all duration-500 absolute top-0",
-          step === "phone" ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-full"
-        )}
-      >
-        <Form {...phoneForm}>
+        <Form {...form}>
           <form
-            onSubmit={phoneForm.handleSubmit(onPhoneSubmit)}
+            onSubmit={form.handleSubmit(onSubmit)}
             className="space-y-6"
           >
             <FormField
-              control={phoneForm.control}
+              control={form.control}
               name="phone"
               render={({ field }) => (
                 <FormItem>
@@ -128,91 +97,5 @@ export function ForgotPasswordForm() {
             </Button>
           </form>
         </Form>
-      </div>
-
-      <div
-        className={cn(
-          "w-full transition-all duration-500 absolute top-0",
-          step === "reset" ? "opacity-100 translate-x-0" : "opacity-0 translate-x-full"
-        )}
-      >
-        <Form {...resetForm}>
-          <form
-            onSubmit={resetForm.handleSubmit(onResetSubmit)}
-            className="space-y-4"
-          >
-            <p className="text-center text-sm text-muted-foreground">
-              {translations.enterOtpAndNewPassword.replace('{phone}', phone)}
-            </p>
-            <FormField
-              control={resetForm.control}
-              name="otp"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{translations.verificationCode}</FormLabel>
-                  <div className="relative">
-                    <ShieldCheck className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <FormControl>
-                      <Input
-                        placeholder={translations.enterVerificationCode}
-                        className="pl-10 text-sm"
-                        {...field}
-                      />
-                    </FormControl>
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={resetForm.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{translations.newPassword}</FormLabel>
-                  <div className="relative">
-                    <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <FormControl>
-                      <Input
-                        type="password"
-                        placeholder={translations.createNewPassword}
-                        className="pl-10 text-sm"
-                        {...field}
-                      />
-                    </FormControl>
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={resetForm.control}
-              name="confirmPassword"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{translations.confirmPassword}</FormLabel>
-                  <div className="relative">
-                    <KeyRound className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <FormControl>
-                      <Input
-                        type="password"
-                        placeholder={translations.confirmNewPassword}
-                        className="pl-10 text-sm"
-                        {...field}
-                      />
-                    </FormControl>
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full btn-gradient rounded-full font-semibold" disabled={isLoading}>
-              {isLoading && <Loader size="xs" className="mr-2" />}
-              {isLoading ? translations.resetting : translations.resetPassword}
-            </Button>
-          </form>
-        </Form>
-      </div>
-    </div>
   );
 }

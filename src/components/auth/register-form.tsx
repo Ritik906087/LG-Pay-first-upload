@@ -76,6 +76,7 @@ export function RegisterForm() {
 
     const email = `${values.phone}@lgpay.app`;
     
+    // Step 1: Sign up the user in Supabase Auth
     const { data: { user }, error: signUpError } = await supabase.auth.signUp({
       email: email,
       password: values.password,
@@ -107,7 +108,8 @@ export function RegisterForm() {
         setIsLoading(false);
         return; 
     }
-
+    
+    // Step 2: Look up inviter UID
     let inviterUid: string | null = null;
     if (values.invitationCode) {
       const { data: inviterData, error: inviterError } = await supabase
@@ -131,6 +133,7 @@ export function RegisterForm() {
       }
     }
     
+    // Step 3: Create the user profile in the 'users' table
     const numericId = Math.floor(10000000 + Math.random() * 90000000).toString();
     const { error: profileError } = await supabase
       .from('users')
@@ -153,11 +156,6 @@ export function RegisterForm() {
         title: "Registration Failed",
         description: "Could not create your user profile. Please contact support.",
       });
-      
-      // Attempt to clean up the created auth user
-      // This requires admin privileges, so it should be handled by a server-side function if needed.
-      // For now, we inform the user.
-      
       setIsLoading(false);
       return;
     }
@@ -167,6 +165,8 @@ export function RegisterForm() {
       description: translations.registrationSuccessMessage,
     });
 
+    // Important: Sign out the user immediately after sign up
+    // to force them to log in, confirming their account.
     await supabase.auth.signOut();
     router.push("/login");
     setIsLoading(false);
