@@ -75,16 +75,16 @@ export function RegisterForm() {
     setIsLoading(true);
 
     const email = `${values.phone}@lgpay.app`;
-    // 1. Sign up the user in Supabase Auth using email
-    const { data, error: signUpError } = await supabase.auth.signUp({
+    
+    const { data: { user }, error: signUpError } = await supabase.auth.signUp({
       email: email,
       password: values.password,
     });
-
+    
     if (signUpError) {
       console.error("Registration failed:", signUpError);
       let description = "An unexpected error occurred. Please try again.";
-      if (signUpError.message.includes('User already registered')) {
+      if (signUpError.message.includes('User already registered') || signUpError.message.includes('already exists')) {
           description = "An account with this phone number already exists. Please log in instead.";
       } else {
         description = signUpError.message;
@@ -98,7 +98,7 @@ export function RegisterForm() {
       return; 
     }
 
-    if (!data.user) {
+    if (!user) {
         toast({
             variant: "destructive",
             title: "Registration Failed",
@@ -108,9 +108,6 @@ export function RegisterForm() {
         return; 
     }
 
-    const { user } = data;
-
-    // 2. Find inviter if invitation code is provided
     let inviterUid: string | null = null;
     if (values.invitationCode) {
       const { data: inviterData, error: inviterError } = await supabase
@@ -119,7 +116,7 @@ export function RegisterForm() {
         .eq('numeric_id', values.invitationCode)
         .single();
       
-      if (inviterError) {
+      if (inviterError && inviterError.code !== 'PGRST116') { // PGRST116 = no rows found
           console.error("Inviter check failed:", inviterError);
       }
       
@@ -134,7 +131,6 @@ export function RegisterForm() {
       }
     }
     
-    // 3. Create user profile in public.users table
     const numericId = Math.floor(10000000 + Math.random() * 90000000).toString();
     const { error: profileError } = await supabase
       .from('users')
@@ -157,6 +153,11 @@ export function RegisterForm() {
         title: "Registration Failed",
         description: "Could not create your user profile. Please contact support.",
       });
+      
+      // Attempt to clean up the created auth user
+      // This requires admin privileges, so it should be handled by a server-side function if needed.
+      // For now, we inform the user.
+      
       setIsLoading(false);
       return;
     }
