@@ -1,4 +1,7 @@
 
+// Load environment variables from .env file at the project root
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
+
 const { onRequest } = require("firebase-functions/v2/https");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const admin = require("firebase-admin");
