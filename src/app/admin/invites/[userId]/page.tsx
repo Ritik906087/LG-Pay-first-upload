@@ -2,13 +2,11 @@
 
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { useDoc, useCollection, useFirestore } from '@/firebase';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { ChevronLeft, Loader2, Users } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { doc, collection, query, where } from 'firebase/firestore';
 import {
   Table,
   TableBody,
@@ -19,15 +17,15 @@ import {
 } from '@/components/ui/table';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import Link from 'next/link';
+import { createClient } from '@/lib/utils';
 
 const defaultAvatarUrl = "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/LG%20PAY%20AVATAR.png?alt=media&token=707ce79d-15fa-4e58-9d1d-a7d774cfe5ec";
 
-// Types
 type UserProfile = {
     id: string;
-    displayName: string;
-    numericId: string;
-    photoURL?: string;
+    display_name: string;
+    numeric_id: string;
+    photo_url?: string;
 };
 
 type Order = {
@@ -37,19 +35,28 @@ type Order = {
 
 // Component for a single invited user row
 const InvitedUserRow = ({ user }: { user: UserProfile }) => {
-    const firestore = useFirestore();
+    const supabase = createClient();
+    const [stats, setStats] = useState({ income: 0, orders: 0 });
+    const [loading, setLoading] = useState(true);
 
-    const ordersQuery = useMemo(() => {
-        if (!firestore) return null;
-        return query(collection(firestore, 'users', user.id, 'orders'), where('status', '==', 'completed'));
-    }, [firestore, user.id]);
-
-    const { data: orders, loading: ordersLoading } = useCollection<Order>(ordersQuery);
-
-    const totalOrderAmount = useMemo(() => {
-        if (!orders) return 0;
-        return orders.reduce((sum, order) => sum + order.amount, 0);
-    }, [orders]);
+    useEffect(() => {
+        const fetchAgentData = async () => {
+            setLoading(true);
+            const { data, error } = await supabase.from('orders')
+              .select('amount')
+              .eq('user_id', user.id)
+              .eq('status', 'completed');
+            
+            let totalOrderAmount = 0;
+            if (data) {
+                totalOrderAmount = data.reduce((sum, order) => sum + order.amount, 0);
+            }
+            
+            setStats({ income: totalOrderAmount, orders: data?.length || 0 });
+            setLoading(false);
+        };
+        fetchAgentData();
+    }, [supabase, user.id]);
 
     return (
         <TableRow>
@@ -57,16 +64,16 @@ const InvitedUserRow = ({ user }: { user: UserProfile }) => {
                 <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">
                         <AvatarImage src={defaultAvatarUrl} />
-                        <AvatarFallback>{user.displayName?.charAt(0) || 'U'}</AvatarFallback>
+                        <AvatarFallback>{user.display_name?.charAt(0) || 'U'}</AvatarFallback>
                     </Avatar>
                     <div>
-                        <p className="font-semibold">{user.displayName}</p>
-                        <p className="text-xs text-muted-foreground">UID: {user.numericId}</p>
+                        <p className="font-semibold">{user.display_name}</p>
+                        <p className="text-xs text-muted-foreground">UID: {user.numeric_id}</p>
                     </div>
                 </div>
             </TableCell>
             <TableCell>
-                {ordersLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : `₹${totalOrderAmount.toFixed(2)}`}
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : `₹${stats.income.toFixed(2)}`}
             </TableCell>
             <TableCell className="text-right">
                 <Button asChild size="sm" variant="outline">
@@ -80,20 +87,29 @@ const InvitedUserRow = ({ user }: { user: UserProfile }) => {
 export default function UserInvitesPage() {
     const params = useParams();
     const inviterId = params.userId as string;
-    const firestore = useFirestore();
-    
-    // Fetch the inviter's profile
-    const inviterRef = useMemo(() => firestore && inviterId ? doc(firestore, 'users', inviterId) : null, [firestore, inviterId]);
-    const { data: inviter, loading: inviterLoading } = useDoc<UserProfile>(inviterRef);
-    
-    // Fetch users invited by the inviter
-    const invitedUsersQuery = useMemo(() => {
-        if (!firestore || !inviterId) return null;
-        return query(collection(firestore, 'users'), where('inviterUid', '==', inviterId));
-    }, [firestore, inviterId]);
-    const { data: invitedUsers, loading: invitedUsersLoading } = useCollection<UserProfile>(invitedUsersQuery);
+    const supabase = createClient();
 
-    const loading = inviterLoading || invitedUsersLoading;
+    const [inviter, setInviter] = useState<UserProfile | null>(null);
+    const [invitedUsers, setInvitedUsers] = useState<UserProfile[]>([]);
+    const [loading, setLoading] = useState(true);
+    
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!inviterId) return;
+            setLoading(true);
+
+            const [inviterRes, invitedRes] = await Promise.all([
+                supabase.from('users').select('*').eq('id', inviterId).single(),
+                supabase.from('users').select('*').eq('inviter_uid', inviterId)
+            ]);
+
+            if(inviterRes.data) setInviter(inviterRes.data as UserProfile);
+            if(invitedRes.data) setInvitedUsers(invitedRes.data as UserProfile[]);
+            
+            setLoading(false);
+        }
+        fetchData();
+    }, [inviterId, supabase]);
 
     if (loading) {
         return (
@@ -114,7 +130,7 @@ export default function UserInvitesPage() {
                     </Link>
                 </Button>
                  <h1 className="text-xl font-semibold">
-                    Users Invited by {inviter?.displayName || '...'} (UID: {inviter?.numericId})
+                    Users Invited by {inviter?.display_name || '...'} (UID: {inviter?.numeric_id})
                  </h1>
             </div>
 

@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { useCollection, useDoc, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { LogOut, Users, LayoutDashboard, Wallet, Eye, Search, Landmark, Banknote, Trash2, Clock, History, CheckCircle, Download, XCircle, MessageSquare, Send, Paperclip, X, FileClock, AlertCircle, FileWarning, MessageCircleQuestion, Video, Image as ImageIcon, Loader2, RefreshCw, Copy } from 'lucide-react';
@@ -24,7 +23,6 @@ import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { collection, addDoc, doc, deleteDoc, collectionGroup, query, where, getDocs, updateDoc, Timestamp, runTransaction, limit, orderBy, serverTimestamp, arrayUnion, DocumentData, DocumentReference, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import {
@@ -39,32 +37,33 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Loader } from '@/components/ui/loader';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { createClient } from '@/lib/utils';
 
 
 const defaultAvatarUrl = "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/LG%20PAY%20AVATAR.png?alt=media&token=707ce79d-15fa-4e58-9d1d-a7d774cfe5ec";
 
 type UserProfile = {
     id: string;
-    displayName: string;
-    numericId: string;
+    display_name: string;
+    numeric_id: string;
     balance: number;
-    holdBalance: number;
+    hold_balance: number;
     email?: string;
-    phoneNumber?: string;
-    photoURL?: string;
-    inviterUid?: string;
+    phone_number?: string;
+    photo_url?: string;
+    inviter_uid?: string;
 };
 
 type PaymentMethod = {
     id: string;
     type: 'bank' | 'upi' | 'usdt';
-    bankName?: string;
-    accountHolderName?: string;
-    accountNumber?: string;
-    ifscCode?: string;
-    upiHolderName?: string;
-    upiId?: string;
-    usdtWalletAddress?: string;
+    bank_name?: string;
+    account_holder_name?: string;
+    account_number?: string;
+    ifsc_code?: string;
+    upi_holder_name?: string;
+    upi_id?: string;
+    usdt_wallet_address?: string;
 }
 
 type WithdrawalMethod = {
@@ -76,43 +75,42 @@ type WithdrawalMethod = {
     accountNumber?: string;
     ifscCode?: string;
     upiHolderName?: string;
-    usdtWalletAddress?: string;
 }
 
 type Order = {
     id: string;
     path: string;
-    userId: string;
-    orderId: string;
+    user_id: string;
+    order_id: string;
     amount: number;
     status: 'pending_confirmation' | 'in_applied';
-    submittedAt?: Timestamp;
+    submitted_at?: string;
     utr?: string;
-    screenshotURL?: string;
-    verificationResult?: string;
-    createdAt: Timestamp;
+    screenshot_url?: string;
+    verification_result?: string;
+    created_at: string;
     user?: UserProfile;
-    paymentType?: 'bank' | 'upi' | 'usdt' | 'p2p_upi' | 'p2p_bank';
-    paymentProvider?: string;
-    adminPaymentMethodId?: string;
-    sellerWithdrawalDetails?: WithdrawalMethod;
-    matchedSellOrderPath?: string;
-    ocrVerified?: boolean;
-    ocrUtrMatch?: boolean;
-    ocrAmountMatch?: boolean;
-    ocrUpiMatch?: boolean;
-    ocrBankAccountMatch?: boolean;
+    payment_type?: 'bank' | 'upi' | 'usdt' | 'p2p_upi' | 'p2p_bank';
+    payment_provider?: string;
+    admin_payment_method_id?: string;
+    seller_withdrawal_details?: WithdrawalMethod;
+    matched_sell_order_path?: string;
+    ocr_verified?: boolean;
+    ocr_utr_match?: boolean;
+    ocr_amount_match?: boolean;
+    ocr_upi_match?: boolean;
+    ocr_bank_account_match?: boolean;
 };
 
 type SellOrder = {
     id: string;
-    userId: string;
-    userNumericId: string;
-    userPhoneNumber: string;
-    orderId: string;
+    user_id: string;
+    user_numeric_id: string;
+    user_phone_number: string;
+    order_id: string;
     amount: number;
     status: 'pending' | 'processing' | 'completed' | 'failed';
-    withdrawalMethod: { 
+    withdrawal_method: { 
         type: 'upi' | 'bank';
         name: string;
         upiId?: string;
@@ -121,9 +119,9 @@ type SellOrder = {
         accountNumber?: string;
         ifscCode?: string;
     };
-    createdAt: Timestamp;
-    completedAt?: Timestamp;
-    failureReason?: string;
+    created_at: string;
+    completed_at?: string;
+    failure_reason?: string;
 }
 
 type Attachment = {
@@ -143,39 +141,39 @@ type Message = {
 
 type ChatRequest = {
     id: string;
-    userId?: string;
-    userNumericId?: string;
-    enteredIdentifier: string;
+    user_id?: string;
+    user_numeric_id?: string;
+    entered_identifier: string;
     status: 'pending' | 'active' | 'closed';
-    createdAt: Timestamp;
-    chatHistory: Message[];
-    agentId?: string;
-    agentJoinedAt?: Timestamp;
+    created_at: string;
+    chat_history: Message[];
+    agent_id?: string;
+    agent_joined_at?: string;
 }
 
 type Report = {
     id: string;
-    caseId: string;
-    userId: string;
-    userNumericId: string;
-    orderId: string;
-    displayOrderId: string;
-    orderType: 'buy' | 'sell';
-    problemType: string;
+    case_id: string;
+    user_id: string;
+    user_numeric_id: string;
+    order_id: string;
+    display_order_id: string;
+    order_type: 'buy' | 'sell';
+    problem_type: string;
     message: string;
-    screenshotURL?: string;
-    videoURL?: string;
-    createdAt: Timestamp;
+    screenshot_url?: string;
+    video_url?: string;
+    created_at: string;
     status: 'pending' | 'resolved';
-    resolutionMessage?: string;
+    resolution_message?: string;
 }
 
 type Feedback = {
     id: string;
-    userId: string;
-    userNumericId: string;
+    user_id: string;
+    user_numeric_id: string;
     message: string;
-    createdAt: Timestamp;
+    created_at: string;
 }
 
 const paymentMethodDetails: { [key: string]: { logo: string; bgColor: string } } = {
@@ -197,11 +195,11 @@ const paymentMethodDetails: { [key: string]: { logo: string; bgColor: string } }
   },
 };
 
-const CountdownTimer = ({ expiryTimestamp, className }: { expiryTimestamp: Timestamp, className?: string }) => {
+const CountdownTimer = ({ expiryTimestamp, className }: { expiryTimestamp: string, className?: string }) => {
     const [timeLeft, setTimeLeft] = useState('');
 
     useEffect(() => {
-        const expiryTime = expiryTimestamp.toDate().getTime();
+        const expiryTime = new Date(expiryTimestamp).getTime();
 
         const interval = setInterval(() => {
             const now = new Date().getTime();
@@ -238,18 +236,18 @@ const UserCard = React.memo(({ user }: { user: UserProfile }) => {
         <Card className="flex flex-col">
             <CardHeader className="flex-row items-center gap-4">
                 <Avatar className="h-12 w-12">
-                    <AvatarImage src={defaultAvatarUrl} alt={user.displayName} />
-                    <AvatarFallback>{user.displayName?.charAt(0).toUpperCase()}</AvatarFallback>
+                    <AvatarImage src={defaultAvatarUrl} alt={user.display_name} />
+                    <AvatarFallback>{user.display_name?.charAt(0).toUpperCase()}</AvatarFallback>
                 </Avatar>
                 <div>
-                    <CardTitle className="text-base">{user.displayName}</CardTitle>
-                    <CardDescription>UID: {user.numericId}</CardDescription>
+                    <CardTitle className="text-base">{user.display_name}</CardTitle>
+                    <CardDescription>UID: {user.numeric_id}</CardDescription>
                 </div>
             </CardHeader>
             <CardContent className="flex-grow space-y-1">
                 <p className="text-xs text-muted-foreground">Balance</p>
                 <p className="text-xl font-bold">{(user.balance || 0).toFixed(2)} <span className="text-sm font-normal text-muted-foreground">LGB</span></p>
-                <p className="text-xs text-muted-foreground pt-2">{user.phoneNumber || 'No phone number'}</p>
+                <p className="text-xs text-muted-foreground pt-2">{user.phone_number || 'No phone number'}</p>
             </CardContent>
             <CardFooter>
                  <Button asChild className="w-full" variant="outline">
@@ -297,7 +295,7 @@ function UsersGrid({ users, loading, error }: { users: UserProfile[], loading: b
                 <CardHeader>
                     <CardTitle className="text-destructive">Error Fetching Users</CardTitle>
                     <CardDescription className="text-destructive/80">
-                        Could not retrieve user data. Your current Firestore security rules may be blocking this query. For this feature to work, an admin must have read access to the 'users' collection.
+                        Could not retrieve user data. Your current security rules may be blocking this query. For this feature to work, an admin must have read access to the 'users' table.
                     </CardDescription>
                 </CardHeader>
             </Card>
@@ -336,7 +334,7 @@ function BankDetailsForm({ onAdd }: { onAdd: (details: Omit<PaymentMethod, 'id' 
             return;
         }
         setIsLoading(true);
-        await onAdd({ bankName, accountHolderName, accountNumber, ifscCode });
+        await onAdd({ bank_name: bankName, account_holder_name: accountHolderName, account_number: accountNumber, ifsc_code: ifscCode });
         setIsLoading(false);
         setBankName('');
         setAccountHolderName('');
@@ -389,7 +387,7 @@ function UpiDetailsForm({ onAdd }: { onAdd: (details: Omit<PaymentMethod, 'id' |
             return;
         }
         setIsLoading(true);
-        await onAdd({ upiHolderName, upiId });
+        await onAdd({ upi_holder_name: upiHolderName, upi_id: upiId });
         setIsLoading(false);
         setUpiHolderName('');
         setUpiId('');
@@ -430,7 +428,7 @@ function UsdtDetailsForm({ onAdd }: { onAdd: (details: Omit<PaymentMethod, 'id' 
             return;
         }
         setIsLoading(true);
-        await onAdd({ usdtWalletAddress });
+        await onAdd({ usdt_wallet_address: usdtWalletAddress });
         setIsLoading(false);
         setUsdtWalletAddress('');
     }
@@ -478,10 +476,10 @@ function PaymentMethodsList({ methods, loading, onDelete, canDelete }: { methods
                         {bankAccounts.map(method => (
                             <Card key={method.id} className="p-4 bg-muted/50 flex justify-between items-start">
                                 <div className="text-sm space-y-1">
-                                    <p><span className="font-semibold">Bank:</span> {method.bankName}</p>
-                                    <p><span className="font-semibold">Holder:</span> {method.accountHolderName}</p>
-                                    <p><span className="font-semibold">Account No:</span> {method.accountNumber}</p>
-                                    <p><span className="font-semibold">IFSC:</span> {method.ifscCode}</p>
+                                    <p><span className="font-semibold">Bank:</span> {method.bank_name}</p>
+                                    <p><span className="font-semibold">Holder:</span> {method.account_holder_name}</p>
+                                    <p><span className="font-semibold">Account No:</span> {method.account_number}</p>
+                                    <p><span className="font-semibold">IFSC:</span> {method.ifsc_code}</p>
                                 </div>
                                 {canDelete && (
                                     <Button variant="ghost" size="icon" onClick={() => onDelete(method.id)} className="text-destructive hover:text-destructive">
@@ -500,8 +498,8 @@ function PaymentMethodsList({ methods, loading, onDelete, canDelete }: { methods
                         {upiAccounts.map(method => (
                              <Card key={method.id} className="p-4 bg-muted/50 flex justify-between items-start">
                                 <div className="text-sm space-y-1">
-                                    <p><span className="font-semibold">Name:</span> {method.upiHolderName}</p>
-                                    <p><span className="font-semibold">UPI ID:</span> {method.upiId}</p>
+                                    <p><span className="font-semibold">Name:</span> {method.upi_holder_name}</p>
+                                    <p><span className="font-semibold">UPI ID:</span> {method.upi_id}</p>
                                 </div>
                                 {canDelete && (
                                     <Button variant="ghost" size="icon" onClick={() => onDelete(method.id)} className="text-destructive hover:text-destructive">
@@ -521,7 +519,7 @@ function PaymentMethodsList({ methods, loading, onDelete, canDelete }: { methods
                              <Card key={method.id} className="p-4 bg-muted/50 flex justify-between items-start">
                                 <div className="text-sm space-y-1 break-all">
                                     <p><span className="font-semibold">Network:</span> USDT (TRC20)</p>
-                                    <p><span className="font-semibold">Address:</span> {method.usdtWalletAddress}</p>
+                                    <p><span className="font-semibold">Address:</span> {method.usdt_wallet_address}</p>
                                 </div>
                                 {canDelete && (
                                     <Button variant="ghost" size="icon" onClick={() => onDelete(method.id)} className="text-destructive hover:text-destructive">
@@ -547,7 +545,7 @@ const PaymentReceipt = React.forwardRef<HTMLDivElement, { order: SellOrder; utr:
         hour12: true
     });
     
-    const isBank = order.withdrawalMethod?.type === 'bank';
+    const isBank = order.withdrawal_method?.type === 'bank';
 
     return (
         <div ref={ref} className="bg-white p-6 rounded-lg shadow-lg w-[360px] relative overflow-hidden font-sans">
@@ -564,11 +562,11 @@ const PaymentReceipt = React.forwardRef<HTMLDivElement, { order: SellOrder; utr:
                 <div className="space-y-3 text-sm border-t border-dashed pt-4">
                     <div className="flex justify-between">
                         <span className="text-gray-500">To</span>
-                        <span className="font-medium text-right">{isBank ? order.withdrawalMethod?.accountHolderName : order.withdrawalMethod?.name}</span>
+                        <span className="font-medium text-right">{isBank ? order.withdrawal_method?.accountHolderName : order.withdrawal_method?.name}</span>
                     </div>
                      <div className="flex justify-between">
                         <span className="text-gray-500">{isBank ? 'Account No.' : 'UPI ID'}</span>
-                        <span className="font-medium text-right">{isBank ? order.withdrawalMethod?.accountNumber : order.withdrawalMethod?.upiId}</span>
+                        <span className="font-medium text-right">{isBank ? order.withdrawal_method?.accountNumber : order.withdrawal_method?.upiId}</span>
                     </div>
                     <div className="flex justify-between">
                         <span className="text-gray-500">From</span>
@@ -580,7 +578,7 @@ const PaymentReceipt = React.forwardRef<HTMLDivElement, { order: SellOrder; utr:
                     </div>
                     <div className="flex justify-between">
                         <span className="text-gray-500">Order ID</span>
-                        <span className="font-medium font-mono text-xs break-all">{order.orderId}</span>
+                        <span className="font-medium font-mono text-xs break-all">{order.order_id}</span>
                     </div>
                     <div className="flex justify-between">
                         <span className="text-gray-500">Date & Time</span>
@@ -602,12 +600,12 @@ function ProcessWithdrawalDialog({ order, onProcessed }: { order: SellOrder, onP
     const [showRejectionUI, setShowRejectionUI] = useState(false);
     const [rejectionReason, setRejectionReason] = useState('');
     const [isRejecting, setIsRejecting] = useState(false);
-    const firestore = useFirestore();
+    const supabase = createClient();
     const { toast } = useToast();
     const receiptRef = useRef<HTMLDivElement>(null);
 
     // This is the user's destination account (either bank or UPI).
-    const withdrawalDetails = order.withdrawalMethod;
+    const withdrawalDetails = order.withdrawal_method;
     const isBankWithdrawal = withdrawalDetails?.type === 'bank';
 
     const handleConfirm = async () => {
@@ -617,13 +615,13 @@ function ProcessWithdrawalDialog({ order, onProcessed }: { order: SellOrder, onP
         }
         setIsConfirming(true);
         try {
-            const orderRef = doc(firestore, 'users', order.userId, 'sellOrders', order.id);
-            await updateDoc(orderRef, {
+            const { error } = await supabase.from('sell_orders').update({
                 status: 'completed',
                 utr: utr,
-                completedAt: serverTimestamp(),
-            });
-            toast({ title: 'Withdrawal Confirmed!', description: `Order ${order.orderId} marked as completed.` });
+                completed_at: new Date().toISOString(),
+            }).eq('id', order.id);
+            if (error) throw error;
+            toast({ title: 'Withdrawal Confirmed!', description: `Order ${order.order_id} marked as completed.` });
             setOpen(false);
             onProcessed();
         } catch (e: any) {
@@ -641,23 +639,22 @@ function ProcessWithdrawalDialog({ order, onProcessed }: { order: SellOrder, onP
         }
         setIsRejecting(true);
         try {
-            const orderRef = doc(firestore, 'users', order.userId, 'sellOrders', order.id);
-            const userRef = doc(firestore, 'users', order.userId);
+            const { data: userData, error: userError } = await supabase.from('users').select('balance').eq('id', order.user_id).single();
+            if (userError || !userData) throw new Error("User not found for refund.");
 
-            await runTransaction(firestore, async (transaction) => {
-                const userDoc = await transaction.get(userRef);
-                if (!userDoc.exists()) {
-                    throw new Error("User not found");
-                }
-                const newBalance = userDoc.data().balance + order.amount;
-                transaction.update(orderRef, {
-                    status: 'failed',
-                    failureReason: rejectionReason,
-                });
-                transaction.update(userRef, { balance: newBalance });
-            });
+            const newBalance = (userData.balance || 0) + order.amount;
+            
+            const { error: userUpdateError } = await supabase.from('users').update({ balance: newBalance }).eq('id', order.user_id);
+            if(userUpdateError) throw new Error('Failed to refund user balance.');
 
-            toast({ title: 'Withdrawal Rejected', description: `Order ${order.orderId} has been rejected and amount refunded.` });
+            const { error: orderUpdateError } = await supabase.from('sell_orders').update({
+                status: 'failed',
+                failure_reason: rejectionReason,
+            }).eq('id', order.id);
+            if (orderUpdateError) throw orderUpdateError;
+
+
+            toast({ title: 'Withdrawal Rejected', description: `Order ${order.order_id} has been rejected and amount refunded.` });
             setOpen(false);
             onProcessed();
         } catch (e: any) {
@@ -688,7 +685,7 @@ function ProcessWithdrawalDialog({ order, onProcessed }: { order: SellOrder, onP
             const dataUrl = canvas.toDataURL('image/png');
             const link = document.createElement('a');
             link.href = dataUrl;
-            link.download = `LGPAY-Receipt-${order.orderId}.png`;
+            link.download = `LGPAY-Receipt-${order.order_id}.png`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -714,8 +711,8 @@ function ProcessWithdrawalDialog({ order, onProcessed }: { order: SellOrder, onP
                     <DialogHeader>
                         <DialogTitle>Process Withdrawal</DialogTitle>
                         <div className="flex justify-between items-center text-sm pt-2">
-                            <CardDescription>Order ID: <span className="break-all">{order.orderId}</span></CardDescription>
-                            <CountdownTimer expiryTimestamp={new Timestamp(order.createdAt.seconds + 30 * 60, order.createdAt.nanoseconds)} />
+                            <CardDescription>Order ID: <span className="break-all">{order.order_id}</span></CardDescription>
+                            <CountdownTimer expiryTimestamp={new Date(new Date(order.created_at).getTime() + 30 * 60 * 1000).toISOString()} />
                         </div>
                     </DialogHeader>
                     {showRejectionUI ? (
@@ -726,8 +723,8 @@ function ProcessWithdrawalDialog({ order, onProcessed }: { order: SellOrder, onP
                     ) : (
                         <div className="space-y-4 py-4">
                             <p><strong>Amount:</strong> <span className="font-bold text-lg text-primary">₹{order.amount}</span></p>
-                            <p><strong>User UID:</strong> {order.userNumericId}</p>
-                            <p><strong>Phone:</strong> {order.userPhoneNumber}</p>
+                            <p><strong>User UID:</strong> {order.user_numeric_id}</p>
+                            <p><strong>Phone:</strong> {order.user_phone_number}</p>
                             
                             <p><strong>Method:</strong> {withdrawalDetails?.type?.toUpperCase() ?? 'N/A'}</p>
                             {isBankWithdrawal ? (
@@ -749,7 +746,7 @@ function ProcessWithdrawalDialog({ order, onProcessed }: { order: SellOrder, onP
                     )}
                     <DialogFooter className="sm:justify-between flex-col-reverse sm:flex-row sm:items-center gap-2">
                          <Button asChild variant="secondary" className="sm:mr-auto">
-                            <Link href={`/admin/users/${order.userId}`} target="_blank">View User</Link>
+                            <Link href={`/admin/users/${order.user_id}`} target="_blank">View User</Link>
                         </Button>
                         {showRejectionUI ? (
                              <div className="flex gap-2 justify-end">
@@ -780,37 +777,26 @@ function ProcessWithdrawalDialog({ order, onProcessed }: { order: SellOrder, onP
 }
 
 function WithdrawalsTabContent() {
-    const firestore = useFirestore();
+    const supabase = createClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [allOrders, setAllOrders] = useState<SellOrder[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<any>(null);
 
     const fetchWithdrawals = useCallback(async () => {
-        if (!firestore) return;
         setLoading(true);
         setError(null);
         try {
-            const q = query(
-                collectionGroup(firestore, 'sellOrders'), 
-                where('status', '==', 'pending'),
-                orderBy('createdAt', 'desc')
-            );
-            const sellOrdersSnapshot = await getDocs(q);
-            const pendingWithdrawals = sellOrdersSnapshot.docs
-                .map(doc => ({
-                    id: doc.id,
-                    ...doc.data(),
-                } as SellOrder));
-    
-            setAllOrders(pendingWithdrawals);
+            const { data, error } = await supabase.from('sell_orders').select('*').eq('status', 'pending').order('created_at', { ascending: false });
+            if (error) throw error;
+            setAllOrders(data);
         } catch (error) {
             console.error("Error fetching withdrawals:", error);
             setError(error);
         } finally {
             setLoading(false);
         }
-    }, [firestore]);
+    }, [supabase]);
 
 
     useEffect(() => {
@@ -823,9 +809,9 @@ function WithdrawalsTabContent() {
         if (!searchTerm) return pendingOrders;
         const lowercasedTerm = searchTerm.toLowerCase();
         return pendingOrders.filter(order =>
-            order.orderId.toLowerCase().includes(lowercasedTerm) ||
-            order.userNumericId.toLowerCase().includes(lowercasedTerm) ||
-            order.userPhoneNumber?.toLowerCase().includes(lowercasedTerm)
+            order.order_id.toLowerCase().includes(lowercasedTerm) ||
+            order.user_numeric_id.toLowerCase().includes(lowercasedTerm) ||
+            order.user_phone_number?.toLowerCase().includes(lowercasedTerm)
         );
     }, [allOrders, searchTerm]);
 
@@ -835,7 +821,7 @@ function WithdrawalsTabContent() {
                 <CardHeader>
                     <CardTitle className="text-destructive">Error Fetching Withdrawals</CardTitle>
                     <CardDescription className="text-destructive/80">
-                        Could not retrieve withdrawal data. This might be due to Firestore security rules or a missing database index.
+                        Could not retrieve withdrawal data. This might be due to security rules or a missing database index.
                     </CardDescription>
                 </CardHeader>
                  <CardContent>
@@ -875,8 +861,8 @@ function WithdrawalsTabContent() {
                         <Card key={order.id} className="flex flex-col">
                             <CardContent className="flex-grow p-4 space-y-2 text-sm">
                                 <p><strong>Amount:</strong> <span className="font-bold text-lg text-primary">₹{order.amount}</span></p>
-                                <p><strong>User UID:</strong> {order.userNumericId}</p>
-                                <p><strong>Phone:</strong> {order.userPhoneNumber}</p>
+                                <p><strong>User UID:</strong> {order.user_numeric_id}</p>
+                                <p><strong>Phone:</strong> {order.user_phone_number}</p>
                             </CardContent>
                             <CardFooter className="p-4 pt-0">
                                 <ProcessWithdrawalDialog order={order} onProcessed={fetchWithdrawals} />
@@ -939,11 +925,11 @@ function HistoryUsersGrid({ users, loading, error }: { users: UserProfile[], loa
             {users.map((user) => (
             <Card key={user.id} className="flex flex-col">
                 <CardHeader>
-                    <CardTitle className="text-base">{user.displayName}</CardTitle>
-                    <CardDescription>UID: {user.numericId}</CardDescription>
+                    <CardTitle className="text-base">{user.display_name}</CardTitle>
+                    <CardDescription>UID: {user.numeric_id}</CardDescription>
                 </CardHeader>
                 <CardContent className="flex-grow">
-                     <p className="text-sm text-muted-foreground">{user.phoneNumber || 'No phone number'}</p>
+                     <p className="text-sm text-muted-foreground">{user.phone_number || 'No phone number'}</p>
                 </CardContent>
                 <CardFooter>
                      <Button asChild className="w-full" variant="outline">
@@ -960,30 +946,46 @@ function HistoryUsersGrid({ users, loading, error }: { users: UserProfile[], loa
 }
 
 function LiveChatTabContent() {
-    const firestore = useFirestore();
+    const supabase = createClient();
     const [searchTerm, setSearchTerm] = useState('');
+    const [liveChatRequests, setLiveChatRequests] = useState<ChatRequest[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<any>(null);
 
-    const chatRequestsQuery = useMemo(() => {
-        if (!firestore) return null;
-        // Fetch last 50 requests to avoid performance issues and missing indexes on large collections
-        return query(collection(firestore, 'chatRequests'), orderBy('createdAt', 'desc'), limit(50));
-    }, [firestore]);
+    useEffect(() => {
+        const fetchChats = async () => {
+            setLoading(true);
+            const { data, error } = await supabase.from('chat_requests')
+                .select('*')
+                .in('status', ['pending', 'active'])
+                .order('created_at', { ascending: false });
 
-    const { data: allChatRequests, loading, error } = useCollection<ChatRequest>(chatRequestsQuery);
+            if (error) {
+                setError(error);
+                setLiveChatRequests([]);
+            } else {
+                setLiveChatRequests(data as ChatRequest[]);
+            }
+            setLoading(false);
+        };
+        fetchChats();
+        
+        const channel = supabase.channel('public:chat_requests')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_requests' }, payload => {
+                fetchChats(); // Refetch on any change
+            }).subscribe();
+        
+        return () => {
+            supabase.removeChannel(channel);
+        }
+
+    }, [supabase]);
     
-    const liveChatRequests = useMemo(() => {
-        if (!allChatRequests) return [];
-        // Filter for pending and active chats on the client
-        return allChatRequests.filter(req => ['pending', 'active'].includes(req.status));
-    }, [allChatRequests]);
-
     const sortedAndFilteredRequests = useMemo(() => {
         const sorted = [...liveChatRequests].sort((a, b) => {
-            // 'pending' should come before 'active'
             if (a.status === 'pending' && b.status !== 'pending') return -1;
             if (a.status !== 'pending' && b.status === 'pending') return 1;
-            // For requests with the same status, newer ones first
-            return b.createdAt.seconds - a.createdAt.seconds;
+            return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         });
 
         if (!searchTerm.trim()) {
@@ -992,8 +994,8 @@ function LiveChatTabContent() {
 
         const lowercasedTerm = searchTerm.toLowerCase();
         return sorted.filter(req => 
-            (req.userNumericId && req.userNumericId.toLowerCase().includes(lowercasedTerm)) ||
-            (req.enteredIdentifier && req.enteredIdentifier.toLowerCase().includes(lowercasedTerm))
+            (req.user_numeric_id && req.user_numeric_id.toLowerCase().includes(lowercasedTerm)) ||
+            (req.entered_identifier && req.entered_identifier.toLowerCase().includes(lowercasedTerm))
         );
     }, [liveChatRequests, searchTerm]);
 
@@ -1011,7 +1013,7 @@ function LiveChatTabContent() {
                 <CardHeader>
                     <CardTitle className="text-destructive">Error Fetching Chat Requests</CardTitle>
                     <CardDescription className="text-destructive/80">
-                        Could not retrieve chat data. This can be caused by Firestore security rules. Please check your console for more details.
+                        Could not retrieve chat data. This can be caused by security rules. Please check your console for more details.
                     </CardDescription>
                 </CardHeader>
                  <CardContent>
@@ -1052,15 +1054,15 @@ function LiveChatTabContent() {
                                         <div>
                                             <CardTitle className="text-base">{isPending ? "New Chat Request" : "Active Chat"}</CardTitle>
                                             <CardDescription>
-                                                {new Date(request.createdAt.toDate()).toLocaleString()}
+                                                {new Date(request.created_at).toLocaleString()}
                                             </CardDescription>
                                         </div>
-                                        {isPending && <CountdownTimer expiryTimestamp={new Timestamp(request.createdAt.seconds + 10 * 60, request.createdAt.nanoseconds)} />}
+                                        {isPending && <CountdownTimer expiryTimestamp={new Date(new Date(request.created_at).getTime() + 10 * 60 * 1000).toISOString()} />}
                                     </div>
                                 </CardHeader>
                                 <CardContent className="flex-grow space-y-2 text-sm">
-                                    <p><strong>User UID:</strong> {request.userNumericId || 'N/A'}</p>
-                                    <p><strong>Identifier:</strong> {request.enteredIdentifier}</p>
+                                    <p><strong>User UID:</strong> {request.user_numeric_id || 'N/A'}</p>
+                                    <p><strong>Identifier:</strong> {request.entered_identifier}</p>
                                 </CardContent>
                                 <CardFooter>
                                     <Button asChild className={cn(
@@ -1116,17 +1118,17 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
     const [isRejecting, setIsRejecting] = useState(false);
     const [showRejectionUI, setShowRejectionUI] = useState(false);
     const [rejectionReason, setRejectionReason] = useState('');
-    const firestore = useFirestore();
+    const supabase = createClient();
     const { toast } = useToast();
 
-    const isP2P = order.paymentType === 'p2p_upi' || order.paymentType === 'p2p_bank';
+    const isP2P = order.payment_type === 'p2p_upi' || order.payment_type === 'p2p_bank';
 
     const receiverDetails = useMemo(() => {
         if (isP2P) {
-            return order.sellerWithdrawalDetails;
+            return order.seller_withdrawal_details;
         }
-        if (!order.adminPaymentMethodId || !adminPaymentMethods) return null;
-        return adminPaymentMethods.find(m => m.id === order.adminPaymentMethodId);
+        if (!order.admin_payment_method_id || !adminPaymentMethods) return null;
+        return adminPaymentMethods.find(m => m.id.toString() === order.admin_payment_method_id);
     }, [order, adminPaymentMethods, isP2P]);
 
     const copyToClipboard = (text: string | undefined, label: string) => {
@@ -1136,123 +1138,14 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
     };
 
     const handleApprove = async () => {
-        if (!firestore || !order.path) return;
+        // This function would ideally be a single RPC call to a database function
+        // to ensure atomicity. For now, we'll chain the calls.
         setIsApproving(true);
-        const userRef = doc(firestore, 'users', order.userId);
-        const orderRef = doc(firestore, order.path);
-
         try {
-            await runTransaction(firestore, async (transaction) => {
-                // --- READ PHASE ---
-                const buyerDoc = await transaction.get(userRef);
-                if (!buyerDoc.exists()) {
-                    throw new Error("User not found to update balance.");
-                }
-                const buyerData = buyerDoc.data() as UserProfile;
-
-                const buyerOrderDoc = await transaction.get(orderRef);
-                if (!buyerOrderDoc.exists()) throw new Error("Buy order not found.");
-                const buyerOrderData = buyerOrderDoc.data() as Order;
-    
-                let sellOrderRef: DocumentReference | null = null;
-                let sellOrderDoc: DocumentData | null = null;
-                if (buyerOrderData.paymentType === 'p2p_upi' && buyerOrderData.matchedSellOrderPath) {
-                    sellOrderRef = doc(firestore, buyerOrderData.matchedSellOrderPath);
-                    sellOrderDoc = await transaction.get(sellOrderRef);
-                }
-
-                let l1InviterDoc: DocumentData | null = null;
-                let l1InviterRef: DocumentReference | null = null;
-                let l2InviterDoc: DocumentData | null = null;
-                let l2InviterRef: DocumentReference | null = null;
-    
-                if (buyerData.inviterUid) {
-                    l1InviterRef = doc(firestore, 'users', buyerData.inviterUid);
-                    l1InviterDoc = await transaction.get(l1InviterRef);
-    
-                    if (l1InviterDoc.exists()) {
-                        const l1InviterData = l1InviterDoc.data() as UserProfile;
-                        if (l1InviterData.inviterUid) {
-                            l2InviterRef = doc(firestore, 'users', l1InviterData.inviterUid);
-                            l2InviterDoc = await transaction.get(l2InviterRef);
-                        }
-                    }
-                }
-                
-                // --- WRITE PHASE ---
-    
-                // 1. Update buyer's balance and order status
-                const newBalance = (buyerData.balance || 0) + order.amount;
-                transaction.update(userRef, { balance: newBalance });
-                transaction.update(orderRef, { status: 'completed' });
-    
-                // 2. Handle P2P Seller Order
-                if (sellOrderRef && sellOrderDoc && sellOrderDoc.exists()) {
-                    const sellOrderData = sellOrderDoc.data();
-                    
-                    const updatedMatchedBuyOrders = (sellOrderData.matchedBuyOrders || []).map((bo: any) => {
-                        if (bo.buyOrderId === buyerOrderDoc.id) {
-                            return { 
-                                ...bo, 
-                                status: 'completed', 
-                                utr: buyerOrderData.utr,
-                            };
-                        }
-                        return bo;
-                    });
-                    
-                    const isAllMatchedOrdersDone = updatedMatchedBuyOrders.every(
-                        (bo: any) => bo.status === 'completed' || bo.status === 'failed' || bo.status === 'cancelled'
-                    );
-                    
-                    const newSellOrderStatus = (sellOrderData.remainingAmount === 0 && isAllMatchedOrdersDone)
-                        ? 'completed'
-                        : sellOrderData.status;
-
-                    transaction.update(sellOrderRef, {
-                        matchedBuyOrders: updatedMatchedBuyOrders,
-                        status: newSellOrderStatus,
-                        ...(newSellOrderStatus === 'completed' && { completedAt: serverTimestamp() })
-                    });
-                }
-    
-                // 3. Handle Level 1 Inviter Bonus
-                if (l1InviterRef && l1InviterDoc && l1InviterDoc.exists()) {
-                    const l1Bonus = order.amount * 0.02;
-                    const l1NewBalance = (l1InviterDoc.data().balance || 0) + l1Bonus;
-                    transaction.update(l1InviterRef, { balance: l1NewBalance });
-    
-                    const l1RewardTxRef = doc(collection(firestore, 'users', buyerData.inviterUid!, 'transactions'));
-                    transaction.set(l1RewardTxRef, {
-                        userId: buyerData.inviterUid,
-                        amount: l1Bonus,
-                        description: `Level 1 bonus from user ${order.user?.numericId || order.userId}`,
-                        createdAt: serverTimestamp(),
-                        type: 'team_bonus',
-                        orderId: `LGPAYI${Date.now()}`
-                    });
-    
-                    // 4. Handle Level 2 Inviter Bonus
-                    if (l2InviterRef && l2InviterDoc && l2InviterDoc.exists()) {
-                        const l2Bonus = order.amount * 0.01;
-                        const l2NewBalance = (l2InviterDoc.data().balance || 0) + l2Bonus;
-                        transaction.update(l2InviterRef, { balance: l2NewBalance });
-    
-                        const l2RewardTxRef = doc(collection(firestore, 'users', l1InviterDoc.data().inviterUid!, 'transactions'));
-                        transaction.set(l2RewardTxRef, {
-                            userId: l1InviterDoc.data().inviterUid,
-                            amount: l2Bonus,
-                            description: `Level 2 bonus from user ${order.user?.numericId || order.userId}`,
-                            createdAt: serverTimestamp(),
-                            type: 'team_bonus',
-                            orderId: `LGPAYI${Date.now() + 1}`
-                        });
-                    }
-                }
-            });
-            toast({ title: "Payment Approved!", description: `${order.amount} LGB added to user's balance. Bonuses have been distributed.`});
-            setOpen(false);
-            onProcessed();
+            // This needs to be converted to a proper transaction or RPC
+            toast({ variant: 'destructive', title: 'Approval logic not fully implemented for Supabase yet.' });
+            // The logic involves multiple table updates (users, orders, sell_orders, transactions)
+            // and should be handled in a database function for safety.
         } catch (e: any) {
             console.error("Failed to approve payment:", e);
             toast({ variant: 'destructive', title: 'Approval Failed', description: e.message });
@@ -1263,65 +1156,13 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
     
     const handleReject = async () => {
         if (!rejectionReason.trim()) {
-            toast({ variant: 'destructive', title: 'Reason Required', description: 'Please provide a reason for rejection.' });
+            toast({ variant: 'destructive', title: 'Reason Required' });
             return;
         }
-        if (!firestore || !order.path) return;
         setIsRejecting(true);
-        const orderRef = doc(firestore, order.path);
-    
         try {
-            await runTransaction(firestore, async (transaction) => {
-                // --- READ PHASE ---
-                const buyerOrderDoc = await transaction.get(orderRef);
-                if (!buyerOrderDoc.exists()) throw new Error("Buy order not found.");
-                
-                const buyerOrderData = buyerOrderDoc.data() as Order;
-                
-                let sellOrderRef: DocumentReference | null = null;
-                let sellOrderDoc: DocumentData | null = null;
-                if (buyerOrderData.paymentType === 'p2p_upi' && buyerOrderData.matchedSellOrderPath) {
-                    sellOrderRef = doc(firestore, buyerOrderData.matchedSellOrderPath);
-                    sellOrderDoc = await transaction.get(sellOrderRef);
-                }
-
-                // --- WRITE PHASE ---
-    
-                // 1. Update buyer order
-                transaction.update(orderRef, {
-                    status: 'failed',
-                    rejectionReason: rejectionReason,
-                });
-    
-                // 2. If it's a P2P order, handle seller side
-                if (sellOrderRef && sellOrderDoc && sellOrderDoc.exists()) {
-                    const sellOrderData = sellOrderDoc.data();
-                    
-                    const newRemainingAmount = (sellOrderData.remainingAmount || 0) + buyerOrderData.amount;
-                    
-                    let newSellOrderStatus = 'partially_filled';
-                    if (newRemainingAmount >= sellOrderData.amount) {
-                        newSellOrderStatus = 'pending';
-                    }
-    
-                    const updatedMatchedBuyOrders = (sellOrderData.matchedBuyOrders || []).map((bo: any) => {
-                        if (bo.buyOrderId === buyerOrderDoc.id) {
-                            return { ...bo, status: 'failed' };
-                        }
-                        return bo;
-                    });
-    
-                    transaction.update(sellOrderRef, {
-                        remainingAmount: newRemainingAmount,
-                        status: newSellOrderStatus,
-                        matchedBuyOrders: updatedMatchedBuyOrders
-                    });
-                }
-            });
-    
-            toast({ title: 'Payment Rejected' });
-            setOpen(false);
-            onProcessed();
+            // This also needs to be a transaction
+            toast({ variant: 'destructive', title: 'Rejection logic not fully implemented for Supabase yet.' });
         } catch (e: any) {
             console.error("Failed to reject payment:", e);
             toast({ variant: 'destructive', title: 'Rejection Failed', description: e.message });
@@ -1339,7 +1180,7 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                 <DialogHeader>
                     <DialogTitle>Review Payment</DialogTitle>
                     <DialogDescription>
-                        Confirm or reject this payment of <strong>₹{order.amount.toFixed(2)}</strong> from user {order.user?.numericId}.
+                        Confirm or reject this payment of <strong>₹{order.amount.toFixed(2)}</strong> from user {order.user?.numeric_id}.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -1350,7 +1191,7 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                     </div>
                 ) : (
                     <div className="space-y-4 py-4 text-sm">
-                        <div className="flex justify-between"><span>User:</span> <span className="font-semibold">{order.user?.displayName || 'N/A'} ({order.user?.numericId})</span></div>
+                        <div className="flex justify-between"><span>User:</span> <span className="font-semibold">{order.user?.display_name || 'N/A'} ({order.user?.numeric_id})</span></div>
                         <div className="flex justify-between items-start gap-2"><span>UTR / TxHash:</span> <span className="font-mono text-right break-all">{order.utr}</span></div>
                         <div className="flex justify-between items-center">
                             <span>Screenshot:</span> 
@@ -1362,7 +1203,7 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                                     <DialogHeader>
                                         <DialogTitle>Payment Screenshot</DialogTitle>
                                     </DialogHeader>
-                                    <img src={order.screenshotURL} alt="Payment Screenshot" className="rounded-md max-h-[70vh] object-contain" />
+                                    <img src={order.screenshot_url} alt="Payment Screenshot" className="rounded-md max-h-[70vh] object-contain" />
                                 </DialogContent>
                             </Dialog>
                         </div>
@@ -1375,24 +1216,24 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                                         <>
                                             <div className="flex justify-between">
                                                 <span className="text-muted-foreground">Bank:</span>
-                                                <span className="font-semibold">{receiverDetails.bankName}</span>
+                                                <span className="font-semibold">{receiverDetails.bank_name}</span>
                                             </div>
                                             <div className="flex justify-between">
                                                 <span className="text-muted-foreground">Holder:</span>
-                                                <span className="font-semibold">{receiverDetails.accountHolderName}</span>
+                                                <span className="font-semibold">{receiverDetails.account_holder_name}</span>
                                             </div>
                                             <div className="flex justify-between items-start gap-2">
                                                 <span className="text-muted-foreground shrink-0">Account No:</span>
                                                 <div className="flex items-center gap-1 text-right">
-                                                    <span className="font-mono break-all">{receiverDetails.accountNumber}</span>
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard(receiverDetails.accountNumber, 'Account No.')}><Copy className="h-3.5 w-3.5" /></Button>
+                                                    <span className="font-mono break-all">{receiverDetails.account_number}</span>
+                                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard(receiverDetails.account_number, 'Account No.')}><Copy className="h-3.5 w-3.5" /></Button>
                                                 </div>
                                             </div>
                                             <div className="flex justify-between items-start gap-2">
                                                 <span className="text-muted-foreground shrink-0">IFSC:</span>
                                                 <div className="flex items-center gap-1 text-right">
-                                                    <span className="font-mono break-all">{receiverDetails.ifscCode}</span>
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard(receiverDetails.ifscCode, 'IFSC Code')}><Copy className="h-3.5 w-3.5" /></Button>
+                                                    <span className="font-mono break-all">{receiverDetails.ifsc_code}</span>
+                                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard(receiverDetails.ifsc_code, 'IFSC Code')}><Copy className="h-3.5 w-3.5" /></Button>
                                                 </div>
                                             </div>
                                         </>
@@ -1401,13 +1242,13 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                                         <>
                                             <div className="flex justify-between">
                                                 <span className="text-muted-foreground">Name:</span>
-                                                <span className="font-semibold">{(receiverDetails as any).upiHolderName || receiverDetails.name}</span>
+                                                <span className="font-semibold">{receiverDetails.upi_holder_name}</span>
                                             </div>
                                             <div className="flex justify-between items-start gap-2">
                                                 <span className="text-muted-foreground shrink-0">UPI ID:</span>
                                                 <div className="flex items-center gap-1 text-right">
-                                                    <span className="font-mono break-all">{receiverDetails.upiId}</span>
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard(receiverDetails.upiId, 'UPI ID')}><Copy className="h-3.5 w-3.5" /></Button>
+                                                    <span className="font-mono break-all">{receiverDetails.upi_id}</span>
+                                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard(receiverDetails.upi_id, 'UPI ID')}><Copy className="h-3.5 w-3.5" /></Button>
                                                 </div>
                                             </div>
                                         </>
@@ -1416,8 +1257,8 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                                         <div className="flex justify-between items-start gap-2">
                                             <span className="text-muted-foreground shrink-0">Wallet:</span>
                                             <div className="flex items-center gap-1 text-right">
-                                                <span className="font-mono break-all">{(receiverDetails as any).usdtWalletAddress}</span>
-                                                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard((receiverDetails as any).usdtWalletAddress, 'Wallet Address')}><Copy className="h-3.5 w-3.5" /></Button>
+                                                <span className="font-mono break-all">{receiverDetails.usdt_wallet_address}</span>
+                                                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard(receiverDetails.usdt_wallet_address, 'Wallet Address')}><Copy className="h-3.5 w-3.5" /></Button>
                                             </div>
                                         </div>
                                     )}
@@ -1428,19 +1269,19 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                         <div className="mt-4">
                             <h3 className="font-semibold text-foreground mb-2 text-sm">Automated Verification</h3>
                             <div className="rounded-lg border bg-secondary/50 p-3 space-y-2 text-sm">
-                                <VerificationItem label="Amount Match" isMatch={order.ocrAmountMatch} />
-                                <VerificationItem label="UTR Match" isMatch={order.ocrUtrMatch} />
-                                {(order.paymentType === 'upi' || order.paymentType === 'p2p_upi') && <VerificationItem label="UPI Match" isMatch={order.ocrUpiMatch} />}
-                                {order.paymentType === 'bank' && <VerificationItem label="Account Match" isMatch={order.ocrBankAccountMatch} />}
+                                <VerificationItem label="Amount Match" isMatch={order.ocr_amount_match} />
+                                <VerificationItem label="UTR Match" isMatch={order.ocr_utr_match} />
+                                {(order.payment_type === 'upi' || order.payment_type === 'p2p_upi') && <VerificationItem label="UPI Match" isMatch={order.ocr_upi_match} />}
+                                {order.payment_type === 'bank' && <VerificationItem label="Account Match" isMatch={order.ocr_bank_account_match} />}
                             </div>
                         </div>
 
-                        {order.verificationResult && (
+                        {order.verification_result && (
                              <div className="flex items-start gap-2 rounded-md bg-yellow-50 border border-yellow-200 p-3">
                                 <AlertCircle className="h-5 w-5 text-yellow-500 mt-0.5" />
                                 <div>
                                     <h4 className="font-semibold text-yellow-800">AI Verification Result</h4>
-                                    <p className="text-yellow-700">{order.verificationResult}</p>
+                                    <p className="text-yellow-700">{order.verification_result}</p>
                                 </div>
                              </div>
                         )}
@@ -1471,7 +1312,7 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
 }
 
 function ConfirmationsTabContent() {
-    const firestore = useFirestore();
+    const supabase = createClient();
     const [allOrders, setAllOrders] = useState<Order[]>([]);
     const [usersMap, setUsersMap] = useState<Map<string, UserProfile>>(new Map());
     const [adminPaymentMethods, setAdminPaymentMethods] = useState<PaymentMethod[]>([]);
@@ -1483,49 +1324,26 @@ function ConfirmationsTabContent() {
     const [searchTerm, setSearchTerm] = useState('');
 
     const fetchConfirmations = useCallback(async () => {
-        if (!firestore) return;
         setOrdersLoading(true);
         setError(null);
         try {
-            const pendingQuery = query(
-                collectionGroup(firestore, 'orders'),
-                where('status', '==', 'pending_confirmation'),
-                orderBy('createdAt', 'desc')
-            );
-            const appliedQuery = query(
-                collectionGroup(firestore, 'orders'),
-                where('status', '==', 'in_applied'),
-                orderBy('createdAt', 'desc')
-            );
-            
-            const [pendingSnapshot, appliedSnapshot] = await Promise.all([
-                getDocs(pendingQuery),
-                getDocs(appliedQuery)
-            ]);
-    
-            const pendingOrders = pendingSnapshot.docs.map(orderDoc => ({ id: orderDoc.id, ...orderDoc.data(), path: orderDoc.ref.path } as Order));
-            const appliedOrders = appliedSnapshot.docs.map(orderDoc => ({ id: orderDoc.id, ...orderDoc.data(), path: orderDoc.ref.path } as Order));
-            
-            const combinedOrders = [...pendingOrders, ...appliedOrders].sort((a,b) => b.createdAt.seconds - a.createdAt.seconds);
+            const { data, error } = await supabase.from('orders')
+                .select('*')
+                .in('status', ['pending_confirmation', 'in_applied'])
+                .order('created_at', { ascending: false });
 
+            if (error) throw error;
+            
+            const combinedOrders = data as Order[];
             setAllOrders(combinedOrders);
 
             if (combinedOrders.length > 0) {
-                const userIds = [...new Set(combinedOrders.map(order => order.userId))];
-                const userPromises = [];
-                for (let i = 0; i < userIds.length; i += 30) {
-                    const chunk = userIds.slice(i, i + 30);
-                    const usersQuery = query(collection(firestore, 'users'), where('__name__', 'in', chunk));
-                    userPromises.push(getDocs(usersQuery));
-                }
-                const userSnapshots = await Promise.all(userPromises);
-
-                const newUsersData: UserProfile[] = userSnapshots.flatMap(snapshot => 
-                    snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile))
-                );
-
+                const userIds = [...new Set(combinedOrders.map(order => order.user_id))];
+                const { data: usersData, error: usersError } = await supabase.from('users').select('*').in('id', userIds);
+                if(usersError) throw usersError;
+                
                 const newUsersMap = new Map<string, UserProfile>();
-                newUsersData.forEach(user => newUsersMap.set(user.id, user));
+                usersData.forEach((user: UserProfile) => newUsersMap.set(user.id, user));
                 setUsersMap(newUsersMap);
             } else {
                 setUsersMap(new Map());
@@ -1537,19 +1355,18 @@ function ConfirmationsTabContent() {
         } finally {
             setOrdersLoading(false);
         }
-    }, [firestore]);
+    }, [supabase]);
 
     useEffect(() => {
         fetchConfirmations();
     }, [fetchConfirmations]);
     
     useEffect(() => {
-        if (!firestore) return;
         setMethodsLoading(true);
-        getDocs(collection(firestore, 'paymentMethods'))
-            .then((snapshot) => {
-                const methodsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PaymentMethod));
-                setAdminPaymentMethods(methodsData);
+        supabase.from('payment_methods').select('*')
+            .then(({ data, error }) => {
+                if(error) throw error;
+                setAdminPaymentMethods(data as PaymentMethod[]);
             })
             .catch((err) => {
                 console.error("Error fetching payment methods:", err);
@@ -1557,14 +1374,13 @@ function ConfirmationsTabContent() {
             .finally(() => {
                 setMethodsLoading(false);
             });
-    }, [firestore]);
+    }, [supabase]);
 
 
     const ordersWithUserData = useMemo(() => {
-        // Data is now pre-sorted by `createdAt` from Firestore
         return allOrders.map(order => ({
             ...order,
-            user: usersMap.get(order.userId)
+            user: usersMap.get(order.user_id)
         }));
     }, [allOrders, usersMap]);
 
@@ -1573,8 +1389,8 @@ function ConfirmationsTabContent() {
         if (!searchTerm) return ordersWithUserData;
         const lowercasedTerm = searchTerm.toLowerCase();
         return ordersWithUserData.filter(order =>
-            order.orderId.toLowerCase().includes(lowercasedTerm) ||
-            order.user?.numericId?.toLowerCase().includes(lowercasedTerm) ||
+            order.order_id.toLowerCase().includes(lowercasedTerm) ||
+            order.user?.numeric_id?.toLowerCase().includes(lowercasedTerm) ||
             order.utr?.toLowerCase().includes(lowercasedTerm)
         );
     }, [ordersWithUserData, searchTerm]);
@@ -1587,8 +1403,7 @@ function ConfirmationsTabContent() {
                 <CardHeader>
                     <CardTitle className="text-destructive">Error Fetching Confirmations</CardTitle>
                     <CardDescription className="text-destructive/80">
-                        Could not retrieve pending payments. This might be due to Firestore security rules or a network issue.
-                        If you see an error in the browser console about a missing index, please click the link in the error to create it in Firebase.
+                        Could not retrieve pending payments. This might be due to security rules or a network issue.
                     </CardDescription>
                 </CardHeader>
                  <CardContent>
@@ -1630,7 +1445,7 @@ function ConfirmationsTabContent() {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredOrders.map(order => {
-                        const providerDetails = order.paymentProvider ? paymentMethodDetails[order.paymentProvider] : null;
+                        const providerDetails = order.payment_provider ? paymentMethodDetails[order.payment_provider] : null;
                         return (
                             <Card key={order.id}>
                                 <CardHeader className="flex flex-row items-start justify-between p-4 pb-2">
@@ -1639,9 +1454,9 @@ function ConfirmationsTabContent() {
                                         <p className="font-bold text-lg text-primary">₹{order.amount.toFixed(2)}</p>
                                     </div>
                                     <div>
-                                        {order.status === 'pending_confirmation' && order.submittedAt ? (
+                                        {order.status === 'pending_confirmation' && order.submitted_at ? (
                                             <CountdownTimer 
-                                                expiryTimestamp={new Timestamp(order.submittedAt.seconds + 30 * 60, order.submittedAt.nanoseconds)} 
+                                                expiryTimestamp={new Date(new Date(order.submitted_at).getTime() + 30 * 60 * 1000).toISOString()} 
                                             />
                                         ) : order.status === 'in_applied' ? (
                                             <div className="flex items-center gap-1.5 text-xs font-semibold text-orange-600">
@@ -1652,18 +1467,18 @@ function ConfirmationsTabContent() {
                                     </div>
                                 </CardHeader>
                                 <CardContent className="p-4 pt-0 space-y-2 text-sm">
-                                    <p><strong>User:</strong> {order.user ? `${order.user.displayName} (${order.user.numericId})` : <Skeleton className="h-4 w-20 inline-block"/>}</p>
+                                    <p><strong>User:</strong> {order.user ? `${order.user.display_name} (${order.user.numeric_id})` : <Skeleton className="h-4 w-20 inline-block"/>}</p>
                                     <p className="flex items-start gap-2"><strong>UTR/TxHash:</strong> <span className="font-mono text-right break-all">{order.utr}</span></p>
-                                     {order.paymentProvider && (
+                                     {order.payment_provider && (
                                         <p className="flex items-center gap-2">
                                             <strong>Method:</strong>
                                             {providerDetails ? (
                                                 <span className="flex items-center gap-1.5">
-                                                    <Image src={providerDetails.logo} alt={order.paymentProvider} width={16} height={16} />
-                                                    <span>{order.paymentProvider}</span>
+                                                    <Image src={providerDetails.logo} alt={order.payment_provider} width={16} height={16} />
+                                                    <span>{order.payment_provider}</span>
                                                 </span>
                                             ) : (
-                                                <span>{order.paymentProvider}</span>
+                                                <span>{order.payment_provider}</span>
                                             )}
                                         </p>
                                     )}
@@ -1684,7 +1499,7 @@ function ReviewReportDialog({ report, onResolved }: { report: Report; onResolved
     const [open, setOpen] = useState(false);
     const [resolutionMessage, setResolutionMessage] = useState('');
     const [isResolving, setIsResolving] = useState(false);
-    const firestore = useFirestore();
+    const supabase = createClient();
     const { toast } = useToast();
 
     const handleResolve = async () => {
@@ -1692,14 +1507,14 @@ function ReviewReportDialog({ report, onResolved }: { report: Report; onResolved
             toast({ variant: 'destructive', title: 'Resolution message is required.' });
             return;
         }
-        if (!firestore) return;
         setIsResolving(true);
         try {
-            const reportRef = doc(firestore, 'reports', report.id);
-            await updateDoc(reportRef, {
+            const { error } = await supabase.from('reports').update({
                 status: 'resolved',
-                resolutionMessage: resolutionMessage,
-            });
+                resolution_message: resolutionMessage,
+            }).eq('id', report.id);
+
+            if (error) throw error;
             toast({ title: 'Report Resolved' });
             setOpen(false);
             onResolved();
@@ -1720,34 +1535,34 @@ function ReviewReportDialog({ report, onResolved }: { report: Report; onResolved
             </DialogTrigger>
             <DialogContent className="max-w-md">
                 <DialogHeader>
-                    <DialogTitle>Review Report: {report.caseId}</DialogTitle>
+                    <DialogTitle>Review Report: {report.case_id}</DialogTitle>
                     <DialogDescription>
-                        User {report.userNumericId} reported a problem with order {report.displayOrderId}.
+                        User {report.user_numeric_id} reported a problem with order {report.display_order_id}.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto">
-                    <p><strong>Problem:</strong> {report.problemType}</p>
+                    <p><strong>Problem:</strong> {report.problem_type}</p>
                     <p><strong>Message:</strong></p>
                     <p className="text-sm p-3 bg-secondary rounded-md">{report.message}</p>
                     
-                    {report.screenshotURL && (
+                    {report.screenshot_url && (
                         <div>
                             <strong>Screenshot:</strong>
-                            <a href={report.screenshotURL} target="_blank" rel="noopener noreferrer" className="text-primary underline ml-2">View Image</a>
+                            <a href={report.screenshot_url} target="_blank" rel="noopener noreferrer" className="text-primary underline ml-2">View Image</a>
                         </div>
                     )}
-                    {report.videoURL && (
+                    {report.video_url && (
                          <div>
                             <strong>Video:</strong>
-                            <a href={report.videoURL} target="_blank" rel="noopener noreferrer" className="text-primary underline ml-2">View Video</a>
+                            <a href={report.video_url} target="_blank" rel="noopener noreferrer" className="text-primary underline ml-2">View Video</a>
                         </div>
                     )}
-                     <p><strong>Order Type:</strong> {report.orderType}</p>
+                     <p><strong>Order Type:</strong> {report.order_type}</p>
 
                     {report.status === 'resolved' ? (
                         <div>
                             <Label>Resolution Message</Label>
-                            <p className="text-sm p-3 bg-green-100 rounded-md text-green-900">{report.resolutionMessage}</p>
+                            <p className="text-sm p-3 bg-green-100 rounded-md text-green-900">{report.resolution_message}</p>
                         </div>
                     ) : (
                          <div className="space-y-2 pt-4">
@@ -1775,28 +1590,26 @@ function ReviewReportDialog({ report, onResolved }: { report: Report; onResolved
 }
 
 function ReportsTabContent() {
-    const firestore = useFirestore();
-
+    const supabase = createClient();
     const [reports, setReports] = useState<Report[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<any>(null);
 
     const fetchReports = useCallback(async () => {
-        if (!firestore) return;
         setLoading(true);
         setError(null);
         try {
-            const q = query(collection(firestore, "reports"));
-            const snapshot = await getDocs(q);
-            const fetchedReports = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Report));
-            fetchedReports.sort((a, b) => b.createdAt.seconds - a.createdAt.seconds);
+            const { data, error } = await supabase.from("reports").select('*');
+            if (error) throw error;
+            const fetchedReports = data as Report[];
+            fetchedReports.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
             setReports(fetchedReports);
         } catch (e) {
             setError(e);
         } finally {
             setLoading(false);
         }
-    }, [firestore]);
+    }, [supabase]);
 
     useEffect(() => {
         fetchReports();
@@ -1817,7 +1630,7 @@ function ReportsTabContent() {
                 <CardHeader>
                     <CardTitle className="text-destructive">Error Fetching Reports</CardTitle>
                     <CardDescription className="text-destructive/80">
-                        Could not retrieve report data. This might be due to Firestore security rules or a missing database index.
+                        Could not retrieve report data.
                     </CardDescription>
                 </CardHeader>
                  <CardContent>
@@ -1862,10 +1675,10 @@ function ReportsTabContent() {
                     <TableBody>
                         {reports.map(report => (
                             <TableRow key={report.id}>
-                                <TableCell className="font-mono text-xs">{report.caseId}</TableCell>
-                                <TableCell className="font-mono text-xs break-all">{report.displayOrderId}</TableCell>
-                                <TableCell className="max-w-[200px] truncate">{report.problemType}</TableCell>
-                                <TableCell>{new Date(report.createdAt.toDate()).toLocaleString()}</TableCell>
+                                <TableCell className="font-mono text-xs">{report.case_id}</TableCell>
+                                <TableCell className="font-mono text-xs break-all">{report.display_order_id}</TableCell>
+                                <TableCell className="max-w-[200px] truncate">{report.problem_type}</TableCell>
+                                <TableCell>{new Date(report.created_at).toLocaleString()}</TableCell>
                                 <TableCell>
                                     <span className={cn(
                                         "px-2 py-1 rounded-full text-xs font-semibold",
@@ -1887,14 +1700,21 @@ function ReportsTabContent() {
 }
 
 function FeedbackTabContent() {
-    const firestore = useFirestore();
+    const supabase = createClient();
+    const [feedbackItems, setFeedbackItems] = useState<Feedback[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<any>(null);
 
-    const feedbackQuery = useMemo(() => {
-        if (!firestore) return null;
-        return query(collection(firestore, "feedback"), orderBy('createdAt', 'desc'));
-    }, [firestore]);
-
-    const { data: feedbackItems, loading, error } = useCollection<Feedback>(feedbackQuery);
+    useEffect(() => {
+        const fetchFeedback = async () => {
+            setLoading(true);
+            const { data, error } = await supabase.from('feedback').select('*').order('created_at', { ascending: false });
+            if (error) setError(error);
+            else setFeedbackItems(data as Feedback[]);
+            setLoading(false);
+        };
+        fetchFeedback();
+    }, [supabase]);
 
     if (loading) {
         return <div className="flex justify-center p-8"><Loader size="md" /></div>;
@@ -1946,9 +1766,9 @@ function FeedbackTabContent() {
                     <TableBody>
                         {feedbackItems.map(item => (
                             <TableRow key={item.id}>
-                                <TableCell className="font-mono text-xs">{item.userNumericId}</TableCell>
+                                <TableCell className="font-mono text-xs">{item.user_numeric_id}</TableCell>
                                 <TableCell className="max-w-[400px] whitespace-pre-wrap">{item.message}</TableCell>
-                                <TableCell className="text-right text-xs">{new Date(item.createdAt.toDate()).toLocaleString()}</TableCell>
+                                <TableCell className="text-right text-xs">{new Date(item.created_at).toLocaleString()}</TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
@@ -1960,14 +1780,15 @@ function FeedbackTabContent() {
 
 function AdminDashboard() {
     const router = useRouter();
-    const firestore = useFirestore();
+    const supabase = createClient();
     const { toast } = useToast();
     
-    const usersQuery = useMemo(() => firestore ? query(collection(firestore, "users"), orderBy('createdAt', 'desc')) : null, [firestore]);
-    const { data: allUsers, loading, error } = useCollection<UserProfile>(usersQuery);
-    
-    const paymentMethodsQuery = useMemo(() => firestore ? collection(firestore, "paymentMethods") : null, [firestore]);
-    const { data: paymentMethods, loading: paymentMethodsLoading } = useCollection<PaymentMethod>(paymentMethodsQuery);
+    const [allUsers, setAllUsers] = useState<UserProfile[]>([]);
+    const [usersLoading, setUsersLoading] = useState(true);
+    const [usersError, setUsersError] = useState<any>(null);
+
+    const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+    const [paymentMethodsLoading, setPaymentMethodsLoading] = useState(true);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [isMasterAdmin, setIsMasterAdmin] = useState(false);
@@ -1975,88 +1796,41 @@ function AdminDashboard() {
     const [orderIdSearchedUser, setOrderIdSearchedUser] = useState<UserProfile[] | null>(null);
 
     useEffect(() => {
-        const handleOrderSearch = async () => {
-            const term = searchTerm.trim();
-            if (term && term.toUpperCase().startsWith('LGPAY')) {
-                setIsSearchingOrders(true);
-                setOrderIdSearchedUser([]); // Indicate loading/searching
-
-                if (!firestore) {
-                    toast({ variant: 'destructive', title: 'Firestore not available' });
-                    setIsSearchingOrders(false);
-                    return;
-                }
-
-                try {
-                    const buyOrdersQuery = query(collectionGroup(firestore, 'orders'));
-                    const sellOrdersQuery = query(collectionGroup(firestore, 'sellOrders'));
-
-                    const [buyOrdersSnapshot, sellOrdersSnapshot] = await Promise.all([
-                        getDocs(buyOrdersQuery),
-                        getDocs(sellOrdersQuery),
-                    ]);
-                    
-                    const foundUserIds = new Set<string>();
-
-                    const matchingBuyOrders = buyOrdersSnapshot.docs.filter(doc => doc.data().orderId === term);
-                    for (const buyDoc of matchingBuyOrders) {
-                        const buyData = buyDoc.data();
-                        foundUserIds.add(buyData.userId);
-                        if (buyData.matchedSellOrderPath) {
-                            const sellMatch = sellOrdersSnapshot.docs.find(doc => doc.ref.path === buyData.matchedSellOrderPath);
-                            if (sellMatch) {
-                                foundUserIds.add(sellMatch.data().userId);
-                            }
-                        }
-                    }
-
-                    const matchingSellOrders = sellOrdersSnapshot.docs.filter(doc => doc.data().orderId === term);
-                    for (const sellDoc of matchingSellOrders) {
-                        const sellData = sellDoc.data();
-                        foundUserIds.add(sellData.userId);
-                        if (Array.isArray(sellData.matchedBuyOrders)) {
-                            sellData.matchedBuyOrders.forEach((bo: any) => {
-                                if (bo.buyerId) foundUserIds.add(bo.buyerId);
-                            });
-                        }
-                    }
-
-                    const userIds = Array.from(foundUserIds);
-
-                    if (userIds.length > 0) {
-                        const userProfilePromises = [];
-                        for (let i = 0; i < userIds.length; i += 30) {
-                            const chunk = userIds.slice(i, i + 30);
-                            const usersQuery = query(collection(firestore, 'users'), where('__name__', 'in', chunk));
-                            userProfilePromises.push(getDocs(usersQuery));
-                        }
-                        
-                        const userSnapshots = await Promise.all(userProfilePromises);
-                        const usersData = userSnapshots.flatMap(snapshot =>
-                            snapshot.docs.map(d => ({ id: d.id, ...d.data() } as UserProfile))
-                        );
-                        setOrderIdSearchedUser(usersData);
-                    } else {
-                        setOrderIdSearchedUser([]); // No order found
-                    }
-                } catch (e: any) {
-                    console.error("Order search error:", e);
-                    toast({ variant: 'destructive', title: 'Search Error', description: 'Could not perform order search. This might be due to Firestore security rules. Check browser console for details.' });
-                    setOrderIdSearchedUser(null);
-                } finally {
-                    setIsSearchingOrders(false);
-                }
-            } else {
-                setOrderIdSearchedUser(null);
-            }
+        const fetchUsers = async () => {
+            setUsersLoading(true);
+            const { data, error } = await supabase.from('users').select('*').order('created_at', { ascending: false });
+            if (error) setUsersError(error);
+            else setAllUsers(data as UserProfile[]);
+            setUsersLoading(false);
         };
+        fetchUsers();
+    }, [supabase]);
 
-        const debounceTimer = setTimeout(() => {
-            handleOrderSearch();
-        }, 500);
+    useEffect(() => {
+        const fetchMethods = async () => {
+            setPaymentMethodsLoading(true);
+            const { data, error } = await supabase.from('payment_methods').select('*');
+            if (error) console.error(error);
+            else setPaymentMethods(data as PaymentMethod[]);
+            setPaymentMethodsLoading(false);
+        };
+        fetchMethods();
+    }, [supabase]);
 
-        return () => clearTimeout(debounceTimer);
-    }, [searchTerm, firestore, toast]);
+
+    useEffect(() => {
+        // This is not secure, but follows the original implementation pattern.
+        // A proper implementation would use custom claims or a separate admin table.
+        const getCookie = (name: string) => {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop()?.split(';').shift();
+        }
+        const phone = getCookie('admin-phone');
+        if (phone === process.env.NEXT_PUBLIC_ADMIN_PHONE) {
+            setIsMasterAdmin(true);
+        }
+    }, []);
 
     const filteredUsers = useMemo(() => {
         if (orderIdSearchedUser !== null) {
@@ -2069,23 +1843,11 @@ function AdminDashboard() {
         }
 
         return allUsers.filter(user =>
-            user.numericId?.toLowerCase().includes(lowercasedTerm) ||
-            user.phoneNumber?.toLowerCase().includes(lowercasedTerm)
+            user.numeric_id?.toLowerCase().includes(lowercasedTerm) ||
+            user.phone_number?.toLowerCase().includes(lowercasedTerm)
         );
     }, [allUsers, searchTerm, orderIdSearchedUser]);
 
-
-    useEffect(() => {
-        const getCookie = (name: string) => {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop()?.split(';').shift();
-        }
-        const phone = getCookie('admin-phone');
-        if (phone === '9060873927') {
-            setIsMasterAdmin(true);
-        }
-    }, []);
 
     const handleLogout = () => {
         document.cookie = 'admin-phone=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
@@ -2096,25 +1858,27 @@ function AdminDashboard() {
     const totalBalance = allUsers?.reduce((acc, user) => acc + (user.balance || 0), 0) || 0;
 
     const handleAddMethod = async (type: 'bank' | 'upi' | 'usdt', details: any) => {
-        if (!firestore) return;
-        try {
-            await addDoc(collection(firestore, 'paymentMethods'), { type, ...details });
-            toast({ title: `${type.toUpperCase()} method added successfully.`});
-        } catch (error) {
+        const { error } = await supabase.from('payment_methods').insert({ type, ...details });
+        if(error) {
             console.error(error);
             toast({ variant: 'destructive', title: `Error adding ${type} method.`});
+        } else {
+            toast({ title: `${type.toUpperCase()} method added successfully.`});
+            // Re-fetch methods
+            const { data } = await supabase.from('payment_methods').select('*');
+            if (data) setPaymentMethods(data as PaymentMethod[]);
         }
     };
 
     const handleDeleteMethod = async (id: string) => {
-        if (!firestore) return;
         if (!confirm('Are you sure you want to delete this payment method?')) return;
-        try {
-            await deleteDoc(doc(firestore, 'paymentMethods', id));
-            toast({ title: 'Payment method deleted.' });
-        } catch (error) {
+        const { error } = await supabase.from('payment_methods').delete().eq('id', id);
+        if (error) {
             console.error(error);
             toast({ variant: 'destructive', title: 'Error deleting payment method.'});
+        } else {
+            toast({ title: 'Payment method deleted.' });
+            setPaymentMethods(prev => prev.filter(m => m.id !== id));
         }
     };
 
@@ -2123,59 +1887,46 @@ function AdminDashboard() {
         const [loading, setLoading] = useState(true);
     
         useEffect(() => {
-            if (!firestore) {
-                setLoading(false);
-                return;
-            }
-    
             const fetchTopDestinations = async () => {
                 setLoading(true);
-                try {
-                    // Removed the `where` clause to avoid needing an index
-                    const q = collectionGroup(firestore, 'sellOrders');
-                    const querySnapshot = await getDocs(q);
-                    
-                    const totals = new Map<string, { total: number; name: string; type: 'UPI' | 'Bank' }>();
-    
-                    querySnapshot.forEach(doc => {
-                        const order = doc.data() as SellOrder;
-
-                        // Filter for completed orders client-side
-                        if (order.status !== 'completed') {
-                            return;
-                        }
-
-                        const method = order.withdrawalMethod;
-    
-                        if (method?.type === 'upi' && method.upiId) {
-                            const id = method.upiId;
-                            const current = totals.get(id) || { total: 0, name: method.name || 'Unknown UPI', type: 'UPI' };
-                            current.total += order.amount;
-                            totals.set(id, current);
-                        } else if (method?.type === 'bank' && method.accountNumber) {
-                            const id = method.accountNumber;
-                            const current = totals.get(id) || { total: 0, name: method.bankName || 'Unknown Bank', type: 'Bank' };
-                            current.total += order.amount;
-                            totals.set(id, current);
-                        }
-                    });
-    
-                    const sortedTop10 = Array.from(totals.entries())
-                        .sort(([, a], [, b]) => b.total - a.total)
-                        .slice(0, 10)
-                        .map(([id, data]) => ({ id, ...data }));
-                    
-                    setTopDestinations(sortedTop10);
-                } catch (error) {
-                    console.error("Error fetching top sell destinations:", error);
-                    toast({ variant: 'destructive', title: 'Error fetching leaderboard', description: 'Could not load data. Please try refreshing.' });
-                } finally {
-                    setLoading(false);
+                const { data, error } = await supabase.from('sell_orders').select('amount, withdrawal_method').eq('status', 'completed');
+                
+                if (error) {
+                     console.error("Error fetching top sell destinations:", error);
+                     toast({ variant: 'destructive', title: 'Error fetching leaderboard' });
+                     setLoading(false);
+                     return;
                 }
+                
+                const totals = new Map<string, { total: number; name: string; type: 'UPI' | 'Bank' }>();
+    
+                data.forEach(order => {
+                    const method = order.withdrawal_method as WithdrawalMethod;
+
+                    if (method?.type === 'upi' && method.upiId) {
+                        const id = method.upiId;
+                        const current = totals.get(id) || { total: 0, name: method.name || 'Unknown UPI', type: 'UPI' };
+                        current.total += order.amount;
+                        totals.set(id, current);
+                    } else if (method?.type === 'bank' && method.accountNumber) {
+                        const id = method.accountNumber;
+                        const current = totals.get(id) || { total: 0, name: method.bankName || 'Unknown Bank', type: 'Bank' };
+                        current.total += order.amount;
+                        totals.set(id, current);
+                    }
+                });
+    
+                const sortedTop10 = Array.from(totals.entries())
+                    .sort(([, a], [, b]) => b.total - a.total)
+                    .slice(0, 10)
+                    .map(([id, data]) => ({ id, ...data }));
+                
+                setTopDestinations(sortedTop10);
+                setLoading(false);
             };
     
             fetchTopDestinations();
-        }, [firestore]);
+        }, []);
     
         return (
             <Card className="md:col-span-2 lg:col-span-4">
@@ -2285,7 +2036,7 @@ function AdminDashboard() {
                             <Users className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            {loading ? <Skeleton className="h-8 w-1/2" /> : <div className="text-2xl font-bold">{totalUsers}</div>}
+                            {usersLoading ? <Skeleton className="h-8 w-1/2" /> : <div className="text-2xl font-bold">{totalUsers}</div>}
                         </CardContent>
                     </Card>
                     <Card>
@@ -2296,7 +2047,7 @@ function AdminDashboard() {
                             <Wallet className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                        {loading ? <Skeleton className="h-8 w-2/3" /> : <div className="text-2xl font-bold">{(totalBalance || 0).toFixed(2)} <span className="text-sm text-muted-foreground">LGB</span></div>}
+                        {usersLoading ? <Skeleton className="h-8 w-2/3" /> : <div className="text-2xl font-bold">{(totalBalance || 0).toFixed(2)} <span className="text-sm text-muted-foreground">LGB</span></div>}
                         </CardContent>
                     </Card>
                     {isMasterAdmin && <TopSellDestinations />}
@@ -2313,7 +2064,7 @@ function AdminDashboard() {
                         className="pl-10 max-w-sm"
                     />
                 </div>
-                <UsersGrid users={filteredUsers} loading={loading} error={error} />
+                <UsersGrid users={filteredUsers} loading={usersLoading} error={usersError} />
                 </div>
             </TabsContent>
             <TabsContent value="withdrawals" className="mt-0">
@@ -2342,7 +2093,7 @@ function AdminDashboard() {
                             className="pl-10 max-w-sm"
                         />
                     </div>
-                    <HistoryUsersGrid users={filteredUsers} loading={loading || isSearchingOrders} error={error} />
+                    <HistoryUsersGrid users={filteredUsers} loading={usersLoading || isSearchingOrders} error={usersError} />
                     </div>
             </TabsContent>
             {isMasterAdmin && (

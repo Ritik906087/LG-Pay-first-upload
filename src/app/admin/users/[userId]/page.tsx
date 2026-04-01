@@ -11,13 +11,10 @@ import {
   CardFooter
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useDoc, useCollection } from '@/firebase';
 import { useParams } from 'next/navigation';
 import { Wallet, ChevronLeft, Copy, Users } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { doc, updateDoc, collection, query, orderBy, Timestamp, runTransaction, where } from 'firebase/firestore';
-import { useFirestore } from '@/firebase/provider';
 import {
   Table,
   TableBody,
@@ -41,6 +38,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Loader } from '@/components/ui/loader';
+import { createClient } from '@/lib/utils';
 
 const defaultAvatarUrl = "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/LG%20PAY%20AVATAR.png?alt=media&token=707ce79d-15fa-4e58-9d1d-a7d774cfe5ec";
 
@@ -69,14 +67,14 @@ const paymentMethodDetails: { [key: string]: { logo: string; bgColor: string } }
 
 type UserProfile = {
     id: string;
-    displayName: string;
-    numericId: string;
+    display_name: string;
+    numeric_id: string;
     balance: number;
-    holdBalance: number;
+    hold_balance: number;
     email?: string;
-    phoneNumber?: string;
-    photoURL?: string;
-    paymentMethods?: { name: string; upiId: string }[];
+    phone_number?: string;
+    photo_url?: string;
+    payment_methods?: { name: string; upiId: string }[];
 };
 
 type Order = {
@@ -84,8 +82,8 @@ type Order = {
   amount: number;
   status: 'pending_payment' | 'processing' | 'completed' | 'cancelled' | 'failed';
   utr?: string;
-  screenshotURL?: string;
-  createdAt: Timestamp;
+  screenshot_url?: string;
+  created_at: string;
 };
 
 type SellOrder = {
@@ -93,9 +91,9 @@ type SellOrder = {
   amount: number;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   utr?: string;
-  withdrawalMethod: { name: string, upiId: string };
-  createdAt: Timestamp;
-  completedAt?: Timestamp;
+  withdrawal_method: { name: string, upiId: string };
+  created_at: string;
+  completed_at?: string;
 };
 
 
@@ -103,7 +101,7 @@ const BalanceActionDialog = ({ userId, currentBalance }: { userId: string, curre
     const [amount, setAmount] = useState('');
     const [action, setAction] = useState<'add' | 'deduct'>('add');
     const [open, setOpen] = useState(false);
-    const firestore = useFirestore();
+    const supabase = createClient();
     const { toast } = useToast();
 
     const handleUpdateBalance = async () => {
@@ -113,8 +111,6 @@ const BalanceActionDialog = ({ userId, currentBalance }: { userId: string, curre
             return;
         }
 
-        if (!firestore || !userId) return;
-
         const newBalance = action === 'add' ? Number(currentBalance) + value : Number(currentBalance) - value;
 
         if (newBalance < 0) {
@@ -122,15 +118,14 @@ const BalanceActionDialog = ({ userId, currentBalance }: { userId: string, curre
             return;
         }
 
-        const userRef = doc(firestore, 'users', userId);
-        try {
-            await updateDoc(userRef, { balance: newBalance });
+        const { error } = await supabase.from('users').update({ balance: newBalance }).eq('id', userId);
+        if (error) {
+            console.error("Balance update error: ", error)
+            toast({ variant: 'destructive', title: 'Update Failed' });
+        } else {
             toast({ title: 'Balance Updated' });
             setOpen(false);
             setAmount('');
-        } catch (error) {
-            console.error("Balance update error: ", error)
-            toast({ variant: 'destructive', title: 'Update Failed' });
         }
     };
 
@@ -164,13 +159,23 @@ const BalanceActionDialog = ({ userId, currentBalance }: { userId: string, curre
     )
 }
 
-const HoldBalanceActionDialog = ({ userId, currentBalance, currentHoldBalance }: { userId: string, currentBalance: number, currentHoldBalance: number }) => {
+const HoldBalanceActionDialog = ({ userId }: { userId: string }) => {
     const [amount, setAmount] = useState('');
     const [action, setAction] = useState<'add' | 'remove'>('add');
     const [open, setOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const firestore = useFirestore();
+    const supabase = createClient();
     const { toast } = useToast();
+    const [currentBalance, setCurrentBalance] = useState(0);
+    const [currentHoldBalance, setCurrentHoldBalance] = useState(0);
+
+    const fetchBalances = async () => {
+        const { data, error } = await supabase.from('users').select('balance, hold_balance').eq('id', userId).single();
+        if (data) {
+            setCurrentBalance(data.balance || 0);
+            setCurrentHoldBalance(data.hold_balance || 0);
+        }
+    }
 
     const handleUpdateHoldBalance = async () => {
         const value = parseFloat(amount);
@@ -179,42 +184,17 @@ const HoldBalanceActionDialog = ({ userId, currentBalance, currentHoldBalance }:
             return;
         }
 
-        if (!firestore || !userId) return;
         setIsLoading(true);
 
-        const userRef = doc(firestore, 'users', userId);
-
         try {
-            await runTransaction(firestore, async (transaction) => {
-                const userDoc = await transaction.get(userRef);
-                if (!userDoc.exists()) {
-                    throw new Error("User not found");
-                }
-
-                const data = userDoc.data() as UserProfile;
-                const balance = Number(data.balance) || 0;
-                const holdBalance = Number(data.holdBalance) || 0;
-
-                let newBalance: number;
-                let newHoldBalance: number;
-
-                if (action === 'add') {
-                    if (balance < value) {
-                        throw new Error("Insufficient main balance to put on hold.");
-                    }
-                    newBalance = balance - value;
-                    newHoldBalance = holdBalance + value;
-                } else { // remove
-                    if (holdBalance < value) {
-                        throw new Error("Insufficient hold balance to release.");
-                    }
-                    newBalance = balance + value;
-                    newHoldBalance = holdBalance - value;
-                }
-                
-                transaction.update(userRef, { balance: newBalance, holdBalance: newHoldBalance });
+            const { data, error } = await supabase.rpc('manage_hold_balance', {
+                p_user_id: userId,
+                p_amount: value,
+                p_action: action
             });
 
+            if(error) throw error;
+            
             toast({ title: 'Hold Balance Updated' });
             setOpen(false);
             setAmount('');
@@ -226,9 +206,8 @@ const HoldBalanceActionDialog = ({ userId, currentBalance, currentHoldBalance }:
         }
     };
 
-
     return (
-         <Dialog open={open} onOpenChange={setOpen}>
+         <Dialog open={open} onOpenChange={(isOpen) => {setOpen(isOpen); if(isOpen) fetchBalances();}}>
             <DialogTrigger asChild>
                 <Button>Manage Hold</Button>
             </DialogTrigger>
@@ -264,10 +243,16 @@ const HoldBalanceActionDialog = ({ userId, currentBalance, currentHoldBalance }:
 export default function UserDetailsPage() {
     const params = useParams();
     const userId = params.userId as string;
-    const firestore = useFirestore();
+    const supabase = createClient();
     const { toast } = useToast();
     
     const [isMasterAdmin, setIsMasterAdmin] = useState(false);
+    const [user, setUser] = useState<UserProfile | null>(null);
+    const [orders, setOrders] = useState<Order[]>([]);
+    const [sellOrders, setSellOrders] = useState<SellOrder[]>([]);
+    const [l1Agents, setL1Agents] = useState<UserProfile[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<any>(null);
 
     useEffect(() => {
         const getCookie = (name: string) => {
@@ -276,39 +261,47 @@ export default function UserDetailsPage() {
             if (parts.length === 2) return parts.pop()?.split(';').shift();
         }
         const adminPhone = getCookie('admin-phone');
-        if (adminPhone === '9060873927') {
+        if (adminPhone === process.env.NEXT_PUBLIC_ADMIN_PHONE) {
             setIsMasterAdmin(true);
         }
     }, []);
+
+    useEffect(() => {
+        if (!userId) return;
+
+        const fetchData = async () => {
+            setLoading(true);
+            setError(null);
+            try {
+                const [userRes, ordersRes, sellOrdersRes, l1AgentsRes] = await Promise.all([
+                    supabase.from('users').select('*').eq('id', userId).single(),
+                    supabase.from('orders').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+                    supabase.from('sell_orders').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+                    supabase.from('users').select('*').eq('inviter_uid', userId)
+                ]);
+
+                if (userRes.error) throw userRes.error;
+                setUser(userRes.data as UserProfile);
+
+                if (ordersRes.error) console.error("Error fetching orders:", ordersRes.error);
+                else setOrders(ordersRes.data as Order[]);
+
+                if (sellOrdersRes.error) console.error("Error fetching sell orders:", sellOrdersRes.error);
+                else setSellOrders(sellOrdersRes.data as SellOrder[]);
+
+                if (l1AgentsRes.error) console.error("Error fetching L1 agents:", l1AgentsRes.error);
+                else setL1Agents(l1AgentsRes.data as UserProfile[]);
+
+            } catch (err: any) {
+                setError(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [userId, supabase]);
     
-    const userRef = React.useMemo(() => {
-        if (!firestore || !userId) return null;
-        return doc(firestore, 'users', userId);
-    }, [firestore, userId]);
-    
-    const { data: user, loading, error } = useDoc<UserProfile>(userRef);
-
-    const ordersQuery = useMemo(() => {
-        if (!firestore || !userId) return null;
-        return query(collection(firestore, 'users', userId, 'orders'), orderBy('createdAt', 'desc'));
-    }, [firestore, userId]);
-
-    const { data: orders, loading: ordersLoading } = useCollection<Order>(ordersQuery);
-
-    const sellOrdersQuery = useMemo(() => {
-        if (!firestore || !userId) return null;
-        return query(collection(firestore, 'users', userId, 'sellOrders'), orderBy('createdAt', 'desc'));
-    }, [firestore, userId]);
-
-    const { data: sellOrders, loading: sellOrdersLoading } = useCollection<SellOrder>(sellOrdersQuery);
-
-    const l1AgentsQuery = useMemo(() => {
-        if (!firestore || !userId) return null;
-        return query(collection(firestore, 'users'), where('inviterUid', '==', userId));
-    }, [firestore, userId]);
-
-    const { data: l1Agents, loading: l1Loading } = useCollection<UserProfile>(l1AgentsQuery);
-
     const stats = React.useMemo(() => {
         const now = new Date();
         const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -323,11 +316,11 @@ export default function UserDetailsPage() {
         const totalSellCount = completedSellOrders.length;
     
         // Today's stats
-        const todayBuyOrders = completedBuyOrders.filter(o => o.createdAt && o.createdAt.toDate() >= startOfToday);
+        const todayBuyOrders = completedBuyOrders.filter(o => o.created_at && new Date(o.created_at) >= startOfToday);
         const todayBuyAmount = todayBuyOrders.reduce((acc, order) => acc + order.amount, 0);
         const todayBuyCount = todayBuyOrders.length;
     
-        const todaySellOrders = completedSellOrders.filter(o => o.completedAt && o.completedAt.toDate() >= startOfToday);
+        const todaySellOrders = completedSellOrders.filter(o => o.completed_at && new Date(o.completed_at) >= startOfToday);
         const todaySellAmount = todaySellOrders.reduce((acc, order) => acc + order.amount, 0);
         const todaySellCount = todaySellOrders.length;
     
@@ -393,17 +386,17 @@ export default function UserDetailsPage() {
                 <Card>
                     <CardHeader className="flex flex-col items-center text-center">
                          <Avatar className="h-24 w-24 border-4 border-primary/20">
-                            <AvatarImage src={defaultAvatarUrl} alt={user.displayName} />
+                            <AvatarImage src={defaultAvatarUrl} alt={user.display_name} />
                             <AvatarFallback className="text-3xl bg-muted">
-                                {user.displayName?.charAt(0).toUpperCase()}
+                                {user.display_name?.charAt(0).toUpperCase()}
                             </AvatarFallback>
                         </Avatar>
-                        <CardTitle className="text-2xl mt-4">{user.displayName}</CardTitle>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer" onClick={() => copyToClipboard(user.numericId)}>
-                            <span>UID: {user.numericId}</span>
+                        <CardTitle className="text-2xl mt-4">{user.display_name}</CardTitle>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer" onClick={() => copyToClipboard(user.numeric_id)}>
+                            <span>UID: {user.numeric_id}</span>
                             <Copy className="h-3 w-3" />
                         </div>
-                        <p className="text-sm text-muted-foreground">{user.phoneNumber || 'No phone number'}</p>
+                        <p className="text-sm text-muted-foreground">{user.phone_number || 'No phone number'}</p>
                     </CardHeader>
                 </Card>
 
@@ -431,11 +424,11 @@ export default function UserDetailsPage() {
                         <CardTitle>Hold Balance</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="text-4xl font-bold">{(Number(user.holdBalance) || 0).toFixed(2)} <span className="text-lg text-muted-foreground">LGB</span></div>
+                        <div className="text-4xl font-bold">{(Number(user.hold_balance) || 0).toFixed(2)} <span className="text-lg text-muted-foreground">LGB</span></div>
                          <p className="text-sm text-muted-foreground">This balance is frozen and cannot be used by the user.</p>
                     </CardContent>
                     <CardFooter>
-                         <HoldBalanceActionDialog userId={userId} currentBalance={Number(user.balance) || 0} currentHoldBalance={Number(user.holdBalance) || 0} />
+                         <HoldBalanceActionDialog userId={userId} />
                     </CardFooter>
                 </Card>
             </div>
@@ -451,7 +444,7 @@ export default function UserDetailsPage() {
                         </div>
                         <div>
                             <p className="text-sm font-medium text-purple-800">Invited Users</p>
-                            {l1Loading ? <Skeleton className="h-6 w-10 mt-1" /> : <p className="text-2xl font-bold text-purple-900">{l1Agents?.length || 0}</p>}
+                            {loading ? <Skeleton className="h-6 w-10 mt-1" /> : <p className="text-2xl font-bold text-purple-900">{l1Agents?.length || 0}</p>}
                         </div>
                     </div>
                 </CardContent>
@@ -468,9 +461,9 @@ export default function UserDetailsPage() {
                     <CardTitle>Linked UPI Accounts</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    {user.paymentMethods && user.paymentMethods.length > 0 ? (
+                    {user.payment_methods && user.payment_methods.length > 0 ? (
                         <div className="space-y-3">
-                            {user.paymentMethods.map((method) => {
+                            {user.payment_methods.map((method) => {
                                 const details = paymentMethodDetails[method.name];
                                 if (!details) return null;
                                 return (
@@ -567,7 +560,7 @@ export default function UserDetailsPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {ordersLoading ? (
+                            {loading ? (
                                 <TableRow>
                                     <TableCell colSpan={5} className="h-24 text-center">
                                         Loading orders...
@@ -579,7 +572,7 @@ export default function UserDetailsPage() {
                                     <TableCell className="capitalize">{order.status.replace('_', ' ')}</TableCell>
                                     <TableCell>{order.utr || 'N/A'}</TableCell>
                                     <TableCell>
-                                        {order.screenshotURL ? (
+                                        {order.screenshot_url ? (
                                             <Dialog>
                                                 <DialogTrigger asChild>
                                                     <Button variant="link" className="p-0 h-auto text-primary">View</Button>
@@ -590,7 +583,7 @@ export default function UserDetailsPage() {
                                                     </DialogHeader>
                                                     <div className="flex justify-center py-4">
                                                         <img
-                                                            src={order.screenshotURL}
+                                                            src={order.screenshot_url}
                                                             alt="Payment proof"
                                                             className="max-h-[70vh] w-auto object-contain rounded-md"
                                                         />
@@ -599,7 +592,7 @@ export default function UserDetailsPage() {
                                             </Dialog>
                                         ): 'N/A'}
                                     </TableCell>
-                                    <TableCell className="text-right font-mono text-xs">{order.createdAt.toDate().toLocaleString()}</TableCell>
+                                    <TableCell className="text-right font-mono text-xs">{new Date(order.created_at).toLocaleString()}</TableCell>
                                 </TableRow>
                             )) : (
                                 <TableRow>
@@ -633,7 +626,7 @@ export default function UserDetailsPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {sellOrdersLoading ? (
+                            {loading ? (
                                 <TableRow>
                                     <TableCell colSpan={5} className="h-24 text-center">
                                         Loading sell orders...
@@ -643,9 +636,9 @@ export default function UserDetailsPage() {
                                 <TableRow key={order.id}>
                                     <TableCell className="font-medium">₹{order.amount.toFixed(2)}</TableCell>
                                     <TableCell className="capitalize">{order.status}</TableCell>
-                                    <TableCell className="text-xs">{order.withdrawalMethod.name} ({order.withdrawalMethod.upiId})</TableCell>
+                                    <TableCell className="text-xs">{order.withdrawal_method.name} ({order.withdrawal_method.upiId})</TableCell>
                                     <TableCell>{order.utr || 'N/A'}</TableCell>
-                                    <TableCell className="text-right font-mono text-xs">{order.createdAt.toDate().toLocaleString()}</TableCell>
+                                    <TableCell className="text-right font-mono text-xs">{new Date(order.created_at).toLocaleString()}</TableCell>
                                 </TableRow>
                             )) : (
                                 <TableRow>

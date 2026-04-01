@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useMemo, useState, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
   Card,
   CardContent,
@@ -11,11 +11,9 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useDoc, useCollection, useFirestore } from '@/firebase';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { ChevronLeft, Copy, Loader2, Search, X, Download, Check } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { doc, collection, query, orderBy, Timestamp, limit } from 'firebase/firestore';
 import {
   Table,
   TableBody,
@@ -37,59 +35,60 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
+import { createClient } from '@/lib/utils';
 
 const defaultAvatarUrl = "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/LG%20PAY%20AVATAR.png?alt=media&token=707ce79d-15fa-4e58-9d1d-a7d774cfe5ec";
 
 // Types
 type UserProfile = {
     id: string;
-    displayName: string;
-    numericId: string;
-    phoneNumber?: string;
-    photoURL?: string;
+    display_name: string;
+    numeric_id: string;
+    phone_number?: string;
+    photo_url?: string;
 };
 
 type Order = {
   id: string;
-  orderId: string;
+  order_id: string;
   amount: number;
   status: string;
   utr?: string;
-  screenshotURL?: string;
-  createdAt: Timestamp;
-  paymentType: 'bank' | 'upi';
-  paymentProvider?: string;
-  adminPaymentMethodId?: string;
+  screenshot_url?: string;
+  created_at: string;
+  payment_type: 'bank' | 'upi';
+  payment_provider?: string;
+  admin_payment_method_id?: string;
 };
 
 type SellOrder = {
   id: string;
-  orderId: string;
+  order_id: string;
   amount: number;
   status: string;
   utr?: string;
-  withdrawalMethod: { name: string, upiId: string };
-  createdAt: Timestamp;
-  completedAt?: Timestamp;
-  failureReason?: string;
+  withdrawal_method: { name: string, upiId: string };
+  created_at: string;
+  completed_at?: string;
+  failure_reason?: string;
 };
 
 type RewardTransaction = {
     id: string;
     description: string;
     amount: number;
-    createdAt: Timestamp;
+    created_at: string;
 }
 
 type AdminPaymentMethod = {
     id: string;
     type: 'bank' | 'upi';
-    bankName?: string;
-    accountHolderName?: string;
-    accountNumber?: string;
-    ifscCode?: string;
-    upiHolderName?: string;
-    upiId?: string;
+    bank_name?: string;
+    account_holder_name?: string;
+    account_number?: string;
+    ifsc_code?: string;
+    upi_holder_name?: string;
+    upi_id?: string;
 }
 
 const DetailItem = ({ label, value }: { label: string, value?: string | number }) => (
@@ -100,7 +99,7 @@ const DetailItem = ({ label, value }: { label: string, value?: string | number }
 );
 
 const CancelledReceipt = React.forwardRef<HTMLDivElement, { order: SellOrder }>(({ order }, ref) => {
-    const transactionDate = order.createdAt.toDate();
+    const transactionDate = new Date(order.created_at);
     const receiptDate = transactionDate.toLocaleString('en-IN', {
         day: '2-digit',
         month: 'short',
@@ -124,21 +123,21 @@ const CancelledReceipt = React.forwardRef<HTMLDivElement, { order: SellOrder }>(
                     </div>
                     <h2 className="text-lg font-extrabold mt-3 text-red-600">Payment Failed</h2>
                     <p className="text-4xl font-black mt-2">₹{order.amount.toFixed(2)}</p>
-                    <p className="text-xs text-muted-foreground mt-1 max-w-[80%] mx-auto">{order.failureReason || 'Transaction could not be completed'}</p>
+                    <p className="text-xs text-muted-foreground mt-1 max-w-[80%] mx-auto">{order.failure_reason || 'Transaction could not be completed'}</p>
                 </div>
                 
                 <div className="space-y-3 text-sm border-t border-dashed pt-4">
                      <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">To</span>
-                        <span className="font-bold text-right break-all">{order.withdrawalMethod.upiId}</span>
+                        <span className="font-bold text-right break-all">{order.withdrawal_method.upiId}</span>
                     </div>
                     <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">Order ID</span>
-                        <span className="font-mono font-bold break-all">{order.orderId}</span>
+                        <span className="font-mono font-bold break-all">{order.order_id}</span>
                     </div>
                      <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">Reason</span>
-                        <span className="font-bold text-right max-w-[60%]">{order.failureReason || 'N/A'}</span>
+                        <span className="font-bold text-right max-w-[60%]">{order.failure_reason || 'N/A'}</span>
                     </div>
                     <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">Date & Time</span>
@@ -152,7 +151,7 @@ const CancelledReceipt = React.forwardRef<HTMLDivElement, { order: SellOrder }>(
 CancelledReceipt.displayName = 'CancelledReceipt';
 
 const SuccessfulReceipt = React.forwardRef<HTMLDivElement, { order: SellOrder }>(({ order }, ref) => {
-    const transactionDate = order.completedAt ? order.completedAt.toDate() : order.createdAt.toDate();
+    const transactionDate = order.completed_at ? new Date(order.completed_at) : new Date(order.created_at);
     const receiptDate = transactionDate.toLocaleString('en-IN', {
         day: '2-digit',
         month: 'short',
@@ -182,7 +181,7 @@ const SuccessfulReceipt = React.forwardRef<HTMLDivElement, { order: SellOrder }>
                 <div className="space-y-3 text-sm border-t border-dashed pt-4">
                     <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">To</span>
-                        <span className="font-bold text-right break-all">{order.withdrawalMethod.upiId}</span>
+                        <span className="font-bold text-right break-all">{order.withdrawal_method.upiId}</span>
                     </div>
                     <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">UTR Number</span>
@@ -190,7 +189,7 @@ const SuccessfulReceipt = React.forwardRef<HTMLDivElement, { order: SellOrder }>
                     </div>
                     <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">Order ID</span>
-                        <span className="font-mono font-bold break-all">{order.orderId}</span>
+                        <span className="font-mono font-bold break-all">{order.order_id}</span>
                     </div>
                     <div className="flex justify-between items-center">
                         <span className="text-muted-foreground">Date & Time</span>
@@ -217,7 +216,7 @@ const PaymentDetailsDialog = ({ order, orderType, adminPaymentMethods }: { order
             const dataUrl = canvas.toDataURL('image/png');
             const link = document.createElement('a');
             link.href = dataUrl;
-            link.download = `LGPAY-Receipt-Failed-${order.orderId}.png`;
+            link.download = `LGPAY-Receipt-Failed-${order.order_id}.png`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -234,7 +233,7 @@ const PaymentDetailsDialog = ({ order, orderType, adminPaymentMethods }: { order
             const dataUrl = canvas.toDataURL('image/png');
             const link = document.createElement('a');
             link.href = dataUrl;
-            link.download = `LGPAY-Receipt-Success-${order.orderId}.png`;
+            link.download = `LGPAY-Receipt-Success-${order.order_id}.png`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -245,34 +244,34 @@ const PaymentDetailsDialog = ({ order, orderType, adminPaymentMethods }: { order
     
     const renderBuyDetails = () => {
         const buyOrder = order as Order;
-        const adminMethod = adminPaymentMethods.find(m => m.id === buyOrder.adminPaymentMethodId);
+        const adminMethod = adminPaymentMethods.find(m => m.id === buyOrder.admin_payment_method_id);
         
         return (
             <div className="space-y-2">
                 <h4 className="font-semibold pt-2">Payment To:</h4>
                 {adminMethod?.type === 'bank' && (
                     <>
-                        <DetailItem label="Bank Name" value={adminMethod.bankName} />
-                        <DetailItem label="Account Holder" value={adminMethod.accountHolderName} />
-                        <DetailItem label="Account Number" value={adminMethod.accountNumber} />
-                        <DetailItem label="IFSC Code" value={adminMethod.ifscCode} />
+                        <DetailItem label="Bank Name" value={adminMethod.bank_name} />
+                        <DetailItem label="Account Holder" value={adminMethod.account_holder_name} />
+                        <DetailItem label="Account Number" value={adminMethod.account_number} />
+                        <DetailItem label="IFSC Code" value={adminMethod.ifsc_code} />
                     </>
                 )}
                 {adminMethod?.type === 'upi' && (
                      <>
-                        <DetailItem label="UPI Holder Name" value={adminMethod.upiHolderName} />
-                        <DetailItem label="UPI ID" value={adminMethod.upiId} />
+                        <DetailItem label="UPI Holder Name" value={adminMethod.upi_holder_name} />
+                        <DetailItem label="UPI ID" value={adminMethod.upi_id} />
                     </>
                 )}
                 {!adminMethod && <p className="text-xs text-muted-foreground">Admin payment details not found.</p>}
 
                 <h4 className="font-semibold pt-4">User Payment:</h4>
                  <DetailItem label="UTR" value={buyOrder.utr} />
-                 {buyOrder.screenshotURL && (
+                 {buyOrder.screenshot_url && (
                     <div className="flex justify-between items-center py-2">
                          <span className="text-sm text-muted-foreground">Screenshot</span>
                          <Button asChild size="sm" variant="link">
-                            <a href={buyOrder.screenshotURL} target="_blank" rel="noopener noreferrer">View</a>
+                            <a href={buyOrder.screenshot_url} target="_blank" rel="noopener noreferrer">View</a>
                          </Button>
                     </div>
                  )}
@@ -285,11 +284,11 @@ const PaymentDetailsDialog = ({ order, orderType, adminPaymentMethods }: { order
          return (
              <div className="space-y-2">
                 <h4 className="font-semibold pt-2">Withdrawal To:</h4>
-                <DetailItem label="UPI Provider" value={sellOrder.withdrawalMethod.name} />
-                <DetailItem label="UPI ID" value={sellOrder.withdrawalMethod.upiId} />
+                <DetailItem label="UPI Provider" value={sellOrder.withdrawal_method.name} />
+                <DetailItem label="UPI ID" value={sellOrder.withdrawal_method.upiId} />
                 <h4 className="font-semibold pt-4">Admin Payment:</h4>
                 {sellOrder.status === 'failed' ? (
-                     <DetailItem label="Failure Reason" value={sellOrder.failureReason} />
+                     <DetailItem label="Failure Reason" value={sellOrder.failure_reason} />
                 ) : (
                     <DetailItem label="UTR" value={sellOrder.utr} />
                 )}
@@ -311,13 +310,13 @@ const PaymentDetailsDialog = ({ order, orderType, adminPaymentMethods }: { order
                     <DialogHeader>
                         <DialogTitle>Order Details</DialogTitle>
                         <DialogDescription>
-                            Order ID: <span className="break-all">{order.orderId}</span>
+                            Order ID: <span className="break-all">{order.order_id}</span>
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-2 max-h-[60vh] overflow-y-auto">
                         <DetailItem label="Amount" value={`₹${order.amount.toFixed(2)}`} />
                         <DetailItem label="Status" value={order.status.replace('_', ' ')} />
-                        <DetailItem label="Date" value={order.createdAt.toDate().toLocaleString()} />
+                        <DetailItem label="Date" value={new Date(order.created_at).toLocaleString()} />
                         {orderType === 'buy' ? renderBuyDetails() : renderSellDetails()}
                     </div>
                      <DialogFooter className="sm:justify-end gap-2">
@@ -346,36 +345,55 @@ const PaymentDetailsDialog = ({ order, orderType, adminPaymentMethods }: { order
 export default function UserHistoryPage() {
     const params = useParams();
     const userId = params.userId as string;
-    const firestore = useFirestore();
+    const supabase = createClient();
     const { toast } = useToast();
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Fetch User
-    const userRef = useMemo(() => firestore && userId ? doc(firestore, 'users', userId) : null, [firestore, userId]);
-    const { data: user, loading: userLoading } = useDoc<UserProfile>(userRef);
+    const [user, setUser] = useState<UserProfile | null>(null);
+    const [buyOrders, setBuyOrders] = useState<Order[]>([]);
+    const [sellOrders, setSellOrders] = useState<SellOrder[]>([]);
+    const [rewardTransactions, setRewardTransactions] = useState<RewardTransaction[]>([]);
+    const [adminPaymentMethods, setAdminPaymentMethods] = useState<AdminPaymentMethod[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    // Fetch Buy Orders
-    const ordersQuery = useMemo(() => firestore && userId ? query(collection(firestore, 'users', userId, 'orders'), orderBy('createdAt', 'desc'), limit(25)) : null, [firestore, userId]);
-    const { data: buyOrders, loading: ordersLoading } = useCollection<Order>(ordersQuery);
+    useEffect(() => {
+        const fetchData = async () => {
+            if (!userId) {
+                setLoading(false);
+                return;
+            }
+            setLoading(true);
+            const [
+                userRes,
+                buyOrdersRes,
+                sellOrdersRes,
+                transactionsRes,
+                paymentMethodsRes
+            ] = await Promise.all([
+                supabase.from('users').select('*').eq('id', userId).single(),
+                supabase.from('orders').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(25),
+                supabase.from('sell_orders').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(25),
+                supabase.from('transactions').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(50),
+                supabase.from('payment_methods').select('*')
+            ]);
+            
+            if(userRes.data) setUser(userRes.data as UserProfile);
+            if(buyOrdersRes.data) setBuyOrders(buyOrdersRes.data as Order[]);
+            if(sellOrdersRes.data) setSellOrders(sellOrdersRes.data as SellOrder[]);
+            if(transactionsRes.data) setRewardTransactions(transactionsRes.data as RewardTransaction[]);
+            if(paymentMethodsRes.data) setAdminPaymentMethods(paymentMethodsRes.data as AdminPaymentMethod[]);
 
-    // Fetch Sell Orders
-    const sellOrdersQuery = useMemo(() => firestore && userId ? query(collection(firestore, 'users', userId, 'sellOrders'), orderBy('createdAt', 'desc'), limit(25)) : null, [firestore, userId]);
-    const { data: sellOrders, loading: sellOrdersLoading } = useCollection<SellOrder>(sellOrdersQuery);
-
-    // Fetch Reward Transactions
-    const transactionsQuery = useMemo(() => firestore && userId ? query(collection(firestore, 'users', userId, 'transactions'), orderBy('createdAt', 'desc'), limit(50)) : null, [firestore, userId]);
-    const { data: rewardTransactions, loading: rewardsLoading } = useCollection<RewardTransaction>(transactionsQuery);
-
-    // Fetch Admin Payment Methods
-    const paymentMethodsQuery = useMemo(() => firestore ? collection(firestore, "paymentMethods") : null, [firestore]);
-    const { data: adminPaymentMethods, loading: paymentMethodsLoading } = useCollection<AdminPaymentMethod>(paymentMethodsQuery);
+            setLoading(false);
+        };
+        fetchData();
+    }, [userId, supabase]);
     
     const filteredBuyOrders = useMemo(() => {
         if (!buyOrders) return [];
         const lowercasedTerm = searchTerm.toLowerCase().trim();
         if (!lowercasedTerm) return buyOrders;
         return buyOrders.filter(order => 
-            (order.orderId && order.orderId.toLowerCase().includes(lowercasedTerm)) ||
+            (order.order_id && order.order_id.toLowerCase().includes(lowercasedTerm)) ||
             (order.utr && order.utr.toLowerCase().includes(lowercasedTerm))
         );
     }, [buyOrders, searchTerm]);
@@ -385,7 +403,7 @@ export default function UserHistoryPage() {
         const lowercasedTerm = searchTerm.toLowerCase().trim();
         if (!lowercasedTerm) return sellOrders;
         return sellOrders.filter(order => 
-            (order.orderId && order.orderId.toLowerCase().includes(lowercasedTerm)) ||
+            (order.order_id && order.order_id.toLowerCase().includes(lowercasedTerm)) ||
             (order.utr && order.utr.toLowerCase().includes(lowercasedTerm))
         );
     }, [sellOrders, searchTerm]);
@@ -395,8 +413,6 @@ export default function UserHistoryPage() {
           toast({ title: 'UID Copied!' });
         });
     };
-
-    const loading = userLoading || ordersLoading || sellOrdersLoading || paymentMethodsLoading || rewardsLoading;
 
      if (loading) {
         return (
@@ -433,15 +449,15 @@ export default function UserHistoryPage() {
                 </Button>
                 <div className="flex items-center gap-4">
                      <Avatar className="h-12 w-12">
-                        <AvatarImage src={defaultAvatarUrl} alt={user.displayName} />
+                        <AvatarImage src={defaultAvatarUrl} alt={user.display_name} />
                         <AvatarFallback className="bg-muted">
-                            {user.displayName?.charAt(0).toUpperCase()}
+                            {user.display_name?.charAt(0).toUpperCase()}
                         </AvatarFallback>
                     </Avatar>
                     <div>
-                        <h1 className="text-xl font-semibold">{user.displayName}</h1>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer" onClick={() => copyToClipboard(user.numericId)}>
-                            <span>UID: {user.numericId}</span>
+                        <h1 className="text-xl font-semibold">{user.display_name}</h1>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer" onClick={() => copyToClipboard(user.numeric_id)}>
+                            <span>UID: {user.numeric_id}</span>
                             <Copy className="h-3 w-3" />
                         </div>
                     </div>
@@ -474,10 +490,10 @@ export default function UserHistoryPage() {
                         <TableBody>
                             {filteredBuyOrders && filteredBuyOrders.length > 0 ? filteredBuyOrders.map(order => (
                                 <TableRow key={order.id}>
-                                    <TableCell className="font-mono text-xs break-all">{order.orderId}</TableCell>
+                                    <TableCell className="font-mono text-xs break-all">{order.order_id}</TableCell>
                                     <TableCell>₹{order.amount.toFixed(2)}</TableCell>
                                     <TableCell className="capitalize">{order.status.replace('_', ' ')}</TableCell>
-                                    <TableCell className="text-xs">{order.createdAt.toDate().toLocaleDateString()}</TableCell>
+                                    <TableCell className="text-xs">{new Date(order.created_at).toLocaleDateString()}</TableCell>
                                     <TableCell className="text-right">
                                         <PaymentDetailsDialog order={order} orderType="buy" adminPaymentMethods={adminPaymentMethods || []} />
                                     </TableCell>
@@ -508,10 +524,10 @@ export default function UserHistoryPage() {
                         <TableBody>
                             {filteredSellOrders && filteredSellOrders.length > 0 ? filteredSellOrders.map(order => (
                                 <TableRow key={order.id}>
-                                    <TableCell className="font-mono text-xs break-all">{order.orderId}</TableCell>
+                                    <TableCell className="font-mono text-xs break-all">{order.order_id}</TableCell>
                                     <TableCell>₹{order.amount.toFixed(2)}</TableCell>
                                     <TableCell className="capitalize">{order.status}</TableCell>
-                                    <TableCell className="text-xs">{order.createdAt.toDate().toLocaleDateString()}</TableCell>
+                                    <TableCell className="text-xs">{new Date(order.created_at).toLocaleDateString()}</TableCell>
                                     <TableCell className="text-right">
                                         <PaymentDetailsDialog order={order} orderType="sell" adminPaymentMethods={[]} />
                                     </TableCell>
@@ -542,7 +558,7 @@ export default function UserHistoryPage() {
                                 <TableRow key={tx.id}>
                                     <TableCell>{tx.description}</TableCell>
                                     <TableCell>₹{tx.amount.toFixed(2)}</TableCell>
-                                    <TableCell className="text-right text-xs">{tx.createdAt.toDate().toLocaleString()}</TableCell>
+                                    <TableCell className="text-right text-xs">{new Date(tx.created_at).toLocaleString()}</TableCell>
                                 </TableRow>
                             )) : (
                                 <TableRow>
@@ -556,5 +572,3 @@ export default function UserHistoryPage() {
         </main>
     )
 }
-
-    

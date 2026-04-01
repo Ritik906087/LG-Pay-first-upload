@@ -9,9 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ChevronLeft, Copy, Upload, Loader2, Info, Send, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useCollection, useDoc, useUser, useFirestore, useStorage } from '@/firebase';
 import { Skeleton } from '@/components/ui/skeleton';
-import { doc, getDoc, updateDoc, serverTimestamp, collection, Timestamp, runTransaction } from 'firebase/firestore';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import {
@@ -36,18 +34,20 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { sendOrderConfirmationToTelegram } from '@/lib/telegram';
+import { useSupabaseUser } from '@/hooks/use-supabase-user';
+import { createClient } from '@/lib/utils';
 
 
 type AdminPaymentMethod = {
     id: string;
     type: 'bank' | 'upi' | 'usdt';
-    bankName?: string;
-    accountHolderName?: string;
-    accountNumber?: string;
-    ifscCode?: string;
-    upiHolderName?: string;
-    upiId?: string;
-    usdtWalletAddress?: string;
+    bank_name?: string;
+    account_holder_name?: string;
+    account_number?: string;
+    ifsc_code?: string;
+    upi_holder_name?: string;
+    upi_id?: string;
+    usdt_wallet_address?: string;
 }
 
 type WithdrawalMethod = {
@@ -64,22 +64,22 @@ type WithdrawalMethod = {
 type Order = {
     id: string;
     amount: number;
-    baseAmount: number;
+    base_amount: number;
     status: string;
-    createdAt: Timestamp;
-    orderId: string;
-    paymentType: 'bank' | 'upi' | 'usdt' | 'p2p_upi' | 'p2p_bank';
-    paymentProvider: string;
-    adminPaymentMethodId?: string;
-    sellerId?: string;
-    sellerWithdrawalDetails?: WithdrawalMethod;
-    matchedSellOrderId?: string;
-    matchedSellOrderPath?: string;
+    created_at: string;
+    order_id: string;
+    payment_type: 'bank' | 'upi' | 'usdt' | 'p2p_upi' | 'p2p_bank';
+    payment_provider: string;
+    admin_payment_method_id?: string;
+    seller_id?: string;
+    seller_withdrawal_details?: WithdrawalMethod;
+    matched_sell_order_id?: string;
+    matched_sell_order_path?: string;
 };
 
 type UserProfile = {
-    paymentMethods?: { name: string; upiId: string }[];
-    numericId?: string;
+    payment_methods?: { name: string; upiId: string }[];
+    numeric_id?: string;
 };
 
 
@@ -120,11 +120,11 @@ function PaymentDetailsContent() {
     const searchParams = useSearchParams();
     const pathname = usePathname();
     const { toast } = useToast();
-    const { user } = useUser();
-    const firestore = useFirestore();
+    const { user, profile: userProfile } = useSupabaseUser();
+    const supabase = createClient();
 
     const orderId = params.orderId as string;
-    const type = searchParams.get('type') as Order['paymentType'];
+    const type = searchParams.get('type') as Order['payment_type'];
     const provider = searchParams.get('provider');
 
     const [utr, setUtr] = useState('');
@@ -142,6 +142,12 @@ function PaymentDetailsContent() {
     const [otherReason, setOtherReason] = useState('');
     const [isCancelling, setIsCancelling] = useState(false);
 
+    const [allPaymentMethods, setAllPaymentMethods] = useState<AdminPaymentMethod[]>([]);
+    const [allPaymentMethodsLoading, setAllPaymentMethodsLoading] = useState(true);
+
+    const [order, setOrder] = useState<Order | null>(null);
+    const [orderLoading, setOrderLoading] = useState(true);
+
     const isUSDT = type === 'usdt';
 
     const cancellationReasons = [
@@ -152,110 +158,48 @@ function PaymentDetailsContent() {
         "Other reasons"
     ];
 
-    const paymentMethodsQuery = useMemo(() => firestore ? collection(firestore, 'paymentMethods') : null, [firestore]);
-    const { data: allPaymentMethods, loading: allPaymentMethodsLoading } = useCollection<AdminPaymentMethod>(paymentMethodsQuery);
-
-
-    const orderRef = useMemo(() => {
-        if (!firestore || !user || !orderId) return null;
-        return doc(firestore, 'users', user.uid, 'orders', orderId);
-    }, [firestore, user, orderId]);
-
-    const { data: order, loading: orderLoading } = useDoc<Order>(orderRef);
-    
-    const userProfileRef = useMemo(() => {
-        if (!user || !firestore) return null;
-        return doc(firestore, 'users', user.uid);
-    }, [user, firestore]);
-
-    const { data: userProfile, loading: profileLoading } = useDoc<UserProfile>(userProfileRef);
-
-    const verifiedBuyUpiMethods = useMemo(() => {
-        if (!userProfile?.paymentMethods) return [];
-        return userProfile.paymentMethods.filter(pm => 
-            ['MobiKwik', 'Freecharge'].includes(pm.name)
-        );
-    }, [userProfile]);
-
-    const paymentTargetDetails = useMemo(() => {
-        if (orderLoading) return null;
-
-        if (type === 'p2p_upi' || type === 'p2p_bank') {
-            if (order && order.sellerWithdrawalDetails) {
-                return order.sellerWithdrawalDetails;
-            }
-            return null;
+    useEffect(() => {
+      const fetchMethods = async () => {
+        setAllPaymentMethodsLoading(true);
+        const { data, error } = await supabase.from('payment_methods').select('*');
+        if (error) {
+          toast({ variant: 'destructive', title: 'Could not load payment methods' });
+        } else {
+          setAllPaymentMethods(data as AdminPaymentMethod[]);
         }
-
-        if (!allPaymentMethods || allPaymentMethods.length === 0 || !type) return null;
-        return allPaymentMethods.find(m => m.type === type);
-    }, [order, orderLoading, type, allPaymentMethods]);
+        setAllPaymentMethodsLoading(false);
+      }
+      fetchMethods();
+    }, [supabase, toast]);
 
     useEffect(() => {
-        if (orderRef && paymentTargetDetails?.id && order && !order.adminPaymentMethodId && type !== 'p2p_upi' && type !== 'p2p_bank') {
-            updateDoc(orderRef, { adminPaymentMethodId: paymentTargetDetails.id })
-                .catch(err => console.error("Failed to set admin payment method ID on order", err));
-        }
-    }, [orderRef, paymentTargetDetails, order, type]);
+        const fetchOrder = async () => {
+            if(!user || !orderId) return;
+            setOrderLoading(true);
+            const {data, error} = await supabase.from('orders').select('*').eq('id', orderId).single();
+            if(error || !data) {
+                toast({variant: 'destructive', title: 'Order not found'});
+                router.push('/order');
+            } else {
+                setOrder(data as Order);
+            }
+            setOrderLoading(false);
+        };
+        fetchOrder();
+    }, [user, orderId, supabase, router, toast]);
 
     const handleCancelOrder = useCallback(async (isAutoCancel = false, reason = "Order expired") => {
-        if (!orderRef || !firestore) return;
-
-        // Fetch the latest order data inside the callback
-        const currentOrderSnap = await getDoc(orderRef);
-        if (!currentOrderSnap.exists() || currentOrderSnap.data()?.status !== 'pending_payment') {
-            // If it's already cancelled/processed, just navigate away if it's an auto-cancel
-            if (isAutoCancel && currentOrderSnap.exists()) {
-                router.push(`/order/${orderId}`);
-            }
-            return;
-        }
+        if (!orderId || !supabase) return;
 
         setIsCancelling(true);
-
         try {
-            await runTransaction(firestore, async (transaction) => {
-                const buyOrderSnap = await transaction.get(orderRef);
-                if (!buyOrderSnap.exists() || buyOrderSnap.data()?.status !== 'pending_payment') {
-                    return; // Another process might have handled it
-                }
-                const buyOrderData = buyOrderSnap.data();
-
-                if (buyOrderData.paymentType === 'p2p_upi' && buyOrderData.matchedSellOrderPath) {
-                    const sellOrderRef = doc(firestore, buyOrderData.matchedSellOrderPath);
-                    const sellOrderSnap = await transaction.get(sellOrderRef);
-
-                    if (sellOrderSnap.exists()) {
-                        const sellOrderData = sellOrderSnap.data();
-                        
-                        const newRemainingAmount = (sellOrderData.remainingAmount || 0) + buyOrderData.baseAmount;
-                        
-                        let newSellOrderStatus = 'partially_filled';
-                        if (newRemainingAmount >= sellOrderData.amount) {
-                            newSellOrderStatus = 'pending';
-                        }
-
-                        const updatedMatchedBuyOrders = (sellOrderData.matchedBuyOrders || []).map((matched: any) => {
-                            if (matched.buyOrderId === orderId) {
-                                return { ...matched, status: isAutoCancel ? 'failed' : 'cancelled' };
-                            }
-                            return matched;
-                        });
-                        
-                        transaction.update(sellOrderRef, {
-                            remainingAmount: newRemainingAmount,
-                            status: newSellOrderStatus,
-                            matchedBuyOrders: updatedMatchedBuyOrders
-                        });
-                    }
-                }
-
-                transaction.update(orderRef, {
-                    status: isAutoCancel ? 'failed' : 'cancelled',
-                    cancellationReason: isAutoCancel ? 'Order timed out' : reason,
-                });
+            const { error } = await supabase.rpc('cancel_buy_order', {
+                p_order_id: orderId,
+                p_cancellation_reason: isAutoCancel ? 'Order timed out' : reason,
+                p_is_auto_cancel: isAutoCancel
             });
-
+            if (error) throw error;
+            
             if (!isAutoCancel) {
                 toast({ title: 'Order Cancelled' });
                 router.push('/order');
@@ -271,7 +215,7 @@ function PaymentDetailsContent() {
             setIsCancelling(false);
             setIsCancelDialogOpen(false);
         }
-    }, [firestore, orderRef, router, toast, orderId]);
+    }, [supabase, router, toast, orderId]);
     
     const handleConfirmCancellation = async () => {
         let finalReason = cancelReason;
@@ -290,9 +234,9 @@ function PaymentDetailsContent() {
     };
 
     const handlePaymentMethodChange = async (newProvider: string) => {
-        if (!orderRef) return;
+        if (!order) return;
         
-        const isVerified = userProfile?.paymentMethods?.some(pm => pm.name === newProvider);
+        const isVerified = userProfile?.payment_methods?.some(pm => pm.name === newProvider);
 
         if (!isVerified) {
             setMethodToVerify(newProvider);
@@ -303,7 +247,8 @@ function PaymentDetailsContent() {
 
         setIsUpdatingProvider(true);
         try {
-            await updateDoc(orderRef, { paymentProvider: newProvider });
+            const { error } = await supabase.from('orders').update({ payment_provider: newProvider }).eq('id', order.id);
+            if (error) throw error;
             
             const newSearchParams = new URLSearchParams(searchParams.toString());
             newSearchParams.set('provider', newProvider);
@@ -325,12 +270,12 @@ function PaymentDetailsContent() {
             return;
         }
 
-        if (!order || !order.createdAt) {
+        if (!order || !order.created_at) {
             setTimeLeft(0);
             return;
         }
 
-        const createdAt = order.createdAt.toDate();
+        const createdAt = new Date(order.created_at);
         const expiryTime = new Date(createdAt.getTime() + 10 * 60 * 1000); // 10 minutes
 
         const interval = setInterval(() => {
@@ -350,33 +295,55 @@ function PaymentDetailsContent() {
     }, [order, router, orderId, handleCancelOrder]);
 
 
+    const paymentTargetDetails = useMemo(() => {
+        if (orderLoading) return null;
+
+        if (type === 'p2p_upi' || type === 'p2p_bank') {
+            if (order && order.seller_withdrawal_details) {
+                return order.seller_withdrawal_details;
+            }
+            return null;
+        }
+
+        if (!allPaymentMethods || allPaymentMethods.length === 0 || !type) return null;
+        return allPaymentMethods.find(m => m.type === type);
+    }, [order, orderLoading, type, allPaymentMethods]);
+
+    useEffect(() => {
+        if (order && paymentTargetDetails?.id && order && !order.admin_payment_method_id && type !== 'p2p_upi' && type !== 'p2p_bank') {
+            supabase.from('orders').update({ admin_payment_method_id: paymentTargetDetails.id }).eq('id', order.id)
+                .catch(err => console.error("Failed to set admin payment method ID on order", err));
+        }
+    }, [order, paymentTargetDetails, type, supabase]);
+
+
     const details = useMemo(() => {
         if (!paymentTargetDetails) return null;
 
         if (paymentTargetDetails.type === 'bank') {
             return {
-                'Bank Name': paymentTargetDetails.bankName,
-                'Account Holder': paymentTargetDetails.accountHolderName,
-                'Account Number': paymentTargetDetails.accountNumber,
-                'IFSC Code': paymentTargetDetails.ifscCode,
+                'Bank Name': paymentTargetDetails.bank_name,
+                'Account Holder': paymentTargetDetails.account_holder_name,
+                'Account Number': paymentTargetDetails.account_number,
+                'IFSC Code': paymentTargetDetails.ifsc_code,
             };
         }
         if (paymentTargetDetails.type === 'upi') {
             const detailsObj: { [key: string]: string | undefined } = {
-                'UPI ID': paymentTargetDetails.upiId,
+                'UPI ID': paymentTargetDetails.upi_id,
             };
-            if (paymentTargetDetails.upiHolderName) {
-                detailsObj['Recipient Name'] = paymentTargetDetails.upiHolderName;
+            if (paymentTargetDetails.upi_holder_name) {
+                detailsObj['Recipient Name'] = paymentTargetDetails.upi_holder_name;
             }
             return detailsObj;
         }
         if (paymentTargetDetails.type === 'usdt') {
             return {
-                'USDT Address (TRC20)': (paymentTargetDetails as any).usdtWalletAddress,
+                'USDT Address (TRC20)': paymentTargetDetails.usdt_wallet_address,
             }
         }
         return null;
-    }, [paymentTargetDetails, order]);
+    }, [paymentTargetDetails]);
 
     const copyToClipboard = (text: string) => {
         if (!text) return;
@@ -433,7 +400,7 @@ function PaymentDetailsContent() {
             return;
         }
         
-        if (!orderRef || !user || !firestore) {
+        if (!order || !user || !supabase) {
             toast({ variant: 'destructive', title: 'Error', description: 'Could not initialize. Please try again.' });
             return;
         }
@@ -441,41 +408,14 @@ function PaymentDetailsContent() {
         setIsConfirming(true);
     
         try {
-            await runTransaction(firestore, async (transaction) => {
-                // --- READ PHASE ---
-                const buyOrderDoc = await transaction.get(orderRef);
-                if (!buyOrderDoc.exists()) {
-                    throw new Error("Order not found.");
-                }
-                const buyOrderData = buyOrderDoc.data() as Order;
+            const { error } = await supabase.from('orders').update({
+                utr,
+                status: 'pending_confirmation',
+                submitted_at: new Date().toISOString(),
+                screenshot_url: screenshotDataUrl
+            }).eq('id', order.id);
 
-                let sellOrderRef: any = null;
-                let sellOrderDoc: any = null;
-                if ((buyOrderData.paymentType === 'p2p_upi' || buyOrderData.paymentType === 'p2p_bank') && buyOrderData.matchedSellOrderPath) {
-                    sellOrderRef = doc(firestore, buyOrderData.matchedSellOrderPath);
-                    sellOrderDoc = await transaction.get(sellOrderRef);
-                }
-
-                // --- WRITE PHASE ---
-                const updateData: any = {
-                    utr,
-                    status: 'pending_confirmation',
-                    submittedAt: serverTimestamp(),
-                    screenshotURL: screenshotDataUrl
-                };
-                transaction.update(orderRef, updateData);
-    
-                if (sellOrderRef && sellOrderDoc?.exists()) {
-                    const sellOrderData = sellOrderDoc.data();
-                    const updatedMatchedBuyOrders = (sellOrderData.matchedBuyOrders || []).map((bo: any) => {
-                        if (bo.buyOrderId === orderId) {
-                            return { ...bo, status: 'pending_confirmation', utr: utr };
-                        }
-                        return bo;
-                    });
-                    transaction.update(sellOrderRef, { matchedBuyOrders: updatedMatchedBuyOrders });
-                }
-            });
+            if (error) throw error;
     
             if (order && userProfile && details) {
                 try {
@@ -483,9 +423,9 @@ function PaymentDetailsContent() {
                         Object.entries(details).map(([key, value]) => [key, String(value)])
                     );
                     await sendOrderConfirmationToTelegram({
-                        orderId: order.orderId,
-                        userNumericId: userProfile.numericId,
-                        amount: order.baseAmount,
+                        orderId: order.order_id,
+                        userNumericId: userProfile.numeric_id,
+                        amount: order.base_amount,
                         utr: utr,
                         receiverDetails: receiverDetailsForTg,
                     });
@@ -503,7 +443,7 @@ function PaymentDetailsContent() {
         }
     };
 
-    const loading = allPaymentMethodsLoading || orderLoading || profileLoading;
+    const loading = allPaymentMethodsLoading || orderLoading;
     const currentProviderDetails = provider ? paymentMethodDetails[provider] : null;
     
     const usdtAmount = useMemo(() => {
@@ -595,8 +535,8 @@ function PaymentDetailsContent() {
                               <div className="flex justify-between items-center text-sm">
                                 <span className="text-muted-foreground">Order Number</span>
                                 <div className="flex items-center gap-2">
-                                  <span className="font-mono" style={{wordBreak: 'break-all'}}>{order?.orderId}</span>
-                                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(order?.orderId ?? '')}><Copy className="h-4 w-4" /></Button>
+                                  <span className="font-mono" style={{wordBreak: 'break-all'}}>{order?.order_id}</span>
+                                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(order?.order_id ?? '')}><Copy className="h-4 w-4" /></Button>
                                 </div>
                              </div>
                         </CardFooter>
@@ -798,12 +738,12 @@ function PaymentDetailsContent() {
                         <div className="flex justify-between items-center pt-0">
                             <span className="text-muted-foreground text-base">Amount to be paid</span>
                             <div className="flex items-center gap-2">
-                                <span className="font-bold text-2xl text-primary">₹{order?.baseAmount}</span>
+                                <span className="font-bold text-2xl text-primary">₹{order?.base_amount}</span>
                                 <Button 
                                     variant="ghost" 
                                     size="icon" 
                                     className="h-8 w-8" 
-                                    onClick={() => copyToClipboard(order?.baseAmount?.toString() ?? '')}
+                                    onClick={() => copyToClipboard(order?.base_amount?.toString() ?? '')}
                                     disabled={isConfirming || isUpdatingProvider}
                                 >
                                     <Copy className="h-5 w-5 text-muted-foreground" />
@@ -813,8 +753,8 @@ function PaymentDetailsContent() {
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Order Number</span>
                             <div className="flex items-center gap-2">
-                                <span className="font-mono" style={{wordBreak: 'break-all'}}>{order?.orderId}</span>
-                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(order?.orderId ?? '')} disabled={isConfirming || isUpdatingProvider}>
+                                <span className="font-mono" style={{wordBreak: 'break-all'}}>{order?.order_id}</span>
+                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copyToClipboard(order?.order_id ?? '')} disabled={isConfirming || isUpdatingProvider}>
                                     <Copy className="h-4 w-4" />
                                 </Button>
                             </div>
@@ -842,7 +782,7 @@ function PaymentDetailsContent() {
                         <CardContent className="flex flex-col items-center gap-2">
                              <Image
                                 src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(
-                                    `upi://pay?pa=${details['UPI ID']}&pn=${encodeURIComponent(details['Recipient Name']! || 'Recipient')}&am=${order.baseAmount}&tn=${order.orderId}`
+                                    `upi://pay?pa=${details['UPI ID']}&pn=${encodeURIComponent(details['Recipient Name']! || 'Recipient')}&am=${order.base_amount}&tn=${order.order_id}`
                                 )}&size=200x200&qzone=2`}
                                 width={200}
                                 height={200}
@@ -934,7 +874,7 @@ function PaymentDetailsContent() {
                   <DialogTitle className="text-lg font-semibold text-center">Change Payment Method</DialogTitle>
                 </DialogHeader>
                 <div className="p-4 space-y-3">
-                  {verifiedBuyUpiMethods.map((method) => {
+                  {userProfile?.payment_methods?.map((method) => {
                       const details = paymentMethodDetails[method.name];
                       if (!details) return null;
                       return (
@@ -956,7 +896,7 @@ function PaymentDetailsContent() {
                           </button>
                       )
                   })}
-                   {verifiedBuyUpiMethods.length === 0 && (
+                   {userProfile?.payment_methods?.length === 0 && (
                       <div className="text-center text-sm text-muted-foreground p-4">
                           <p>No MobiKwik or Freecharge accounts linked.</p>
                           <Button asChild variant="link" className="mt-2">
