@@ -1,4 +1,3 @@
-
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,6 +21,7 @@ import { useLanguage } from "@/context/language-context";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/utils";
+import { v4 as uuidv4 } from 'uuid';
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -57,15 +57,15 @@ export function LoginForm() {
     
     const email = `${values.phone}@lgpay.app`;
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data: { session }, error } = await supabase.auth.signInWithPassword({
       email,
       password: values.password,
     });
 
-    if (error) {
+    if (error || !session) {
       console.error("Login failed:", error);
       let description = "Invalid credentials. Please try again.";
-       if (error.message.includes('Invalid login credentials')) {
+       if (error?.message.includes('Invalid login credentials')) {
         description = "Incorrect phone number or password. Please check and try again, or register if you don't have an account.";
       }
       toast({
@@ -76,14 +76,32 @@ export function LoginForm() {
       form.resetField("password");
       setIsLoading(false);
     } else {
-      toast({
-        title: "Login Successful",
-        description: "Welcome back!",
-      });
-      // The auth state change will be handled by the listener in the layout,
-      // and Supabase SSR handles cookie management.
-      router.push("/home");
-      router.refresh(); // Refresh to ensure server components get the new session
+        const newSessionId = uuidv4();
+        const { error: updateError } = await supabase
+          .from('users')
+          .update({ session_id: newSessionId })
+          .eq('id', session.user.id);
+        
+        if (updateError) {
+             toast({
+                variant: "destructive",
+                title: "Login Partially Failed",
+                description: "Could not update your session. Please try again.",
+            });
+             setIsLoading(false);
+             return;
+        }
+
+        // Store the new session ID locally
+        localStorage.setItem('user-session-id', newSessionId);
+
+        toast({
+            title: "Login Successful",
+            description: "Welcome back!",
+        });
+        
+        router.push("/home");
+        router.refresh();
     }
   }
 
