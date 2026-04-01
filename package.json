@@ -9,7 +9,9 @@
     "build": "NODE_ENV=production next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "migrate:export": "node migration_dist/exporter/run.js",
+    "migrate:import": "node migration_dist/importer/run.js"
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.20.0",
@@ -44,7 +46,9 @@
     "dotenv": "^16.5.0",
     "embla-carousel-autoplay": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
+    "firebase-admin": "^12.1.0",
     "framer-motion": "^11.3.8",
+    "fs-extra": "^11.2.0",
     "genkit": "^1.20.0",
     "html2canvas": "^1.4.1",
     "lucide-react": "^0.475.0",
@@ -62,6 +66,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
     "@types/node": "^20",
     "@types/pg": "^8.11.6",
     "@types/react": "^19.2.1",
