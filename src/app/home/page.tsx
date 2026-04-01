@@ -27,8 +27,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import Image from 'next/image';
 import Autoplay from "embla-carousel-autoplay";
 import React, { useEffect, useState, useCallback } from 'react';
-import { useUser, useFirestore, useDoc, useCollection } from '@/firebase';
-import { doc, getDoc, collection, query, where, Timestamp, updateDoc, runTransaction } from 'firebase/firestore';
+import { useSupabaseUser } from '@/hooks/use-supabase-user';
+import { createClient } from '@/lib/utils';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
@@ -84,12 +84,12 @@ const faqs = [
     }
 ]
 
-const Countdown = ({ expiryTimestamp, onExpire }: { expiryTimestamp: Timestamp, onExpire?: () => void }) => {
+const Countdown = ({ expiryTimestamp, onExpire }: { expiryTimestamp: Date, onExpire?: () => void }) => {
     const [timeLeft, setTimeLeft] = useState('');
     const [isExpired, setIsExpired] = useState(false);
 
     useEffect(() => {
-        const expiryTime = expiryTimestamp.toDate().getTime();
+        const expiryTime = expiryTimestamp.getTime();
 
         const interval = setInterval(() => {
             const now = new Date().getTime();
@@ -134,23 +134,23 @@ const InProgressOrderCard = ({ order, onExpire }: { order: any, onExpire: (order
     let buttonText = "View";
     let buttonLink = "/order";
     let statusText = order.status.replace('_', ' ');
-    let expiryTimestamp: Timestamp | undefined;
+    let expiryTimestamp: Date | undefined;
 
-    const isUSDT = isBuy && order.paymentType === 'usdt';
+    const isUSDT = isBuy && order.payment_type === 'usdt';
     const displayAmount = isUSDT ? (order.amount / 110).toFixed(2) : order.amount.toFixed(2);
     const currencySymbol = isUSDT ? '$' : '₹';
 
     if (isBuy) {
         if (order.status === 'pending_payment') {
             buttonText = "Complete Payment";
-            buttonLink = `/buy/confirm/${order.id}?type=${order.paymentType}&provider=${order.paymentProvider}`;
-            expiryTimestamp = new Timestamp(order.createdAt.seconds + 10 * 60, order.createdAt.nanoseconds);
+            buttonLink = `/buy/confirm/${order.id}?type=${order.payment_type}&provider=${order.payment_provider}`;
+            expiryTimestamp = new Date(new Date(order.created_at).getTime() + 10 * 60 * 1000);
         } else if (order.status === 'pending_confirmation') {
             buttonText = "View Order";
             buttonLink = `/order/${order.id}`;
             statusText = "Confirmation";
-            if (order.submittedAt) { 
-                expiryTimestamp = new Timestamp(order.submittedAt.seconds + 30 * 60, order.submittedAt.nanoseconds);
+            if (order.submitted_at) { 
+                 expiryTimestamp = new Date(new Date(order.submitted_at).getTime() + 30 * 60 * 1000);
             }
         } else if (order.status === 'in_applied') {
             buttonText = "View Status";
@@ -205,35 +205,13 @@ export default function HomePage() {
     Autoplay({ delay: 2000, stopOnInteraction: false, playOnInit: true, stopOnMouseEnter: true })
   );
   
-  const { user } = useUser();
-  const firestore = useFirestore();
+  const { user, profile: userProfile } = useSupabaseUser();
+  const supabase = createClient();
   const { toast } = useToast();
 
-  const userProfileRef = React.useMemo(() => {
-    if (!user || !firestore) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [user, firestore]);
-
-  const { data: userProfile } = useDoc(userProfileRef);
-
- const buyOrdersQuery = React.useMemo(() => {
-    if (!user || !firestore) return null;
-    return query(
-        collection(firestore, 'users', user.uid, 'orders'),
-        where('status', 'in', ['pending_payment', 'pending_confirmation', 'in_applied'])
-    );
-  }, [user, firestore]);
-
-  const sellOrdersQuery = React.useMemo(() => {
-    if (!user || !firestore) return null;
-    return query(
-        collection(firestore, 'users', user.uid, 'sellOrders'),
-        where('status', 'in', ['pending', 'partially_filled', 'processing'])
-    );
-  }, [user, firestore]);
-
-  const { data: inProgressBuyOrders, loading: buyOrdersLoading } = useCollection(buyOrdersQuery);
-  const { data: inProgressSellOrders, loading: sellOrdersLoading } = useCollection(sellOrdersQuery);
+  const [inProgressBuyOrders, setInProgressBuyOrders] = useState<any[]>([]);
+  const [inProgressSellOrders, setInProgressSellOrders] = useState<any[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
 
   const carouselImages = [
     "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/IMG_20260311_141545_291.jpg?alt=media&token=515ee5d5-47e8-4d02-887f-5318a98ae4e1",
@@ -241,35 +219,60 @@ export default function HomePage() {
     "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/IMG_20260311_141536_642.jpg?alt=media&token=184c0b41-bb13-4721-bf91-7aa4391eeac3"
   ];
   
-  const ordersLoading = buyOrdersLoading || sellOrdersLoading;
-  const hasInProgressOrders = (inProgressBuyOrders && inProgressBuyOrders.length > 0) || (inProgressSellOrders && inProgressSellOrders.length > 0);
+  const fetchOrders = useCallback(async () => {
+    if (!user) return;
+    setOrdersLoading(true);
+    const [buyRes, sellRes] = await Promise.all([
+      supabase.from('orders').select('*').eq('user_id', user.id).in('status', ['pending_payment', 'pending_confirmation', 'in_applied']),
+      supabase.from('sell_orders').select('*').eq('user_id', user.id).in('status', ['pending', 'partially_filled', 'processing'])
+    ]);
+    
+    setInProgressBuyOrders(buyRes.data || []);
+    setInProgressSellOrders(sellRes.data || []);
+    setOrdersLoading(false);
+  }, [user, supabase]);
+
+  useEffect(() => {
+    fetchOrders();
+
+    const buyOrdersChannel = supabase.channel('public:orders')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${user?.id}` }, fetchOrders)
+      .subscribe();
+
+    const sellOrdersChannel = supabase.channel('public:sell_orders')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sell_orders', filter: `user_id=eq.${user?.id}` }, fetchOrders)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(buyOrdersChannel);
+      supabase.removeChannel(sellOrdersChannel);
+    };
+  }, [user, supabase, fetchOrders]);
+
+  const hasInProgressOrders = inProgressBuyOrders.length > 0 || inProgressSellOrders.length > 0;
 
   const handleOrderExpire = useCallback(async (orderId: string, type: 'buy' | 'sell', status: string) => {
-    if (!firestore || !user) return;
+    if (!user) return;
 
     if (type === 'buy') {
-      const orderRef = doc(firestore, 'users', user.uid, 'orders', orderId);
-      const orderSnap = await getDoc(orderRef);
-      if (!orderSnap.exists()) return;
-      const orderData = orderSnap.data();
+      const { data: currentOrder, error: fetchError } = await supabase.from('orders').select('status').eq('id', orderId).single();
+      
+      if (fetchError || !currentOrder || currentOrder.status !== status) return;
 
-      // Only update if the status hasn't changed by another process/tab
-      if (orderData.status === status) {
-        if (status === 'pending_payment') {
-          await updateDoc(orderRef, {
-            status: 'failed',
-            cancellationReason: 'Order timed out.',
-          });
-          toast({ variant: 'destructive', title: 'Order Timeout' });
-        } else if (status === 'pending_confirmation') {
-          await updateDoc(orderRef, {
-            status: 'in_applied',
-          });
-          toast({ title: 'Order is now In Applied', description: 'Please wait for admin review.' });
-        }
+      if (status === 'pending_payment') {
+        await supabase.from('orders').update({
+          status: 'failed',
+          cancellation_reason: 'Order timed out.',
+        }).eq('id', orderId);
+        toast({ variant: 'destructive', title: 'Order Timeout' });
+      } else if (status === 'pending_confirmation') {
+        await supabase.from('orders').update({
+          status: 'in_applied',
+        }).eq('id', orderId);
+        toast({ title: 'Order is now In Applied', description: 'Please wait for admin review.' });
       }
     }
-  }, [firestore, user, toast]);
+  }, [user, supabase, toast]);
 
 
   return (
@@ -367,7 +370,7 @@ export default function HomePage() {
                             <TabsTrigger value="sell" className="flex-1 rounded-none data-[state=active]:bg-background data-[state=active]:shadow-none">Sell Orders</TabsTrigger>
                         </TabsList>
                         <TabsContent value="buy" className="p-3 space-y-3">
-                           {inProgressBuyOrders && inProgressBuyOrders.length > 0 ? (
+                           {inProgressBuyOrders.length > 0 ? (
                                 inProgressBuyOrders.map((order: any) => (
                                     <InProgressOrderCard key={order.id} order={{...order, type: 'buy'}} onExpire={handleOrderExpire} />
                                 ))
@@ -376,7 +379,7 @@ export default function HomePage() {
                            )}
                         </TabsContent>
                          <TabsContent value="sell" className="p-3 space-y-3">
-                           {inProgressSellOrders && inProgressSellOrders.length > 0 ? (
+                           {inProgressSellOrders.length > 0 ? (
                                 inProgressSellOrders.map((order: any) => (
                                     <InProgressOrderCard key={order.id} order={{...order, type: 'sell'}} onExpire={handleOrderExpire} />
                                 ))
@@ -416,5 +419,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-    

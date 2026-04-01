@@ -8,8 +8,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { useUser, useFirestore, useDoc } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useSupabaseUser } from '@/hooks/use-supabase-user';
 import { Loader } from "@/components/ui/loader";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -144,8 +143,7 @@ const VerificationDialog = ({
 
 
 export default function AddCollectionPage() {
-  const { user, loading: userLoading } = useUser();
-  const firestore = useFirestore();
+  const { user, profile: userProfile, loading: profileLoading } = useSupabaseUser();
   const { toast } = useToast();
 
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
@@ -153,8 +151,6 @@ export default function AddCollectionPage() {
   const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
   const [paymentDetails, setPaymentDetails] = useState<{ qr_id: string; image_url: string } | null>(null);
 
-  const userProfileRef = useMemo(() => (user ? doc(firestore, 'users', user.uid) : null), [user, firestore]);
-  const { data: userProfile, loading: profileLoading } = useDoc<{ paymentMethods?: any[] }>(userProfileRef);
 
   const handleLinkClick = async (method: PaymentMethod) => {
     if (isLoadingPayment) return;
@@ -163,7 +159,7 @@ export default function AddCollectionPage() {
       return;
     }
 
-    if (userProfile?.paymentMethods?.some(pm => pm.name === method.name)) {
+    if (userProfile?.payment_methods?.some((pm: any) => pm.name === method.name)) {
       toast({ title: "Already Linked", description: `Your ${method.name} account is already linked.` });
       return;
     }
@@ -172,11 +168,10 @@ export default function AddCollectionPage() {
     setIsLoadingPayment(true);
 
     try {
-      // Calls the Cloud Function endpoint
       const response = await fetch('/api/create-qr', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.uid, methodName: method.name }),
+        body: JSON.stringify({ userId: user.id, methodName: method.name }),
       });
 
       if (!response.ok) {
@@ -194,7 +189,7 @@ export default function AddCollectionPage() {
     }
   };
 
-  const loading = userLoading || profileLoading;
+  const loading = profileLoading;
 
   return (
     <div className="flex min-h-screen flex-col bg-secondary">

@@ -5,74 +5,12 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Home, History, UserPlus, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Loader } from '@/components/ui/loader';
 import { useLanguage } from '@/context/language-context';
 import { createClient } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import type { User as SupabaseUser } from '@supabase/supabase-js';
-
-// Define a type for the user profile
-type UserProfile = {
-  session_id?: string;
-};
-
-// Custom hook to manage user session
-function useSupabaseUser() {
-  const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const supabase = createClient();
-
-  useEffect(() => {
-    async function getUserAndProfile() {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-
-      if (user) {
-        const { data: userProfile, error } = await supabase
-          .from('users')
-          .select('session_id')
-          .eq('id', user.id)
-          .single();
-
-        if (error) {
-          console.error('Error fetching user profile:', error);
-        } else {
-          setProfile(userProfile);
-        }
-      }
-      setLoading(false);
-    }
-
-    getUserAndProfile();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-      if (event === 'SIGNED_IN' && session?.user) {
-         // on sign in, refetch profile
-        async function fetchProfileOnSignIn() {
-             const { data: userProfile, error } = await supabase
-              .from('users')
-              .select('session_id')
-              .eq('id', session.user.id)
-              .single();
-            if (!error) setProfile(userProfile);
-        }
-        fetchProfileOnSignIn();
-      } else if (event === 'SIGNED_OUT') {
-        setProfile(null);
-      }
-    });
-
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, [supabase]);
-
-  return { user, profile, loading };
-}
+import { useSupabaseUser } from '@/hooks/use-supabase-user';
 
 
 export default function HomeLayout({
@@ -90,7 +28,7 @@ export default function HomeLayout({
 
   useEffect(() => {
     // Session validation logic
-    if (profile && profile.session_id) {
+    if (!loading && profile && profile.session_id) {
       const localSessionId = localStorage.getItem('user-session-id');
       if (localSessionId && localSessionId !== profile.session_id) {
         supabase.auth.signOut().then(() => {
@@ -105,8 +43,8 @@ export default function HomeLayout({
         });
       }
     }
-  }, [profile, router, toast, supabase.auth]);
-
+  }, [profile, loading, router, toast, supabase.auth]);
+  
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -121,6 +59,17 @@ export default function HomeLayout({
   if (!isMounted || loading) {
     return (
       <div className="home-layout md:bg-gray-200">
+        <div className="relative mx-auto flex min-h-screen w-full flex-col items-center justify-center bg-background md:max-w-md md:shadow-lg">
+          <Loader size="md" />
+        </div>
+      </div>
+    );
+  }
+  
+  if (!user) {
+    router.replace('/login');
+    return (
+       <div className="home-layout md:bg-gray-200">
         <div className="relative mx-auto flex min-h-screen w-full flex-col items-center justify-center bg-background md:max-w-md md:shadow-lg">
           <Loader size="md" />
         </div>

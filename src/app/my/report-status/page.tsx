@@ -1,25 +1,25 @@
 
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronLeft, Hourglass, CheckCircle, ClipboardList } from 'lucide-react';
 import Link from 'next/link';
-import { useUser, useFirestore, useCollection } from '@/firebase';
-import { collection, query, where, Timestamp } from 'firebase/firestore';
 import { Loader } from '@/components/ui/loader';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/context/language-context';
+import { useSupabaseUser } from '@/hooks/use-supabase-user';
+import { createClient } from '@/lib/utils';
 
 type Report = {
   id: string;
-  displayOrderId: string;
+  display_order_id: string;
   message: string;
-  createdAt: Timestamp;
+  created_at: string;
   status: 'pending' | 'resolved';
-  caseId: string;
-  resolutionMessage?: string;
+  case_id: string;
+  resolution_message?: string;
 };
 
 const ReportStatusCard = ({ report }: { report: Report }) => {
@@ -28,7 +28,7 @@ const ReportStatusCard = ({ report }: { report: Report }) => {
   return (
     <Card className="bg-white shadow-sm overflow-hidden">
         <CardHeader className="flex flex-row justify-between items-center p-4 border-b">
-           <CardTitle className="text-base">Case ID: <span className="font-mono">{report.caseId}</span></CardTitle>
+           <CardTitle className="text-base">Case ID: <span className="font-mono">{report.case_id}</span></CardTitle>
            <div
               className={cn(
                 'flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold',
@@ -47,15 +47,15 @@ const ReportStatusCard = ({ report }: { report: Report }) => {
         </CardHeader>
         <CardContent className="p-4 space-y-3">
             <div className="flex justify-between items-center text-xs text-muted-foreground">
-                <span className="font-mono">{report.displayOrderId}</span>
-                <span>{report.createdAt.toDate().toLocaleString()}</span>
+                <span className="font-mono">{report.display_order_id}</span>
+                <span>{new Date(report.created_at).toLocaleString()}</span>
             </div>
             <p className="text-sm text-foreground bg-secondary/50 p-3 rounded-md">{report.message}</p>
             
-            {report.status === 'resolved' && report.resolutionMessage && (
+            {report.status === 'resolved' && report.resolution_message && (
                 <div className="p-3 rounded-md bg-blue-50 border border-blue-200 text-blue-800">
                     <h4 className="font-bold text-sm mb-1">Resolution Note:</h4>
-                    <p className="text-sm">{report.resolutionMessage}</p>
+                    <p className="text-sm">{report.resolution_message}</p>
                 </div>
             )}
       </CardContent>
@@ -64,26 +64,32 @@ const ReportStatusCard = ({ report }: { report: Report }) => {
 };
 
 export default function ReportStatusPage() {
-  const { user, loading: authLoading } = useUser();
-  const firestore = useFirestore();
+  const { user, loading: authLoading } = useSupabaseUser();
+  const supabase = createClient();
   const { translations } = useLanguage();
+  const [reports, setReports] = useState<Report[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(true);
 
-  const reportsQuery = useMemo(() => {
-    if (!user || !firestore) return null;
-    // Remove orderBy from query to avoid needing a composite index
-    return query(
-      collection(firestore, 'reports'),
-      where('userId', '==', user.uid)
-    );
-  }, [user, firestore]);
+  useEffect(() => {
+    const fetchReports = async () => {
+        if (!user) {
+            setReportsLoading(false);
+            return;
+        };
+        setReportsLoading(true);
+        const { data, error } = await supabase
+            .from('reports')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
 
-  const { data: unsortedReports, loading: reportsLoading } = useCollection<Report>(reportsQuery);
-
-  // Sort the reports on the client side
-  const reports = useMemo(() => {
-    if (!unsortedReports) return [];
-    return [...unsortedReports].sort((a, b) => b.createdAt.seconds - a.createdAt.seconds);
-  }, [unsortedReports]);
+        if (data) {
+            setReports(data as Report[]);
+        }
+        setReportsLoading(false);
+    }
+    fetchReports();
+  }, [user, supabase]);
 
 
   const loading = authLoading || reportsLoading;

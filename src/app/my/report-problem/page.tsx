@@ -1,18 +1,10 @@
 
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ClipboardList } from 'lucide-react';
 import Link from 'next/link';
-import { useUser, useFirestore, useCollection } from '@/firebase';
-import {
-  collection,
-  query,
-  orderBy,
-  limit,
-  Timestamp,
-} from 'firebase/firestore';
 import {
   Tabs,
   TabsContent,
@@ -29,13 +21,15 @@ import {
 import { Loader } from '@/components/ui/loader';
 import { Card, CardContent } from '@/components/ui/card';
 import { startOfDay, startOfWeek, startOfMonth, isAfter } from 'date-fns';
+import { useSupabaseUser } from '@/hooks/use-supabase-user';
+import { createClient } from '@/lib/utils';
 
 type Order = {
   id: string;
   orderId: string;
   amount: number;
   status: string;
-  createdAt: Timestamp;
+  created_at: string;
 };
 
 type SellOrder = Order;
@@ -52,7 +46,7 @@ const OrderCard = ({
       <CardContent className="p-4 space-y-2">
         <div className="flex justify-between items-center text-xs text-muted-foreground">
           <span className="font-mono">{order.orderId}</span>
-          <span>{order.createdAt.toDate().toLocaleString()}</span>
+          <span>{new Date(order.created_at).toLocaleString()}</span>
         </div>
         <div className="flex justify-between items-center">
           <div>
@@ -85,20 +79,27 @@ const OrderList = ({
   type: 'buy' | 'sell';
   filters: { status: string; time: string };
 }) => {
-  const { user } = useUser();
-  const firestore = useFirestore();
+  const { user } = useSupabaseUser();
+  const supabase = createClient();
+  const [orders, setOrders] = useState<(Order | SellOrder)[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const ordersQuery = useMemo(() => {
-    if (!user || !firestore) return null;
-    const collectionName = type === 'buy' ? 'orders' : 'sellOrders';
-    return query(
-      collection(firestore, 'users', user.uid, collectionName),
-      orderBy('createdAt', 'desc'),
-      limit(100)
-    );
-  }, [user, firestore, type]);
-
-  const { data: orders, loading } = useCollection<Order | SellOrder>(ordersQuery);
+  useEffect(() => {
+    const fetchOrders = async () => {
+        if (!user) {
+            setLoading(false);
+            return;
+        };
+        setLoading(true);
+        const tableName = type === 'buy' ? 'orders' : 'sell_orders';
+        const { data, error } = await supabase.from(tableName).select('*').eq('user_id', user.id).order('created_at', {ascending: false}).limit(100);
+        if (data) {
+            setOrders(data);
+        }
+        setLoading(false);
+    }
+    fetchOrders();
+  }, [user, supabase, type]);
 
   const filteredOrders = useMemo(() => {
     if (!orders) return [];
@@ -120,7 +121,7 @@ const OrderList = ({
     }
 
     return orders.filter((order) => {
-      const createdAtDate = order.createdAt.toDate();
+      const createdAtDate = new Date(order.created_at);
       const isAfterStartDate = filters.time === 'all_time' || isAfter(createdAtDate, startDate);
       if (!isAfterStartDate) return false;
 
@@ -128,7 +129,7 @@ const OrderList = ({
       if (filters.status === 'completed') return order.status === 'completed';
       if (filters.status === 'pending') {
         if (type === 'buy')
-          return ['pending_payment', 'pending_confirmation'].includes(order.status);
+          return ['pending_payment', 'pending_confirmation', 'in_applied'].includes(order.status);
         if (type === 'sell')
           return ['pending', 'partially_filled', 'processing'].includes(order.status);
       }

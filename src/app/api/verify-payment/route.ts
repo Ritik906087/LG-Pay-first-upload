@@ -1,5 +1,5 @@
 import { NextResponse, NextRequest } from 'next/server';
-import { adminDb } from '@/lib/firebase-admin';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -9,19 +9,21 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'QR ID is required.' }, { status: 400 });
   }
 
-  if (!adminDb) {
-    return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
-  }
-
   try {
-    const docRef = adminDb.collection('qr_payments').doc(qrId);
-    const doc = await docRef.get();
+    const { data, error } = await supabaseAdmin
+        .from('qr_payments')
+        .select('*')
+        .eq('id', qrId)
+        .single();
 
-    if (!doc.exists) {
-      return NextResponse.json({ error: 'QR record not found.' }, { status: 404 });
+    if (error) {
+        if(error.code === 'PGRST116') { // Not found
+             return NextResponse.json({ error: 'QR record not found.' }, { status: 404 });
+        }
+        throw error;
     }
 
-    return NextResponse.json(doc.data());
+    return NextResponse.json(data);
   } catch (error: any) {
     console.error('Error verifying payment:', error);
     return NextResponse.json({ error: 'Failed to verify payment status.' }, { status: 500 });

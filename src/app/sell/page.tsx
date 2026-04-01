@@ -17,8 +17,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ChevronLeft, Info, Wallet, Landmark } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useUser, useFirestore, useDoc } from '@/firebase';
-import { doc, addDoc, collection, serverTimestamp, runTransaction } from 'firebase/firestore';
+import { useSupabaseUser } from '@/hooks/use-supabase-user';
+import { createClient } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -33,16 +33,6 @@ type WithdrawalMethod = {
     accountNumber?: string;
     ifscCode?: string;
 }
-
-type UserProfile = {
-  id: string;
-  balance: number;
-  holdBalance: number;
-  numericId: string;
-  phoneNumber: string;
-  paymentMethods?: WithdrawalMethod[];
-};
-
 
 const paymentMethodDetails: { [key: string]: { logo: string; bgColor: string } } = {
   PhonePe: {
@@ -70,20 +60,13 @@ const paymentMethodDetails: { [key: string]: { logo: string; bgColor: string } }
 export default function SellPage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { user } = useUser();
-  const firestore = useFirestore();
+  const { user, profile: userProfile, loading: profileLoading } = useSupabaseUser();
+  const supabase = createClient();
 
   const [amount, setAmount] = useState('');
   const [selectedMethod, setSelectedMethod] = useState<WithdrawalMethod | null>(null);
   const [isAmountValid, setIsAmountValid] = useState(true);
   const [isSelling, setIsSelling] = useState(false);
-
-  const userProfileRef = useMemo(() => {
-    if (!user || !firestore) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [user, firestore]);
-
-  const { data: userProfile, loading: profileLoading } = useDoc<UserProfile>(userProfileRef);
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -117,45 +100,20 @@ export default function SellPage() {
         return;
     }
     
-    if (!user || !firestore || !userProfileRef) return;
+    if (!user) return;
 
     setIsSelling(true);
 
     try {
-        await runTransaction(firestore, async (transaction) => {
-            const userProfileSnap = await transaction.get(userProfileRef);
-            if (!userProfileSnap.exists()) {
-                throw "User profile does not exist!";
-            }
-
-            const profileData = userProfileSnap.data() as UserProfile;
-            const currentBalance = profileData.balance;
-
-            if (currentBalance < sellAmount) {
-                throw "Insufficient balance.";
-            }
-
-            const newBalance = currentBalance - sellAmount;
-            
-            const sellOrdersRef = collection(firestore, 'users', user.uid, 'sellOrders');
-            const newSellOrderRef = doc(sellOrdersRef); // Auto-generate ID
-            
-            const orderId = `LGPAY${Date.now()}`;
-
-            transaction.set(newSellOrderRef, {
-                userId: user.uid,
-                orderId: orderId,
-                amount: sellAmount,
-                remainingAmount: sellAmount, // For P2P matching
-                withdrawalMethod: selectedMethod,
-                status: 'pending',
-                createdAt: serverTimestamp(),
-                userNumericId: profileData.numericId,
-                userPhoneNumber: profileData.phoneNumber
-            });
-
-            transaction.update(userProfileRef, { balance: newBalance });
+        const { error } = await supabase.rpc('create_sell_order', {
+            p_user_id: user.id,
+            p_amount: sellAmount,
+            p_withdrawal_method: selectedMethod,
+            p_user_numeric_id: userProfile.numeric_id,
+            p_user_phone_number: userProfile.phone_number,
         });
+
+        if (error) throw error;
 
         toast({
             title: 'Sell Order Placed!',
@@ -165,7 +123,7 @@ export default function SellPage() {
 
     } catch (error: any) {
         console.error('Sell transaction failed:', error);
-        toast({ variant: 'destructive', title: 'Sell Failed', description: error.toString() });
+        toast({ variant: 'destructive', title: 'Sell Failed', description: error.message || 'An unexpected error occurred.' });
     } finally {
         setIsSelling(false);
     }
@@ -238,12 +196,12 @@ export default function SellPage() {
             <CardContent>
                 {profileLoading ? (
                     <Skeleton className="h-24 w-full" />
-                ) : userProfile?.paymentMethods && userProfile.paymentMethods.length > 0 ? (
+                ) : userProfile?.payment_methods && userProfile.payment_methods.length > 0 ? (
                     <RadioGroup 
                         onValueChange={(value) => setSelectedMethod(JSON.parse(value))}
                         className="space-y-3"
                     >
-                        {userProfile.paymentMethods.map((method, index) => {
+                        {userProfile.payment_methods.map((method: any, index: number) => {
                             const methodType = method.type || (method.upiId ? 'upi' : 'bank');
                             const isUpi = methodType === 'upi';
                             const isBank = methodType === 'bank';

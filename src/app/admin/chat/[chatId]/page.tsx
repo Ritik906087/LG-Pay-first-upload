@@ -3,19 +3,19 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { useDoc, useFirestore } from '@/firebase';
 import { useParams, useRouter } from 'next/navigation';
 import { Clock, Send, Paperclip, X, ChevronLeft } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { doc, updateDoc, Timestamp, serverTimestamp, arrayUnion } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Loader } from '@/components/ui/loader';
+import { createClient } from '@/lib/utils';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 type Attachment = {
   name: string;
@@ -33,21 +33,21 @@ type Message = {
 
 type ChatRequest = {
     id: string;
-    userId?: string;
-    userNumericId?: string;
-    enteredIdentifier: string;
+    user_id?: string;
+    user_numeric_id?: string;
+    entered_identifier: string;
     status: 'pending' | 'active' | 'closed';
-    createdAt: Timestamp;
-    chatHistory: Message[];
-    agentId?: string;
-    agentJoinedAt?: Timestamp;
+    created_at: string;
+    chat_history: Message[];
+    agent_id?: string;
+    agent_joined_at?: string;
 }
 
-const CountdownTimer = ({ expiryTimestamp, className }: { expiryTimestamp: Timestamp, className?: string }) => {
+const CountdownTimer = ({ expiryTimestamp, className }: { expiryTimestamp: string, className?: string }) => {
     const [timeLeft, setTimeLeft] = useState('');
 
     useEffect(() => {
-        const expiryTime = expiryTimestamp.toDate().getTime();
+        const expiryTime = new Date(expiryTimestamp).getTime();
 
         const interval = setInterval(() => {
             const now = new Date().getTime();
@@ -84,7 +84,7 @@ export default function AdminChatPage() {
     const params = useParams();
     const router = useRouter();
     const { toast } = useToast();
-    const firestore = useFirestore();
+    const supabase = createClient();
 
     const chatId = params.chatId as string;
     
@@ -93,9 +93,50 @@ export default function AdminChatPage() {
     const [attachment, setAttachment] = useState<Attachment | null>(null);
     const chatContentRef = useRef<HTMLDivElement>(null);
     const adminFileInputRef = useRef<HTMLInputElement>(null);
+    const [liveRequest, setLiveRequest] = useState<ChatRequest | null>(null);
+    const [loading, setLoading] = useState(true);
+    
+    const channelRef = useRef<RealtimeChannel | null>(null);
 
-    const liveRequestRef = useMemo(() => firestore && chatId ? doc(firestore, 'chatRequests', chatId) : null, [firestore, chatId]);
-    const { data: liveRequest, loading } = useDoc<ChatRequest>(liveRequestRef);
+    useEffect(() => {
+        const fetchChat = async () => {
+            setLoading(true);
+            const { data, error } = await supabase.from('chat_requests').select('*').eq('id', chatId).single();
+            if (error || !data) {
+                toast({ variant: 'destructive', title: 'Error fetching chat' });
+                setLiveRequest(null);
+            } else {
+                setLiveRequest(data as ChatRequest);
+            }
+            setLoading(false);
+        };
+        fetchChat();
+
+        if (channelRef.current) {
+            supabase.removeChannel(channelRef.current);
+        }
+
+        const channel = supabase
+            .channel(`chat_${chatId}`)
+            .on<ChatRequest>(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'chat_requests', filter: `id=eq.${chatId}` },
+                (payload) => {
+                    setLiveRequest(payload.new as ChatRequest);
+                }
+            )
+            .subscribe();
+        
+        channelRef.current = channel;
+
+        return () => {
+            if (channelRef.current) {
+                supabase.removeChannel(channelRef.current);
+            }
+        };
+
+    }, [chatId, supabase, toast]);
+
     
     const isJoined = liveRequest?.status === 'active';
 
@@ -103,13 +144,13 @@ export default function AdminChatPage() {
         if (chatContentRef.current) {
             chatContentRef.current.scrollTop = chatContentRef.current.scrollHeight;
         }
-    }, [liveRequest?.chatHistory]);
+    }, [liveRequest?.chat_history]);
 
     const handleJoinChat = async () => {
-        if (!liveRequestRef) return;
+        if (!liveRequest) return;
         setIsUpdating(true);
         try {
-            await updateDoc(liveRequestRef, { status: 'active', agentId: 'admin', agentJoinedAt: serverTimestamp() });
+            await supabase.from('chat_requests').update({ status: 'active', agent_id: 'admin', agent_joined_at: new Date().toISOString() }).eq('id', liveRequest.id);
             toast({ title: 'Chat Joined!', description: "You can now chat with the user." });
         } catch (e) {
             toast({ variant: 'destructive', title: 'Failed to join chat' });
@@ -119,10 +160,10 @@ export default function AdminChatPage() {
     };
     
     const handleCloseChat = async () => {
-        if (!liveRequestRef) return;
+        if (!liveRequest) return;
         setIsUpdating(true);
         try {
-            await updateDoc(liveRequestRef, { status: 'closed' });
+            await supabase.from('chat_requests').update({ status: 'closed' }).eq('id', liveRequest.id);
             toast({ title: `Chat closed` });
             router.push('/admin/dashboard');
         } catch (e) {
@@ -149,7 +190,7 @@ export default function AdminChatPage() {
     };
     
     const handleAdminSendMessage = async () => {
-        if (!liveRequestRef || (!newMessage.trim() && !attachment)) return;
+        if (!liveRequest || (!newMessage.trim() && !attachment)) return;
         
         const message: Message = {
             text: newMessage.trim(),
@@ -163,9 +204,8 @@ export default function AdminChatPage() {
         }
 
         try {
-            await updateDoc(liveRequestRef, {
-                chatHistory: arrayUnion(message)
-            });
+            const newHistory = [...(liveRequest.chat_history || []), message];
+            await supabase.from('chat_requests').update({ chat_history: newHistory }).eq('id', liveRequest.id);
             setNewMessage('');
             setAttachment(null);
         } catch (e) {
@@ -195,7 +235,7 @@ export default function AdminChatPage() {
         );
     }
     
-    const expiryTimestamp = new Timestamp(liveRequest.createdAt.seconds + 10 * 60, liveRequest.createdAt.nanoseconds);
+    const expiryTimestamp = new Date(new Date(liveRequest.created_at).getTime() + 10 * 60 * 1000).toISOString();
 
     return (
        <div className="flex flex-col h-screen bg-muted/40">
@@ -207,7 +247,7 @@ export default function AdminChatPage() {
                         </Link>
                     </Button>
                     <div className="flex flex-col">
-                        <h1 className="text-lg font-bold">Chat with {liveRequest.userNumericId || liveRequest.enteredIdentifier}</h1>
+                        <h1 className="text-lg font-bold">Chat with {liveRequest.user_numeric_id || liveRequest.entered_identifier}</h1>
                          {isJoined ? (
                             <div className="flex items-center gap-1.5 text-xs text-green-600 font-semibold">
                                 <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
@@ -222,7 +262,7 @@ export default function AdminChatPage() {
            </header>
            
            <ScrollArea className="flex-1 w-full p-4" ref={chatContentRef}>
-               {(liveRequest.chatHistory || []).map((msg, index) => (
+               {(liveRequest.chat_history || []).map((msg, index) => (
                     <div key={index} className={cn("flex items-end gap-2 mb-3", msg.isUser ? "justify-end" : "justify-start")}>
                         {!msg.isUser && (
                             <Avatar className="h-8 w-8">
@@ -258,7 +298,7 @@ export default function AdminChatPage() {
                         </div>
                             {msg.isUser && (
                             <Avatar className="h-8 w-8">
-                                <AvatarFallback>{liveRequest.userNumericId?.charAt(0) ?? 'U'}</AvatarFallback>
+                                <AvatarFallback>{liveRequest.user_numeric_id?.charAt(0) ?? 'U'}</AvatarFallback>
                             </Avatar>
                             )}
                     </div>

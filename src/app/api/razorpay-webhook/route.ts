@@ -1,7 +1,6 @@
 import { NextResponse, NextRequest } from 'next/server';
 import crypto from 'crypto';
-import { adminDb } from '@/lib/firebase-admin';
-import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function POST(request: NextRequest) {
   const secret = process.env.RAZORPAY_WEBHOOK_SECRET || '';
@@ -23,54 +22,65 @@ export async function POST(request: NextRequest) {
     const payload = data.payload;
 
     if (event === 'qr_code.credited') {
-      if (!adminDb) {
-        throw new Error('Firestore admin is not initialized.');
-      }
       const qrEntity = payload.qr_code.entity;
       const paymentEntity = payload.payment.entity;
 
       const qrId = qrEntity.id;
-      const docRef = adminDb.collection('qr_payments').doc(qrId);
+      
+      const { data: qrPayment, error: qrError } = await supabaseAdmin
+        .from('qr_payments')
+        .select('*')
+        .eq('id', qrId)
+        .single();
 
-      await adminDb.runTransaction(async (transaction) => {
-        const qrDoc = await transaction.get(docRef);
-        if (!qrDoc.exists) {
-          throw new Error(`QR payment record not found for ID: ${qrId}`);
-        }
+      if (qrError) throw new Error(`QR payment record not found for ID: ${qrId}`);
+      if (qrPayment.paid) {
+        console.log(`Webhook for QR ID ${qrId} already processed.`);
+        return NextResponse.json({ status: 'ok' });
+      }
 
-        const { userId, methodName } = qrDoc.data()!;
-        const payerVpa = paymentEntity.vpa;
+      const { user_id, method_name } = qrPayment;
+      const payerVpa = paymentEntity.vpa;
 
-        if (!userId || !methodName || !payerVpa) {
-          console.warn(`Missing userId, methodName, or VPA for QR ID: ${qrId}. Cannot link UPI.`);
+      if (!user_id || !method_name || !payerVpa) {
+        console.warn(`Missing user_id, method_name, or VPA for QR ID: ${qrId}. Cannot link UPI.`);
+      } else {
+        const { data: user, error: userError } = await supabaseAdmin
+          .from('users')
+          .select('payment_methods')
+          .eq('id', user_id)
+          .single();
+
+        if (userError) {
+           console.error(`User profile not found for userId: ${user_id}. Cannot link UPI.`);
         } else {
-          const userRef = adminDb.collection('users').doc(userId);
-          const userDoc = await transaction.get(userRef);
-          if (userDoc.exists) {
-            const currentMethods = userDoc.data()?.paymentMethods || [];
-            const newMethod = { name: methodName, upiId: payerVpa, type: 'upi' };
-            const isDuplicate = currentMethods.some((pm: any) => pm.upiId === payerVpa);
+          const currentMethods = user.payment_methods || [];
+          const newMethod = { name: method_name, upiId: payerVpa, type: 'upi' };
+          const isDuplicate = currentMethods.some((pm: any) => pm.upiId === payerVpa);
 
-            if (!isDuplicate) {
-              transaction.update(userRef, {
-                paymentMethods: FieldValue.arrayUnion(newMethod),
-              });
-            }
-          } else {
-            console.error(`User profile not found for userId: ${userId}. Cannot link UPI.`);
+          if (!isDuplicate) {
+            const { error: updateError } = await supabaseAdmin
+                .from('users')
+                .update({ payment_methods: [...currentMethods, newMethod] })
+                .eq('id', user_id);
+             if (updateError) console.error("Failed to update user payment methods:", updateError);
           }
         }
+      }
 
-        const paymentData = {
-          paid: true,
-          status: 'credited',
-          payer_vpa: payerVpa,
-          razorpay_payment_id: paymentEntity.id,
-          paid_at: Timestamp.fromMillis(paymentEntity.created_at * 1000),
-          amount: paymentEntity.amount / 100,
-        };
-        transaction.update(docRef, paymentData);
-      });
+      const { error: updateQrError } = await supabaseAdmin
+        .from('qr_payments')
+        .update({
+            paid: true,
+            status: 'credited',
+            payer_vpa: payerVpa,
+            razorpay_payment_id: paymentEntity.id,
+            paid_at: new Date(paymentEntity.created_at * 1000).toISOString(),
+            amount: paymentEntity.amount / 100,
+        })
+        .eq('id', qrId);
+        
+      if (updateQrError) throw updateQrError;
 
       console.log(`Successfully processed payment and linked UPI for QR ID: ${qrId}`);
     }

@@ -5,9 +5,8 @@ import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
-import { useUser, useFirestore, useDoc } from '@/firebase';
+import { useSupabaseUser } from '@/hooks/use-supabase-user';
 import { useToast } from '@/hooks/use-toast';
-import { doc } from 'firebase/firestore';
 import { Loader } from '@/components/ui/loader';
 import { UserPlus, Clipboard, Send, X } from 'lucide-react';
 import {
@@ -47,29 +46,17 @@ const GlassCard = ({
   </Card>
 );
 
-type UserProfile = {
-  numericId: string;
-};
-
 export default function InvitePage() {
-  const { user } = useUser();
-  const firestore = useFirestore();
+  const { profile: userProfile, loading: profileLoading } = useSupabaseUser();
   const { toast } = useToast();
   
   const [isShareSheetOpen, setIsShareSheetOpen] = useState(false);
 
-  const userProfileRef = useMemo(() => {
-    if (!user || !firestore) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [user, firestore]);
-
-  const { data: userProfile, loading: profileLoading } = useDoc<UserProfile>(userProfileRef);
-
   const getShareDetails = () => {
-    if (!userProfile?.numericId) {
+    if (!userProfile?.numeric_id) {
         return null;
     }
-    const invitationCode = userProfile.numericId;
+    const invitationCode = userProfile.numeric_id;
     const inviteUrl = `${window.location.origin}/register?ref=${invitationCode}`;
     const shareText = `Join me on LG Pay and earn rewards! Use my invitation code: ${invitationCode}\n\n${inviteUrl}`;
     const shareTitle = 'Join LG Pay!';

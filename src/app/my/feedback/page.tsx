@@ -6,49 +6,41 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
-import { useUser, useFirestore, useDoc } from '@/firebase';
-import { addDoc, collection, serverTimestamp, doc } from 'firebase/firestore';
+import { useSupabaseUser } from '@/hooks/use-supabase-user';
+import { createClient } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader } from '@/components/ui/loader';
 import { useRouter } from 'next/navigation';
 
-type UserProfile = {
-  numericId: string;
-};
-
 export default function FeedbackPage() {
   const [message, setMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = useUser();
-  const firestore = useFirestore();
+  const { user, profile: userProfile } = useSupabaseUser();
+  const supabase = createClient();
   const { toast } = useToast();
   const router = useRouter();
-
-  const userProfileRef = useMemo(() => {
-    if (!user || !firestore) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [user, firestore]);
-  const { data: userProfile } = useDoc<UserProfile>(userProfileRef);
 
   const handleSubmit = async () => {
     if (!message.trim()) {
       toast({ variant: 'destructive', title: 'Please enter your feedback.' });
       return;
     }
-    if (!user || !firestore || !userProfile) {
+    if (!user || !userProfile) {
       toast({ variant: 'destructive', title: 'You must be logged in to submit feedback.' });
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await addDoc(collection(firestore, 'feedback'), {
-        userId: user.uid,
-        userNumericId: userProfile.numericId,
+      const { error } = await supabase.from('feedback').insert({
+        user_id: user.id,
+        user_numeric_id: userProfile.numeric_id,
         message: message,
-        createdAt: serverTimestamp(),
       });
+
+      if (error) throw error;
+
       toast({ title: 'Feedback Submitted', description: 'Thank you for your suggestion!' });
       setMessage('');
       router.push('/my');

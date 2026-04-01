@@ -1,23 +1,23 @@
 
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, MessageSquare, Paperclip } from 'lucide-react';
 import Link from 'next/link';
-import { useUser, useFirestore, useCollection, useDoc } from '@/firebase';
-import { collection, query, where, orderBy, Timestamp, doc } from 'firebase/firestore';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
+import Image from 'next/image';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Loader } from '@/components/ui/loader';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { cn } from '@/lib/utils';
-import Image from 'next/image';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import { Loader } from '@/components/ui/loader';
+import { useSupabaseUser } from '@/hooks/use-supabase-user';
+import { createClient } from '@/lib/utils';
 
 type Attachment = {
   name: string;
@@ -36,38 +36,37 @@ type Message = {
 type ChatRequest = {
     id: string;
     status: 'pending' | 'active' | 'closed';
-    createdAt: Timestamp;
-    chatHistory: Message[];
+    created_at: string;
+    chat_history: Message[];
 };
 
 export default function ChatHistoryPage() {
-    const { user, loading: authLoading } = useUser();
-    const firestore = useFirestore();
+    const { user, profile, loading: authLoading } = useSupabaseUser();
+    const supabase = createClient();
+    const [closedChats, setClosedChats] = useState<ChatRequest[]>([]);
+    const [historyLoading, setHistoryLoading] = useState(true);
 
-    const userProfileRef = useMemo(() => {
-        if (!user || !firestore) return null;
-        return doc(firestore, 'users', user.uid);
-      }, [user, firestore]);
-    
-    const { data: userProfile } = useDoc<{ photoURL?: string, displayName?: string }>(userProfileRef);
-
-    const chatHistoryQuery = useMemo(() => {
-        if (!user || !firestore) return null;
-        // The composite query with orderBy requires a custom index.
-        // To avoid this, we fetch based on filters and sort on the client.
-        return query(
-            collection(firestore, 'chatRequests'),
-            where('userId', '==', user.uid),
-            where('status', '==', 'closed')
-        );
-    }, [user, firestore]);
-
-    const { data: unsortedClosedChats, loading: historyLoading } = useCollection<ChatRequest>(chatHistoryQuery);
-
-    const closedChats = useMemo(() => {
-        if (!unsortedClosedChats) return [];
-        return [...unsortedClosedChats].sort((a, b) => b.createdAt.seconds - a.createdAt.seconds);
-    }, [unsortedClosedChats]);
+    useEffect(() => {
+        const fetchHistory = async () => {
+            if (!user) {
+                setHistoryLoading(false);
+                return;
+            }
+            setHistoryLoading(true);
+            const { data, error } = await supabase
+                .from('chat_requests')
+                .select('*')
+                .eq('user_id', user.id)
+                .eq('status', 'closed')
+                .order('created_at', { ascending: false });
+            
+            if (data) {
+                setClosedChats(data);
+            }
+            setHistoryLoading(false);
+        };
+        fetchHistory();
+    }, [user, supabase]);
 
     const loading = authLoading || historyLoading;
 
@@ -100,13 +99,13 @@ export default function ChatHistoryPage() {
                              <AccordionItem key={chat.id} value={chat.id} className="border-none rounded-2xl bg-white shadow-sm overflow-hidden">
                                 <AccordionTrigger className="p-4 text-left hover:no-underline">
                                     <div className="flex flex-col">
-                                        <span className="font-bold">Chat from {chat.createdAt.toDate().toLocaleDateString()}</span>
-                                        <span className="text-xs text-muted-foreground">{chat.createdAt.toDate().toLocaleTimeString()}</span>
+                                        <span className="font-bold">Chat from {new Date(chat.created_at).toLocaleDateString()}</span>
+                                        <span className="text-xs text-muted-foreground">{new Date(chat.created_at).toLocaleTimeString()}</span>
                                     </div>
                                 </AccordionTrigger>
                                 <AccordionContent>
                                     <div className="space-y-4 p-4 border-t max-h-96 overflow-y-auto">
-                                        {chat.chatHistory.map((msg, index) => (
+                                        {chat.chat_history.map((msg, index) => (
                                             <div key={index} className={cn("flex items-end gap-2", msg.isUser ? "justify-end" : "justify-start")}>
                                                 {!msg.isUser && (
                                                     <Avatar className="h-8 w-8">
@@ -138,8 +137,8 @@ export default function ChatHistoryPage() {
                                                 </div>
                                                 {msg.isUser && (
                                                     <Avatar className="h-8 w-8">
-                                                        <AvatarImage src={userProfile?.photoURL} />
-                                                        <AvatarFallback>{userProfile?.displayName?.charAt(0) ?? 'U'}</AvatarFallback>
+                                                        <AvatarImage src={profile?.photo_url} />
+                                                        <AvatarFallback>{profile?.display_name?.charAt(0) ?? 'U'}</AvatarFallback>
                                                     </Avatar>
                                                 )}
                                             </div>

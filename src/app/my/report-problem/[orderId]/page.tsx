@@ -12,11 +12,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { ChevronLeft, Loader, Paperclip } from 'lucide-react';
-import { useUser, useFirestore, useDoc, useStorage } from '@/firebase';
-import { doc, collection, serverTimestamp, Timestamp, setDoc } from 'firebase/firestore';
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useSupabaseUser } from '@/hooks/use-supabase-user';
+import { createClient } from '@/lib/utils';
+import { v4 as uuidv4 } from 'uuid';
 
 const buyProblemTypes = [
   'Deposit Not Credited',
@@ -38,7 +38,7 @@ type Order = {
   orderId: string;
   amount: number;
   status: string;
-  createdAt: Timestamp;
+  created_at: string;
 };
 
 const FileUploadProgress = ({ file, progress }: { file: File | null; progress: number | null }) => {
@@ -65,9 +65,8 @@ function ReportProblemForm() {
   const orderId = params.orderId as string;
   const orderType = searchParams.get('orderType') as 'buy' | 'sell';
 
-  const { user } = useUser();
-  const firestore = useFirestore();
-  const storage = useStorage();
+  const { user, profile: userProfile } = useSupabaseUser();
+  const supabase = createClient();
 
   const [problemType, setProblemType] = useState('');
   const [message, setMessage] = useState('');
@@ -81,19 +80,29 @@ function ReportProblemForm() {
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [charCount, setCharCount] = useState(0);
+  const [order, setOrder] = useState<Order | null>(null);
+  const [orderLoading, setOrderLoading] = useState(true);
 
-  const userProfileRef = useMemo(() => {
-    if (!user || !firestore) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [user, firestore]);
-  const { data: userProfile } = useDoc<{ numericId: string }>(userProfileRef);
+  useEffect(() => {
+    const fetchOrder = async () => {
+        if (!user || !orderId || !orderType) {
+            setOrderLoading(false);
+            return;
+        };
+        setOrderLoading(true);
+        const tableName = orderType === 'buy' ? 'orders' : 'sell_orders';
+        const { data, error } = await supabase.from(tableName).select('*').eq('id', orderId).single();
+        if (error || !data) {
+            toast({ variant: 'destructive', title: 'Could not fetch order details.' });
+            setOrder(null);
+        } else {
+            setOrder(data as Order);
+        }
+        setOrderLoading(false);
+    }
+    fetchOrder();
+  }, [user, orderId, orderType, supabase, toast]);
 
-  const orderRef = useMemo(() => {
-    if (!firestore || !user || !orderId || !orderType) return null;
-    const collectionName = orderType === 'buy' ? 'orders' : 'sellOrders';
-    return doc(firestore, 'users', user.uid, collectionName, orderId);
-  }, [firestore, user, orderId, orderType]);
-  const { data: order, loading: orderLoading } = useDoc<Order>(orderRef);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, fileType: 'screenshot' | 'video' | 'statement') => {
     const file = e.target.files?.[0];
@@ -140,93 +149,75 @@ function ReportProblemForm() {
     }
   };
 
-  const uploadFile = useCallback((file: File, path: string, progressSetter: (p: number) => void): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        if (!storage) {
-            return reject(new Error("Firebase Storage is not initialized."));
-        }
-        const storageRef = ref(storage, path);
-        const uploadTask = uploadBytesResumable(storageRef, file);
+  const uploadFile = useCallback(async (file: File, path: string, progressSetter: (p: number) => void): Promise<string> => {
+        const { data, error } = await supabase.storage
+            .from('reports')
+            .upload(path, file, {
+                cacheControl: '3600',
+                upsert: false
+            });
 
-        uploadTask.on('state_changed',
-            (snapshot) => {
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                progressSetter(progress);
-            },
-            (error) => {
-                console.error('Upload failed:', error);
-                reject(error);
-            },
-            async () => {
-                try {
-                    const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-                    resolve(downloadURL);
-                } catch (error) {
-                    reject(error);
-                }
-            }
-        );
-    });
-  }, [storage]);
+        if (error) throw error;
+        
+        const { data: { publicUrl } } = supabase.storage.from('reports').getPublicUrl(path);
+        return publicUrl;
+  }, [supabase.storage]);
 
   const handleSubmit = async () => {
     if (!problemType) {
         toast({ variant: 'destructive', title: 'Please select a problem type.' });
         return;
     }
-    if (!user || !userProfile || !order || !firestore) {
+    if (!user || !userProfile || !order) {
         toast({ variant: 'destructive', title: 'Error', description: 'Could not load required data. Please try again.' });
         return;
     }
     
     setIsSubmitting(true);
     
-    const newReportRef = doc(collection(firestore, "reports"));
-    const reportId = newReportRef.id;
+    const reportId = uuidv4();
     const caseId = `LGRPT${Date.now()}`;
 
     try {
-        const uploadPromises: Promise<any>[] = [];
         const fileData: { [key: string]: string } = {};
 
-        const addUpload = (file: File | null, type: 'screenshot' | 'video' | 'statement', progressSetter: (p: number) => void) => {
-            if (file) {
-                const extension = file.name.split('.').pop() || 'file';
-                const path = `reports/${user.uid}/${reportId}/${type}.${extension}`;
-                uploadPromises.push(
-                    uploadFile(file, path, progressSetter).then(url => {
-                        fileData[`${type}URL`] = url;
-                    })
-                );
-            }
-        };
+        if (screenshotFile) {
+            const path = `${user.id}/${reportId}/screenshot.${screenshotFile.name.split('.').pop()}`;
+            const url = await uploadFile(screenshotFile, path, setScreenshotProgress);
+            fileData['screenshot_url'] = url;
+        }
+        if (bankStatementFile) {
+            const path = `${user.id}/${reportId}/statement.${bankStatementFile.name.split('.').pop()}`;
+            const url = await uploadFile(bankStatementFile, path, setBankStatementProgress);
+            // Assuming schema has a column for this, if not, add it or merge with description
+        }
+        if (videoFile) {
+            const path = `${user.id}/${reportId}/video.${videoFile.name.split('.').pop()}`;
+            const url = await uploadFile(videoFile, path, setVideoProgress);
+            fileData['video_url'] = url;
+        }
 
-        addUpload(screenshotFile, 'screenshot', setScreenshotProgress);
-        addUpload(bankStatementFile, 'statement', setBankStatementProgress);
-        addUpload(videoFile, 'video', setVideoProgress);
-
-        await Promise.all(uploadPromises);
-
-        await setDoc(newReportRef, {
-            caseId: caseId,
-            userId: user.uid,
-            userNumericId: userProfile.numericId,
-            orderId: order.id,
-            displayOrderId: order.orderId,
-            orderType: orderType,
-            problemType: problemType,
+        const { error: insertError } = await supabase.from('reports').insert({
+            case_id: caseId,
+            user_id: user.id,
+            user_numeric_id: userProfile.numeric_id,
+            order_id: order.id,
+            display_order_id: order.orderId,
+            order_type: orderType,
+            problem_type: problemType,
             message: message,
             ...fileData,
-            createdAt: serverTimestamp(),
             status: 'pending',
         });
+        
+        if(insertError) throw insertError;
 
         toast({ title: 'Report Submitted', description: 'We will review your issue shortly.' });
         router.push('/my/report-status');
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error submitting report:", error);
-        toast({ variant: 'destructive', title: 'Submission Failed', description: 'An error occurred. Please try again.'});
+        toast({ variant: 'destructive', title: 'Submission Failed', description: error.message || 'An error occurred. Please try again.'});
         setIsSubmitting(false); // Only set to false on error, success navigates away
     }
   };
@@ -271,7 +262,7 @@ function ReportProblemForm() {
                 </div>
                  <div className="flex justify-between">
                     <span>Date:</span>
-                    <span>{order?.createdAt.toDate().toLocaleString()}</span>
+                    <span>{order ? new Date(order.created_at).toLocaleString() : '...'}</span>
                 </div>
             </CardContent>
         </Card>

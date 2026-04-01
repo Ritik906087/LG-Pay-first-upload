@@ -7,14 +7,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ChevronLeft, Plus, Wallet } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import { useUser, useFirestore, useDoc } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useSupabaseUser } from '@/hooks/use-supabase-user';
 import { Loader } from "@/components/ui/loader";
 import { useLanguage } from "@/context/language-context";
 
 type LinkedPaymentMethod = {
   name: string;
   upiId: string;
+  type: 'upi' | 'bank';
+  bankName?: string;
+  accountNumber?: string;
 };
 
 const paymentMethodDetails: { [key: string]: { logo: string; bgColor: string } } = {
@@ -26,18 +28,10 @@ const paymentMethodDetails: { [key: string]: { logo: string; bgColor: string } }
 };
 
 export default function CollectionPage() {
-  const { user } = useUser();
-  const firestore = useFirestore();
+  const { profile: userProfile, loading: profileLoading } = useSupabaseUser();
   const { translations } = useLanguage();
 
-  const userProfileRef = useMemo(() => {
-    if (!user || !firestore) return null;
-    return doc(firestore, 'users', user.uid);
-  }, [user, firestore]);
-
-  const { data: userProfile, loading: profileLoading } = useDoc<{ paymentMethods?: LinkedPaymentMethod[] }>(userProfileRef);
-
-  const linkedMethods = userProfile?.paymentMethods || [];
+  const linkedMethods = userProfile?.payment_methods || [];
 
   return (
     <div className="flex min-h-screen flex-col bg-secondary">
@@ -58,12 +52,12 @@ export default function CollectionPage() {
             </div>
         ) : linkedMethods.length > 0 ? (
             <div className="space-y-3">
-              {linkedMethods.map((method) => {
+              {linkedMethods.map((method: LinkedPaymentMethod, index) => {
                 const details = paymentMethodDetails[method.name];
                 if (!details) return null;
                 return (
                   <div
-                    key={method.upiId}
+                    key={method.upiId || index}
                     className={`flex h-20 w-full items-center justify-between gap-4 rounded-xl px-4 py-2 text-white shadow-md ${details.bgColor}`}
                   >
                     <div className="flex items-center gap-4">

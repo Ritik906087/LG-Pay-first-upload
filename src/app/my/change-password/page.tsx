@@ -11,17 +11,19 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useUser } from '@/firebase';
-import { getAuth, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/context/language-context';
+import { createClient } from '@/lib/utils';
+import { useSupabaseUser } from '@/hooks/use-supabase-user';
+
 
 export default function ChangePasswordPage() {
-  const { user } = useUser();
+  const { user } = useSupabaseUser();
   const { toast } = useToast();
   const router = useRouter();
   const { translations } = useLanguage();
+  const supabase = createClient();
 
   const [isLoading, setIsLoading] = useState(false);
   const [showOldPassword, setShowOldPassword] = useState(false);
@@ -48,10 +50,8 @@ export default function ChangePasswordPage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    const auth = getAuth();
-    const currentUser = auth.currentUser;
-
-    if (!currentUser || !currentUser.email) {
+    
+    if (!user || !user.email) {
       toast({
         variant: "destructive",
         title: "Authentication Error",
@@ -61,35 +61,44 @@ export default function ChangePasswordPage() {
       return;
     }
 
-    const credential = EmailAuthProvider.credential(currentUser.email, values.oldPassword);
+    // 1. Verify old password by trying to sign in
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: values.oldPassword,
+    });
 
-    try {
-      await reauthenticateWithCredential(currentUser, credential);
-      await updatePassword(currentUser, values.newPassword);
+    if (signInError) {
+        toast({
+            variant: "destructive",
+            title: translations.passwordUpdateFailedTitle,
+            description: translations.oldPasswordIncorrect,
+        });
+        form.setError("oldPassword", { message: translations.oldPasswordIncorrect });
+        setIsLoading(false);
+        return;
+    }
+    
+    // 2. If old password is correct, update to new password
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: values.newPassword
+    });
+
+    if (updateError) {
+      console.error("Password change error:", updateError);
       toast({
+          variant: "destructive",
+          title: translations.passwordUpdateFailedTitle,
+          description: updateError.message,
+      });
+    } else {
+       toast({
         title: translations.passwordUpdateSuccessTitle,
         description: translations.passwordUpdateSuccessMessage,
       });
       router.push('/my');
-    } catch (error: any) {
-      console.error("Password change error:", error);
-      if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-        toast({
-          variant: "destructive",
-          title: translations.passwordUpdateFailedTitle,
-          description: translations.oldPasswordIncorrect,
-        });
-        form.setError("oldPassword", { message: translations.oldPasswordIncorrect });
-      } else {
-        toast({
-          variant: "destructive",
-          title: translations.passwordUpdateFailedTitle,
-          description: error.message,
-        });
-      }
-    } finally {
-      setIsLoading(false);
     }
+
+    setIsLoading(false);
   }
 
   return (

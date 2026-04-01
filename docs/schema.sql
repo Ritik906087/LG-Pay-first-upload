@@ -1,197 +1,247 @@
-
--- SQL schema for LG Pay on Supabase
-
--- Drop existing policies to avoid conflicts
-DROP POLICY IF EXISTS "Users can view their own profile." ON public.users;
-DROP POLICY IF EXISTS "Users can update their own profile." ON public.users;
-DROP POLICY IF EXISTS "Users can insert their own profile." ON public.users;
-DROP POLICY IF EXISTS "Users can manage their own orders." ON public.orders;
-DROP POLICY IF EXISTS "Users can manage their own sell orders." ON public.sell_orders;
-DROP POLICY IF EXISTS "Users can view their own transactions." ON public.transactions;
-DROP POLICY IF EXISTS "Authenticated users can view payment methods." ON public.payment_methods;
-DROP POLICY IF EXISTS "Users can manage their own chat requests." ON public.chat_requests;
-DROP POLICY IF EXISTS "Anyone can create a new chat request." ON public.chat_requests;
-DROP POLICY IF EXISTS "Users can manage their own reports." ON public.reports;
-DROP POLICY IF EXISTS "Authenticated users can submit feedback." ON public.feedback;
-DROP POLICY IF EXISTS "Users can manage their own daily rewards." ON public.daily_rewards;
-
-
--- USERS Table
-CREATE TABLE IF NOT EXISTS public.users (
-  id uuid NOT NULL PRIMARY KEY,
-  numeric_id text NOT NULL UNIQUE,
-  email text UNIQUE,
-  phone_number text,
-  display_name text,
-  photo_url text,
-  balance numeric DEFAULT 0,
-  hold_balance numeric DEFAULT 0,
-  created_at timestamptz DEFAULT now(),
-  inviter_uid uuid,
-  claimed_user_rewards text[],
-  payment_methods jsonb,
-  session_id text,
-  CONSTRAINT users_id_fkey FOREIGN KEY (id) REFERENCES auth.users (id) ON DELETE CASCADE
+-- Create the users table
+CREATE TABLE users (
+    id UUID PRIMARY KEY REFERENCES auth.users(id),
+    numeric_id TEXT UNIQUE,
+    email TEXT UNIQUE,
+    phone_number TEXT,
+    display_name TEXT,
+    photo_url TEXT,
+    balance NUMERIC(10, 2) DEFAULT 0.00,
+    hold_balance NUMERIC(10, 2) DEFAULT 0.00,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    inviter_uid UUID REFERENCES users(id),
+    claimed_user_rewards TEXT[],
+    payment_methods JSONB,
+    session_id TEXT
 );
-ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can view their own profile." ON public.users
-  FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "Users can update their own profile." ON public.users
-  FOR UPDATE USING (auth.uid() = id);
-CREATE POLICY "Users can insert their own profile." ON public.users
-  FOR INSERT WITH CHECK (auth.uid() = id);
 
-
--- ORDERS Table
-CREATE TABLE IF NOT EXISTS public.orders (
-  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id uuid NOT NULL REFERENCES public.users(id),
-  order_id text NOT NULL UNIQUE,
-  amount numeric NOT NULL,
-  base_amount numeric,
-  bonus_percentage numeric,
-  payment_type text,
-  payment_provider text,
-  admin_payment_method_id uuid,
-  seller_id uuid,
-  seller_withdrawal_details jsonb,
-  status text NOT NULL,
-  cancellation_reason text,
-  rejection_reason text,
-  utr text,
-  screenshot_url text,
-  created_at timestamptz DEFAULT now(),
-  submitted_at timestamptz,
-  verification_result text,
-  matched_sell_order_path text,
-  ocr_verified boolean,
-  ocr_utr_match boolean,
-  ocr_amount_match boolean,
-  ocr_upi_match boolean,
-  ocr_bank_account_match boolean
+-- Create the orders table
+CREATE TABLE orders (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID REFERENCES users(id),
+    order_id TEXT UNIQUE,
+    amount NUMERIC(10, 2),
+    base_amount NUMERIC(10, 2),
+    bonus_percentage NUMERIC(5, 2),
+    payment_type TEXT,
+    payment_provider TEXT,
+    status TEXT,
+    utr TEXT,
+    screenshot_url TEXT,
+    cancellation_reason TEXT,
+    rejection_reason TEXT,
+    verification_result TEXT,
+    admin_payment_method_id INTEGER,
+    seller_id UUID,
+    seller_withdrawal_details JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    submitted_at TIMESTAMPTZ,
+    matched_sell_order_path TEXT,
+    ocr_verified BOOLEAN,
+    ocr_utr_match BOOLEAN,
+    ocr_amount_match BOOLEAN,
+    ocr_upi_match BOOLEAN,
+    ocr_bank_account_match BOOLEAN
 );
-ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can manage their own orders." ON public.orders
-  FOR ALL USING (auth.uid() = user_id);
 
-
--- SELL ORDERS Table
-CREATE TABLE IF NOT EXISTS public.sell_orders (
-  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id uuid NOT NULL REFERENCES public.users(id),
-  order_id text NOT NULL UNIQUE,
-  amount numeric NOT NULL,
-  remaining_amount numeric,
-  withdrawal_method jsonb NOT NULL,
-  status text NOT NULL,
-  matched_buy_orders jsonb,
-  utr text,
-  failure_reason text,
-  created_at timestamptz DEFAULT now(),
-  completed_at timestamptz
+-- Create the sell_orders table
+CREATE TABLE sell_orders (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID REFERENCES users(id),
+    order_id TEXT UNIQUE,
+    amount NUMERIC(10, 2),
+    remaining_amount NUMERIC(10, 2),
+    status TEXT,
+    withdrawal_method JSONB,
+    matched_buy_orders JSONB,
+    utr TEXT,
+    failure_reason TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    completed_at TIMESTAMPTZ,
+    user_numeric_id TEXT,
+    user_phone_number TEXT
 );
-ALTER TABLE public.sell_orders ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can manage their own sell orders." ON public.sell_orders
-  FOR ALL USING (auth.uid() = user_id);
 
-
--- TRANSACTIONS Table
-CREATE TABLE IF NOT EXISTS public.transactions (
-  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id uuid NOT NULL REFERENCES public.users(id),
-  order_id text,
-  amount numeric NOT NULL,
-  description text,
-  type text,
-  created_at timestamptz DEFAULT now()
+-- Create the transactions table
+CREATE TABLE transactions (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID REFERENCES users(id),
+    order_id TEXT,
+    amount NUMERIC(10, 2),
+    description TEXT,
+    type TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
-ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can view their own transactions." ON public.transactions
-  FOR SELECT USING (auth.uid() = user_id);
--- Note: Inserts should be done with service_role key from the server.
 
-
--- PAYMENT METHODS Table (Admin)
-CREATE TABLE IF NOT EXISTS public.payment_methods (
-  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  type text NOT NULL,
-  bank_name text,
-  account_holder_name text,
-  account_number text,
-  ifsc_code text,
-  upi_holder_name text,
-  upi_id text,
-  usdt_wallet_address text
+-- Create the payment_methods table (for admin)
+CREATE TABLE payment_methods (
+    id SERIAL PRIMARY KEY,
+    type TEXT,
+    bank_name TEXT,
+    account_holder_name TEXT,
+    account_number TEXT,
+    ifsc_code TEXT,
+    upi_holder_name TEXT,
+    upi_id TEXT,
+    usdt_wallet_address TEXT
 );
-ALTER TABLE public.payment_methods ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Authenticated users can view payment methods." ON public.payment_methods
-  FOR SELECT USING (auth.role() = 'authenticated');
--- Note: Admin should manage this table with service_role key.
 
-
--- CHAT REQUESTS Table
-CREATE TABLE IF NOT EXISTS public.chat_requests (
-    id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id uuid REFERENCES public.users(id),
-    user_numeric_id text,
-    entered_identifier text NOT NULL,
-    status text NOT NULL,
-    created_at timestamptz DEFAULT now(),
-    chat_history jsonb,
-    agent_id text,
-    agent_joined_at timestamptz
+-- Create chat_requests table
+CREATE TABLE chat_requests (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID REFERENCES users(id),
+    user_numeric_id TEXT,
+    entered_identifier TEXT,
+    status TEXT DEFAULT 'pending',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    chat_history JSONB,
+    agent_id TEXT,
+    agent_joined_at TIMESTAMPTZ
 );
-ALTER TABLE public.chat_requests ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can manage their own chat requests." ON public.chat_requests
-  FOR ALL USING (auth.uid() = user_id);
-CREATE POLICY "Anyone can create a new chat request." ON public.chat_requests
-  FOR INSERT WITH CHECK (true);
 
-
--- REPORTS Table
-CREATE TABLE IF NOT EXISTS public.reports (
-  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id uuid NOT NULL REFERENCES public.users(id),
-  case_id text NOT NULL,
-  user_numeric_id text,
-  order_id text NOT NULL,
-  display_order_id text,
-  order_type text,
-  problem_type text NOT NULL,
-  message text,
-  screenshot_url text,
-  video_url text,
-  created_at timestamptz DEFAULT now(),
-  status text,
-  resolution_message text
+-- Create reports table
+CREATE TABLE reports (
+    id BIGSERIAL PRIMARY KEY,
+    case_id TEXT UNIQUE,
+    user_id UUID REFERENCES users(id),
+    user_numeric_id TEXT,
+    order_id TEXT,
+    display_order_id TEXT,
+    order_type TEXT,
+    problem_type TEXT,
+    message TEXT,
+    screenshot_url TEXT,
+    video_url TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    status TEXT DEFAULT 'pending',
+    resolution_message TEXT
 );
-ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can manage their own reports." ON public.reports
-  FOR ALL USING (auth.uid() = user_id);
 
-
--- FEEDBACK Table
-CREATE TABLE IF NOT EXISTS public.feedback (
-  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id uuid NOT NULL REFERENCES public.users(id),
-  user_numeric_id text,
-  message text NOT NULL,
-  created_at timestamptz DEFAULT now()
+-- Create feedback table
+CREATE TABLE feedback (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID REFERENCES users(id),
+    user_numeric_id TEXT,
+    message TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
-ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Authenticated users can submit feedback." ON public.feedback
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
--- Note: Only admin should be able to read feedback, using service_role key.
 
-
--- DAILY REWARDS Table
-CREATE TABLE IF NOT EXISTS public.daily_rewards (
-  id uuid NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id uuid NOT NULL REFERENCES public.users(id),
-  date date NOT NULL,
-  claimed_task_ids text[],
-  UNIQUE (user_id, date)
+-- Create qr_payments table
+CREATE TABLE qr_payments (
+    id TEXT PRIMARY KEY,
+    status TEXT,
+    created_at TIMESTAMPTZ,
+    paid BOOLEAN DEFAULT false,
+    user_id UUID REFERENCES users(id),
+    method_name TEXT,
+    payer_vpa TEXT,
+    razorpay_payment_id TEXT,
+    paid_at TIMESTAMPTZ,
+    amount NUMERIC(10, 2)
 );
-ALTER TABLE public.daily_rewards ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can manage their own daily rewards." ON public.daily_rewards
-  FOR ALL USING (auth.uid() = user_id);
+
+-- Row Level Security (RLS) Policies
+
+-- Enable RLS for all tables
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sell_orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payment_methods ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE feedback ENABLE ROW LEVEL SECURITY;
+ALTER TABLE qr_payments ENABLE ROW LEVEL SECURITY;
+
+
+-- Policies for 'users' table
+DROP POLICY IF EXISTS "Users can view their own profile." ON users;
+CREATE POLICY "Users can view their own profile." ON users FOR SELECT USING (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Users can update their own profile." ON users;
+CREATE POLICY "Users can update their own profile." ON users FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Public user data is viewable by everyone." ON users;
+-- Allow service_role to bypass RLS for admin operations. Public users can be read by anyone for invite lookups.
+CREATE POLICY "Public user data is viewable by everyone." ON users FOR SELECT USING (true);
+
+
+-- Policies for 'orders' table
+DROP POLICY IF EXISTS "Users can view their own orders." ON orders;
+CREATE POLICY "Users can view their own orders." ON orders FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can create their own orders." ON orders;
+CREATE POLICY "Users can create their own orders." ON orders FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update their own pending orders." ON orders;
+CREATE POLICY "Users can update their own pending orders." ON orders FOR UPDATE USING (auth.uid() = user_id AND status = 'pending_payment') WITH CHECK (auth.uid() = user_id);
+
+-- Policies for 'sell_orders' table
+DROP POLICY IF EXISTS "Users can view their own sell orders." ON sell_orders;
+CREATE POLICY "Users can view their own sell orders." ON sell_orders FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can create their own sell orders." ON sell_orders;
+CREATE POLICY "Users can create their own sell orders." ON sell_orders FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can cancel their own pending sell orders." ON sell_orders;
+CREATE POLICY "Users can cancel their own pending sell orders." ON sell_orders FOR UPDATE USING (auth.uid() = user_id AND status = 'pending') WITH CHECK (auth.uid() = user_id);
+
+
+-- Policies for 'transactions' table
+DROP POLICY IF EXISTS "Users can view their own transactions." ON transactions;
+CREATE POLICY "Users can view their own transactions." ON transactions FOR SELECT USING (auth.uid() = user_id);
+
+-- Policies for 'payment_methods' (Admin methods)
+DROP POLICY IF EXISTS "Authenticated users can view payment methods." ON payment_methods;
+CREATE POLICY "Authenticated users can view payment methods." ON payment_methods FOR SELECT USING (auth.role() = 'authenticated');
+
+-- Policies for 'chat_requests'
+DROP POLICY IF EXISTS "Anyone can create a chat request." ON chat_requests;
+CREATE POLICY "Anyone can create a chat request." ON chat_requests FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Users can view their own chat requests." ON chat_requests;
+CREATE POLICY "Users can view their own chat requests." ON chat_requests FOR SELECT USING (auth.uid() = user_id);
+
+-- Policies for 'reports'
+DROP POLICY IF EXISTS "Users can create their own reports." ON reports;
+CREATE POLICY "Users can create their own reports." ON reports FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can view their own reports." ON reports;
+CREATE POLICY "Users can view their own reports." ON reports FOR SELECT USING (auth.uid() = user_id);
+
+-- Policies for 'feedback'
+DROP POLICY IF EXISTS "Authenticated users can submit feedback." ON feedback;
+CREATE POLICY "Authenticated users can submit feedback." ON feedback FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+-- Policies for 'qr_payments'
+DROP POLICY IF EXISTS "Users can view their own QR payments." ON qr_payments;
+CREATE POLICY "Users can view their own QR payments." ON qr_payments FOR SELECT USING (auth.uid() = user_id);
+
+-- Allow admin (service_role) to access all tables
+-- This is implicit as service_role bypasses RLS, but it's good to be explicit.
+DROP POLICY IF EXISTS "Enable all access for service_role on users" ON users;
+CREATE POLICY "Enable all access for service_role on users" ON users FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Enable all access for service_role on orders" ON orders;
+CREATE POLICY "Enable all access for service_role on orders" ON orders FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Enable all access for service_role on sell_orders" ON sell_orders;
+CREATE POLICY "Enable all access for service_role on sell_orders" ON sell_orders FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Enable all access for service_role on transactions" ON transactions;
+CREATE POLICY "Enable all access for service_role on transactions" ON transactions FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Enable all access for service_role on payment_methods" ON payment_methods;
+CREATE POLICY "Enable all access for service_role on payment_methods" ON payment_methods FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Enable all access for service_role on chat_requests" ON chat_requests;
+CREATE POLICY "Enable all access for service_role on chat_requests" ON chat_requests FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Enable all access for service_role on reports" ON reports;
+CREATE POLICY "Enable all access for service_role on reports" ON reports FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Enable all access for service_role on feedback" ON feedback;
+CREATE POLICY "Enable all access for service_role on feedback" ON feedback FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Enable all access for service_role on qr_payments" ON qr_payments;
+CREATE POLICY "Enable all access for service_role on qr_payments" ON qr_payments FOR ALL USING (true) WITH CHECK (true);

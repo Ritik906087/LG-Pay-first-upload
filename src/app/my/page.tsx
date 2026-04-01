@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -21,7 +22,6 @@ import {
 import {
   ChevronRight,
   Copy,
-  Star,
   Lock,
   ScrollText,
   Settings,
@@ -44,23 +44,15 @@ import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLanguage } from '@/context/language-context';
 import { createClient } from '@/lib/utils';
-import type { User as SupabaseUser } from '@supabase/supabase-js';
+import { useSupabaseUser } from '@/hooks/use-supabase-user';
 
 const defaultAvatarUrl = "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/LG%20PAY%20AVATAR.png?alt=media&token=707ce79d-15fa-4e58-9d1d-a7d774cfe5ec";
-
-type UserProfile = {
-  display_name: string;
-  photo_url?: string;
-  balance: number;
-  hold_balance: number;
-  numeric_id: string;
-};
 
 const GlassCard = ({
   children,
@@ -85,28 +77,8 @@ export default function MyPage() {
   const [currency, setCurrency] = useState<'LGB' | 'INR'>('LGB');
   const { language, setLanguage, translations } = useLanguage();
   const supabase = createClient();
-
-  const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function getUserData() {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      setUser(authUser);
-      if (authUser) {
-        const { data, error } = await supabase.from('users').select('*').eq('id', authUser.id).single();
-        if (error) {
-          console.error('Error fetching profile:', error);
-          toast({ variant: 'destructive', title: 'Could not load profile.' });
-        } else {
-          setUserProfile(data);
-        }
-      }
-      setLoading(false);
-    }
-    getUserData();
-  }, [supabase, toast]);
+  const { profile: userProfile, loading: profileLoading } = useSupabaseUser();
+  
 
   const actionItems = [
     { icon: Wallet, label: translations.collection, href: "/my/collection" },
@@ -139,7 +111,6 @@ export default function MyPage() {
     }
   };
   
-  const profileLoading = loading;
   const showNewUserRewardButton = !profileLoading;
 
 

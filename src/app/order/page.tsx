@@ -18,8 +18,8 @@ import { Copy, ChevronLeft, ClipboardList, History } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
-import { useUser, useFirestore, useCollection } from '@/firebase';
-import { collection, query, where, Timestamp, orderBy, limit } from 'firebase/firestore';
+import { useSupabaseUser } from '@/hooks/use-supabase-user';
+import { createClient } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader } from '@/components/ui/loader';
 import { Button } from '@/components/ui/button';
@@ -32,19 +32,19 @@ type Order = {
   amount: number;
   status: 'pending_payment' | 'pending_confirmation' | 'in_applied' | 'completed' | 'cancelled' | 'failed';
   utr?: string;
-  createdAt: Timestamp;
-  cancellationReason?: string;
+  created_at: string;
+  cancellation_reason?: string;
 };
 
 type SellOrder = {
   id: string;
   orderId: string;
   amount: number;
-  remainingAmount: number;
+  remaining_amount: number;
   status: 'pending' | 'partially_filled' | 'processing' | 'completed' | 'failed';
   utr?: string;
-  createdAt: Timestamp;
-  failureReason?: string;
+  created_at: string;
+  failure_reason?: string;
 };
 
 const BuyTransactionCard = React.memo(({ transaction }: { transaction: Order }) => {
@@ -56,7 +56,7 @@ const BuyTransactionCard = React.memo(({ transaction }: { transaction: Order }) 
     });
   };
 
-  const isTimeout = (transaction.status === 'failed' || transaction.status === 'cancelled') && transaction.cancellationReason && (transaction.cancellationReason.includes('timed out'));
+  const isTimeout = (transaction.status === 'failed' || transaction.status === 'cancelled') && transaction.cancellation_reason && (transaction.cancellation_reason.includes('timed out'));
 
   const statusConfig = {
       completed: { style: "bg-green-100 text-green-800", text: "Completed" },
@@ -96,7 +96,7 @@ const BuyTransactionCard = React.memo(({ transaction }: { transaction: Order }) 
           )}
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground">Time</span>
-            <span className="font-mono text-muted-foreground text-xs">{transaction.createdAt.toDate().toLocaleString()}</span>
+            <span className="font-mono text-muted-foreground text-xs">{new Date(transaction.created_at).toLocaleString()}</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground">Order Number</span>
@@ -121,7 +121,7 @@ const SellTransactionCard = React.memo(({ transaction }: { transaction: SellOrde
         });
     };
 
-    const isTimeout = transaction.status === 'failed' && transaction.failureReason && (transaction.failureReason.includes('expired') || transaction.failureReason.includes('timed out'));
+    const isTimeout = transaction.status === 'failed' && transaction.failure_reason && (transaction.failure_reason.includes('expired') || transaction.failure_reason.includes('timed out'));
 
     const statusConfig = {
       completed: { style: "bg-green-100 text-green-800", text: "Completed" },
@@ -132,7 +132,7 @@ const SellTransactionCard = React.memo(({ transaction }: { transaction: SellOrde
     }
     const currentStatus = statusConfig[transaction.status] || { style: "bg-gray-100 text-gray-800", text: transaction.status };
     
-    const progress = transaction.amount > 0 ? ((transaction.amount - transaction.remainingAmount) / transaction.amount) * 100 : 0;
+    const progress = transaction.amount > 0 ? ((transaction.amount - transaction.remaining_amount) / transaction.amount) * 100 : 0;
 
     return (
         <Link href={`/order/sell/${transaction.id}`} passHref>
@@ -159,7 +159,7 @@ const SellTransactionCard = React.memo(({ transaction }: { transaction: SellOrde
                 </div>
                 <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Time</span>
-                    <span className="font-mono text-muted-foreground text-xs">{transaction.createdAt.toDate().toLocaleString()}</span>
+                    <span className="font-mono text-muted-foreground text-xs">{new Date(transaction.created_at).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Order Number</span>
@@ -213,32 +213,30 @@ const TransactionList = ({ orders, loading, type }: { orders: any[], loading: bo
 };
 
 export default function OrderHistoryPage() {
-  const { user } = useUser();
-  const firestore = useFirestore();
+  const { user } = useSupabaseUser();
+  const supabase = createClient();
   const [activeTab, setActiveTab] = useState('buy');
   const [statusFilter, setStatusFilter] = useState('all');
   const [timeFilter, setTimeFilter] = useState('all_time');
-
-  const buyOrdersQuery = useMemo(() => {
-    if (!user || !firestore) return null;
-    return query(
-      collection(firestore, 'users', user.uid, 'orders'),
-      orderBy('createdAt', 'desc'),
-      limit(50)
-    );
-  }, [user, firestore]);
   
-  const sellOrdersQuery = useMemo(() => {
-    if (!user || !firestore) return null;
-    return query(
-        collection(firestore, 'users', user.uid, 'sellOrders'),
-        orderBy('createdAt', 'desc'),
-        limit(50)
-    );
-  }, [user, firestore]);
+  const [buyOrders, setBuyOrders] = useState<Order[]>([]);
+  const [sellOrders, setSellOrders] = useState<SellOrder[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const { data: buyOrders, loading: buyLoading } = useCollection<Order>(buyOrdersQuery);
-  const { data: sellOrders, loading: sellLoading } = useCollection<SellOrder>(sellOrdersQuery);
+  React.useEffect(() => {
+    const fetchOrders = async () => {
+      if (!user) return;
+      setLoading(true);
+      const [buyRes, sellRes] = await Promise.all([
+        supabase.from('orders').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50),
+        supabase.from('sell_orders').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50)
+      ]);
+      setBuyOrders(buyRes.data as Order[] || []);
+      setSellOrders(sellRes.data as SellOrder[] || []);
+      setLoading(false);
+    };
+    fetchOrders();
+  }, [user, supabase]);
 
   const filteredBuyOrders = useMemo(() => {
     if (!buyOrders) return [];
@@ -260,7 +258,7 @@ export default function OrderHistoryPage() {
     }
 
     return buyOrders.filter(order => {
-      const createdAtDate = order.createdAt.toDate();
+      const createdAtDate = new Date(order.created_at);
       const isAfterStartDate = timeFilter === 'all_time' || isAfter(createdAtDate, startDate);
       if (!isAfterStartDate) return false;
 
@@ -293,7 +291,7 @@ export default function OrderHistoryPage() {
     }
 
     return sellOrders.filter(order => {
-      const createdAtDate = order.createdAt.toDate();
+      const createdAtDate = new Date(order.created_at);
       const isAfterStartDate = timeFilter === 'all_time' || isAfter(createdAtDate, startDate);
       if (!isAfterStartDate) return false;
 
@@ -305,8 +303,6 @@ export default function OrderHistoryPage() {
       return true;
     });
   }, [sellOrders, statusFilter, timeFilter]);
-
-  const loading = buyLoading || sellLoading;
   
   return (
     <div className="text-foreground min-h-screen">

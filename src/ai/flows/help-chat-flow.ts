@@ -2,55 +2,70 @@
 /**
  * @fileOverview A service to handle chat requests.
  *
- * - escalateToHuman - Creates a new human agent chat request in Firestore.
+ * - escalateToHuman - Creates a new human agent chat request in Supabase.
  */
 
-import { getApps, initializeApp, type FirebaseApp } from 'firebase/app';
-import { getFirestore, doc, getDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { firebaseConfig } from '@/firebase/config';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { sendNewChatRequestToTelegram } from '@/lib/telegram';
 
-// Initialize Firebase for server-side usage, safely
-let app: FirebaseApp;
-if (getApps().length === 0) {
-  app = initializeApp(firebaseConfig);
-} else {
-  app = getApps()[0];
-}
-const db = getFirestore(app);
+type Message = {
+    text: string;
+    isUser: boolean;
+    attachment?: {
+        name: string;
+        type: string;
+        url: string;
+    };
+    timestamp: number;
+    userName?: string;
+};
 
 async function createHumanAgentRequest(input: {
     uid?: string;
     enteredIdentifier: string;
-    chatHistory: any[];
+    chatHistory: Message[];
 }): Promise<{ success: boolean, error?: string, chatId?: string }> {
     let userNumericId: string | undefined;
     if (input.uid) {
         try {
-            const userSnap = await getDoc(doc(db, 'users', input.uid));
-            if (userSnap.exists()) {
-                userNumericId = userSnap.data().numericId;
+            const { data, error } = await supabaseAdmin
+                .from('users')
+                .select('numeric_id')
+                .eq('id', input.uid)
+                .single();
+            if (error && error.code !== 'PGRST116') throw error;
+            if (data) {
+                userNumericId = data.numeric_id;
             }
-        } catch (e) { /* ignore */ }
+        } catch (e) {
+            console.error("Failed to fetch user numericId for chat:", e);
+            // Non-fatal, continue without it
+        }
     }
 
     try {
-        const docData: any = {
-            enteredIdentifier: input.enteredIdentifier,
-            chatHistory: input.chatHistory,
+        const insertData: any = {
+            entered_identifier: input.enteredIdentifier,
+            chat_history: input.chatHistory,
             status: 'pending',
-            createdAt: serverTimestamp(),
+            created_at: new Date().toISOString(),
         };
 
         if (input.uid) {
-            docData.userId = input.uid;
+            insertData.user_id = input.uid;
         }
 
         if (userNumericId) {
-            docData.userNumericId = userNumericId;
+            insertData.user_numeric_id = userNumericId;
         }
 
-        const newDocRef = await addDoc(collection(db, 'chatRequests'), docData);
+        const { data: newDoc, error: insertError } = await supabaseAdmin
+            .from('chat_requests')
+            .insert(insertData)
+            .select('id')
+            .single();
+
+        if (insertError) throw insertError;
         
         // Wait for the notification to be sent to ensure reliability
         await sendNewChatRequestToTelegram({
@@ -58,17 +73,17 @@ async function createHumanAgentRequest(input: {
             enteredIdentifier: input.enteredIdentifier,
         });
 
-        return { success: true, chatId: newDocRef.id };
-    } catch (e) {
+        return { success: true, chatId: newDoc.id };
+    } catch (e: any) {
         console.error("Failed to create chat request:", e);
-        return { success: false, error: (e as Error).message };
+        return { success: false, error: e.message || "An unknown error occurred." };
     }
 }
 
 export async function escalateToHuman(input: {
     uid?: string;
     enteredIdentifier: string;
-    chatHistory: any[];
+    chatHistory: Message[];
 }): Promise<{ success: boolean; error?: string, chatId?: string }> {
     return await createHumanAgentRequest(input);
 }

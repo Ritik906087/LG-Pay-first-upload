@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
-import { adminDb } from '@/lib/firebase-admin';
-import { FieldValue } from 'firebase-admin/firestore';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function POST(request: Request) {
   const { userId, methodName } = await request.json();
@@ -43,19 +42,17 @@ export async function POST(request: Request) {
 
     const qrCode = await razorpay.qrCode.create(options);
 
-    if (!adminDb) {
-      throw new Error('Firestore admin is not initialized.');
-    }
-
-    // Store the QR ID in Firestore to track its status
-    await adminDb.collection('qr_payments').doc(qrCode.id).set({
+    // Store the QR ID in Supabase to track its status
+    const { error } = await supabaseAdmin.from('qr_payments').insert({
       id: qrCode.id,
       status: qrCode.status,
-      created_at: FieldValue.serverTimestamp(),
+      created_at: new Date().toISOString(),
       paid: false,
-      userId: userId,
-      methodName: methodName,
+      user_id: userId,
+      method_name: methodName,
     });
+    
+    if (error) throw error;
 
     return NextResponse.json({
       qr_id: qrCode.id,
