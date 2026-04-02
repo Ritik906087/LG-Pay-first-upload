@@ -4,12 +4,12 @@ export async function POST() {
     return NextResponse.json({
         message: "Webhook temporarily disabled",
         success: false
-    });
+    }, { status: 503 });
 }
 
 export async function GET() {
     return NextResponse.json({
         message: "Webhook temporarily disabled",
         success: false
-    });
+    }, { status: 503 });
 }
