@@ -50,7 +50,7 @@ export function RegisterForm() {
         .string()
         .min(6, { message: translations.passwordMin }),
       confirmPassword: z.string(),
-      invitationCode: z.string().optional(),
+      invitationCode: z.string().min(1, { message: translations.invitationCodeRequired }),
       agreement: z.literal(true, {
         errorMap: () => ({ message: translations.agreementRequired }),
       }),
@@ -77,7 +77,30 @@ export function RegisterForm() {
     try {
       const email = `${values.phone}@lgpay.app`;
       
-      // Step 1: Sign up the user in Supabase Auth
+      // Step 1: Validate invitation code and get inviter UID
+      const { data: inviterData, error: inviterError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('numeric_id', values.invitationCode)
+        .single();
+      
+      if (inviterError || !inviterData) {
+        if(inviterError && inviterError.code !== 'PGRST116') {
+             console.error("Inviter check failed:", inviterError);
+        }
+        toast({
+            variant: 'destructive',
+            title: 'Invalid Invitation Code',
+            description: 'The invitation code you entered is not valid. Please check and try again.'
+        });
+        setIsLoading(false);
+        form.setError("invitationCode", { message: "Invalid invitation code." });
+        return; // Stop registration
+      }
+      
+      const inviterUid = inviterData.id;
+
+      // Step 2: Sign up the user in Supabase Auth
       const { data: { user }, error: signUpError } = await supabase.auth.signUp({
         email: email,
         password: values.password,
@@ -89,30 +112,6 @@ export function RegisterForm() {
 
       if (!user) {
         throw new Error("User registration failed, please try again.");
-      }
-      
-      // Step 2: Look up inviter UID
-      let inviterUid: string | null = null;
-      if (values.invitationCode) {
-        const { data: inviterData, error: inviterError } = await supabase
-          .from('users')
-          .select('id')
-          .eq('numeric_id', values.invitationCode)
-          .single();
-        
-        if (inviterError && inviterError.code !== 'PGRST116') { // PGRST116 = no rows found
-            console.error("Inviter check failed:", inviterError);
-        }
-        
-        if (inviterData) {
-            inviterUid = inviterData.id;
-        } else {
-            toast({
-                variant: 'destructive',
-                title: 'Invalid Invitation Code',
-                description: 'The invitation code was not found, but you can continue registration.'
-            });
-        }
       }
       
       // Step 3: Create the user profile in the 'users' table
@@ -261,7 +260,7 @@ export function RegisterForm() {
           name="invitationCode"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>{translations.invitationCodeOptional}</FormLabel>
+              <FormLabel>{translations.invitationCode}</FormLabel>
                <div className="relative">
                 <FormControl>
                   <Input 
