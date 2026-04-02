@@ -45,7 +45,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import React, { useState } from 'react';
-import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLanguage } from '@/context/language-context';
@@ -119,7 +118,7 @@ export default function MyPage() {
       {/* Header */}
       <header className="flex items-center justify-between bg-white p-4">
         <div className="w-8"></div>
-        <Logo className="text-xl" />
+        <h1 className="text-xl font-bold">{translations.navMy}</h1>
         <Button asChild variant="ghost" size="icon" className="h-8 w-8">
           <Link href="/download">
             <Download className="h-5 w-5 text-muted-foreground" />
