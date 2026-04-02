@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { Suspense, useMemo, useState, useRef, useEffect, useCallback } from 'react';
@@ -508,7 +509,7 @@ function PaymentDetailsContent() {
                 <main className="flex-grow p-4 space-y-4">
                     <Card>
                         <CardContent className="p-4 flex flex-col items-center gap-2">
-                             <Image src="https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/InShot_20260307_173853268.png?alt=media&token=3cf559c6-bf02-46f1-93cc-6df9cf306657" width={48} height={48} alt="USDT Logo" />
+                             <Image src="https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/InShot_20260402_232159001.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvSW5TaG90XzIwMjYwNDAyXzIzMjE1OTAwMS5wbmciLCJpYXQiOjE3NzUxNTI0ODUsImV4cCI6MTgwNjY4ODQ4NX0.nY6pU1Wr5R3AdC3fjZSHqBgfOYE_wKM9PUrd5h3bEfU" width={48} height={48} alt="USDT Logo" />
                              <p className="text-3xl font-bold">{usdtAmount.toFixed(2)} USDT</p>
                              <p className="text-sm text-destructive text-center">The amount received is subject to the actual transfer amount. No less than 5.00 USDT</p>
                         </CardContent>

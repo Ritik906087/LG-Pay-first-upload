@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import {
@@ -25,7 +26,7 @@ export default function RegisterPage() {
           {translations.register}
         </CardTitle>
         <Image
-          src="https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/IMG_20260402_224708_385.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvSU1HXzIwMjYwNDAyXzIyNDcwOF8zODUuanBnIiwiaWF0IjoxNzc1MTUwMzQwLCJleHAiOjE4MDY2ODYzNDB9.g69doGZuYs7EbHQ5ngFHWSxbu_dNyknLSBVLpM5_byQ"
+          src="https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/InShot_20260402_232141775.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvSW5TaG90XzIwMjYwNDAyXzIzMjE0MTc3NS5wbmciLCJpYXQiOjE3NzUxNTIzNjcsImV4cCI6MTgwNjY4ODM2N30.Q_kMw_c7VV88g5PSgBRI4ALd73o8lB3G12CD7bsETmw"
           width={64}
           height={64}
           alt="LG Pay Avatar"

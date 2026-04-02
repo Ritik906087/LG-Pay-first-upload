@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -159,7 +160,7 @@ const UsdtPurchaseForm = ({ onBuyClick, isCreatingOrder }: { onBuyClick: (option
                 <CardContent className="p-4">
                     <Label htmlFor="usdt-amount" className="text-sm text-green-900/80">Deposit amount (minimum 5 USDT)</Label>
                     <div className="flex items-center gap-2 mt-1">
-                        <Image src="https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/IMG_20260402_225548_217.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvSU1HXzIwMjYwNDAyXzIyNTU0OF8yMTcuanBnIiwiaWF0IjoxNzc1MTUwODAyLCJleHAiOjE4MDY2ODY4MDJ9.58KfL7k8Y913w-HhySVslkVkhSHLia1lRKSTTYZ-zM0" width={28} height={28} alt="USDT" />
+                        <Image src="https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/InShot_20260402_232159001.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvSW5TaG90XzIwMjYwNDAyXzIzMjE1OTAwMS5wbmciLCJpYXQiOjE3NzUxNTI0ODUsImV4cCI6MTgwNjY4ODQ4NX0.nY6pU1Wr5R3AdC3fjZSHqBgfOYE_wKM9PUrd5h3bEfU" width={28} height={28} alt="USDT" />
                         <Input 
                             id="usdt-amount"
                             type="number"
