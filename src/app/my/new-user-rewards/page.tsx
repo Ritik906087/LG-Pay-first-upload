@@ -8,12 +8,12 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ChevronLeft, Gift, PlaySquare, CircleDollarSign } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { useUser, useFirestore, useDoc } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Loader } from '@/components/ui/loader';
-import { doc, runTransaction, collection, query, where, getDocs, arrayUnion, Timestamp, updateDoc } from 'firebase/firestore';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
+import { useSupabaseUser } from '@/hooks/use-supabase-user';
+import { createClient } from '@/lib/utils';
 
 const TelegramIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-sky-500">
@@ -70,8 +70,8 @@ const NewbieTaskItem = ({ icon, title, isCompleted, onAction, progress, goal }: 
 };
 
 export default function NewbieRewardsPage() {
-    const { user, loading: userLoading } = useUser();
-    const firestore = useFirestore();
+    const { user, profile: userProfile, loading: profileLoading } = useSupabaseUser();
+    const supabase = createClient();
     const { toast } = useToast();
     const router = useRouter();
 
@@ -79,55 +79,51 @@ export default function NewbieRewardsPage() {
     const [taskStatus, setTaskStatus] = useState<Record<string, boolean>>({});
     const [taskProgress, setTaskProgress] = useState<Record<string, number>>({});
 
-    const userProfileRef = useMemo(() => {
-        if (!user || !firestore) return null;
-        return doc(firestore, 'users', user.uid);
-    }, [user, firestore]);
-
-    const { data: userProfile, loading: profileLoading } = useDoc<{ claimedUserRewards?: string[], paymentMethods?: { name: string }[] }>(userProfileRef);
-
     const checkTaskCompletion = useCallback(async () => {
-        if (!user || !firestore || !userProfile || !userProfileRef) return;
+        if (!user || !userProfile) return;
 
-        const claimed = new Set(userProfile.claimedUserRewards || []);
+        const claimed = new Set(userProfile.claimed_user_rewards || []);
         const status: Record<string, boolean> = {};
         const progress: Record<string, number> = {};
 
         // Check UPI Link
-        const isUpiLinked = userProfile.paymentMethods?.some(pm => ['MobiKwik', 'Freecharge'].includes(pm.name)) || false;
+        const isUpiLinked = userProfile.payment_methods?.some(pm => ['MobiKwik', 'Freecharge'].includes(pm.name)) || false;
         if (isUpiLinked && !claimed.has('nb_upi')) {
-            await updateDoc(userProfileRef, { claimedUserRewards: arrayUnion('nb_upi') });
+            const newClaims = [...(userProfile.claimed_user_rewards || []), 'nb_upi'];
+            await supabase.from('users').update({ claimed_user_rewards: newClaims }).eq('id', user.id);
             claimed.add('nb_upi'); 
         }
         status['nb_upi'] = isUpiLinked;
         
         // Check Purchase
-        const purchaseQuery = query(
-            collection(firestore, 'users', user.uid, 'orders'),
-            where('status', '==', 'completed')
-        );
-        const purchaseSnapshot = await getDocs(purchaseQuery);
+        const { data: ordersData, error: ordersError } = await supabase
+            .from('orders')
+            .select('amount')
+            .eq('user_id', user.id)
+            .eq('status', 'completed');
+            
         let totalPurchaseAmount = 0;
-        purchaseSnapshot.forEach(doc => {
-            totalPurchaseAmount += doc.data().amount;
-        });
+        if(ordersData){
+            totalPurchaseAmount = ordersData.reduce((sum, order) => sum + order.amount, 0);
+        }
         
         const hasPurchased = totalPurchaseAmount >= 1000;
         if (hasPurchased && !claimed.has('nb_purchase')) {
-            await updateDoc(userProfileRef, { claimedUserRewards: arrayUnion('nb_purchase') });
+            const newClaims = [...(userProfile.claimed_user_rewards || []), 'nb_purchase'];
+            await supabase.from('users').update({ claimed_user_rewards: newClaims }).eq('id', user.id);
             claimed.add('nb_purchase');
         }
         status['nb_purchase'] = hasPurchased;
         progress['nb_purchase'] = totalPurchaseAmount;
 
-        // Check manual tasks
+        // Check manual tasks from the latest user profile state
         status['nb_telegram'] = claimed.has('nb_telegram');
         status['nb_tutorial'] = claimed.has('nb_tutorial');
         status[FINAL_REWARD_ID] = claimed.has(FINAL_REWARD_ID);
 
         setTaskStatus(status);
         setTaskProgress(progress);
-    }, [user, firestore, userProfile, userProfileRef]);
+    }, [user, supabase, userProfile]);
 
 
     useEffect(() => {
@@ -137,9 +133,9 @@ export default function NewbieRewardsPage() {
     }, [userProfile, checkTaskCompletion]);
 
     const handleSimpleTask = async (taskId: string, href: string) => {
-        if (userProfileRef) {
-            await updateDoc(userProfileRef, { claimedUserRewards: arrayUnion(taskId) });
-            // Re-fetch to update status from db
+        if (user && userProfile) {
+            const newClaims = [...(userProfile.claimed_user_rewards || []), taskId];
+            await supabase.from('users').update({ claimed_user_rewards: newClaims }).eq('id', user.id);
             checkTaskCompletion();
         }
 
@@ -151,19 +147,19 @@ export default function NewbieRewardsPage() {
     };
     
     const handleFinalClaim = async () => {
-        if (!user || !firestore || !userProfileRef) return;
+        if (!user || !userProfile) return;
         setIsClaimingFinal(true);
         try {
-            await runTransaction(firestore, async (transaction) => {
-                const userDoc = await transaction.get(userProfileRef);
-                if (!userDoc.exists()) throw new Error("User not found");
-                
-                const newBalance = (userDoc.data().balance || 0) + FINAL_REWARD_AMOUNT;
-                transaction.update(userProfileRef, { 
-                    balance: newBalance,
-                    claimedUserRewards: arrayUnion(FINAL_REWARD_ID)
-                });
-            });
+            const newBalance = (userProfile.balance || 0) + FINAL_REWARD_AMOUNT;
+            const newClaims = [...(userProfile.claimed_user_rewards || []), FINAL_REWARD_ID];
+            
+            const { error } = await supabase.from('users').update({
+                balance: newBalance,
+                claimed_user_rewards: newClaims,
+            }).eq('id', user.id);
+
+            if (error) throw error;
+            
             toast({ title: "Reward Claimed!", description: `₹${FINAL_REWARD_AMOUNT} has been added to your balance.` });
             setTaskStatus(prev => ({ ...prev, [FINAL_REWARD_ID]: true }));
         } catch (error: any) {
@@ -175,7 +171,7 @@ export default function NewbieRewardsPage() {
     
     const allTasksCompleted = newbieTasksList.every(task => taskStatus[task.id]);
     const isFinalRewardClaimed = taskStatus[FINAL_REWARD_ID];
-    const loading = userLoading || profileLoading;
+    const loading = profileLoading;
 
     if (loading) {
         return (

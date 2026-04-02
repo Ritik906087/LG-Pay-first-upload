@@ -2,8 +2,6 @@
 
 import React, { useState, useEffect, useMemo, Suspense, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useDoc, useUser, useFirestore } from '@/firebase';
-import { doc, getDoc, updateDoc, runTransaction, Timestamp } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, CheckCircle, FileClock, XCircle, AlertTriangle } from 'lucide-react';
@@ -19,20 +17,22 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Loader } from '@/components/ui/loader';
+import { useSupabaseUser } from '@/hooks/use-supabase-user';
+import { createClient } from '@/lib/utils';
 
 type Order = {
     id: string;
-    orderId: string;
+    order_id: string;
     amount: number;
-    baseAmount?: number;
+    base_amount?: number;
     status: 'pending_payment' | 'pending_confirmation' | 'in_applied' | 'completed' | 'cancelled' | 'failed';
     utr: string;
-    screenshotURL: string;
-    submittedAt: Timestamp;
-    cancellationReason?: string;
-    rejectionReason?: string;
-    paymentType?: 'bank' | 'upi' | 'usdt' | 'p2p_upi';
-    matchedSellOrderPath?: string;
+    screenshot_url: string;
+    submitted_at: string; // ISO String
+    cancellation_reason?: string;
+    rejection_reason?: string;
+    payment_type?: 'bank' | 'upi' | 'usdt' | 'p2p_upi';
+    matched_sell_order_path?: string;
 };
 
 const formatTime = (seconds: number) => {
@@ -48,32 +48,58 @@ function OrderStatusContent() {
     const { toast } = useToast();
 
     const orderId = params.orderId as string;
-    const { user } = useUser();
-    const firestore = useFirestore();
+    const { user } = useSupabaseUser();
+    const supabase = createClient();
 
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
     const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+    const [order, setOrder] = useState<Order | null>(null);
+    const [orderLoading, setOrderLoading] = useState(true);
 
-    const orderRef = useMemo(() => {
-        if (!firestore || !user || !orderId) return null;
-        return doc(firestore, 'users', user.uid, 'orders', orderId);
-    }, [firestore, user, orderId]);
+     useEffect(() => {
+        const fetchOrder = async () => {
+            if (!orderId) return;
+            setOrderLoading(true);
+            const { data, error } = await supabase
+                .from('orders')
+                .select('*')
+                .eq('id', orderId)
+                .single();
+            if (error || !data) {
+                toast({ variant: 'destructive', title: 'Order not found.' });
+                setOrder(null);
+            } else {
+                setOrder(data as Order);
+            }
+            setOrderLoading(false);
+        };
+        fetchOrder();
 
-    const { data: order, loading: orderLoading } = useDoc<Order>(orderRef);
+        const channel = supabase
+            .channel(`order_${orderId}`)
+            .on<Order>(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
+                (payload) => {
+                    setOrder(payload.new as Order);
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [orderId, supabase, toast]);
 
     const handleOrderExpiry = useCallback(async () => {
-        if (!order || !orderRef || order.status !== 'pending_confirmation' || !firestore) return;
+        if (!order || order.status !== 'pending_confirmation') return;
     
-        const currentOrderSnap = await getDoc(orderRef);
-        if (currentOrderSnap.exists() && currentOrderSnap.data().status !== 'pending_confirmation') {
-            return;
-        }
-
         setIsUpdatingStatus(true);
         try {
-             await updateDoc(orderRef, {
+             const { error } = await supabase.from('orders').update({
                 status: 'in_applied',
-            });
+            }).eq('id', order.id);
+            if (error) throw error;
             toast({
                 title: 'Order Under Review',
                 description: 'System is busy. Please wait for admin review.',
@@ -85,17 +111,17 @@ function OrderStatusContent() {
         } finally {
             setIsUpdatingStatus(false);
         }
-    }, [order, orderRef, firestore, toast]);
+    }, [order, supabase, toast]);
     
     useEffect(() => {
-        if (!order || order.status !== 'pending_confirmation' || !order.submittedAt) {
+        if (!order || order.status !== 'pending_confirmation' || !order.submitted_at) {
             if (order && !['pending_confirmation', 'in_applied'].includes(order.status)) {
                 setTimeLeft(0);
             }
             return;
         }
 
-        const submittedTime = order.submittedAt.toDate();
+        const submittedTime = new Date(order.submitted_at);
         const expiryTime = new Date(submittedTime.getTime() + 30 * 60 * 1000); // 30 minutes from submission
 
         const interval = setInterval(() => {
@@ -138,7 +164,7 @@ function OrderStatusContent() {
         )
     }
     
-    const isTimeout = (order.status === 'failed' || order.status === 'cancelled') && (order.cancellationReason?.includes('timed out'));
+    const isTimeout = (order.status === 'failed' || order.status === 'cancelled') && (order.cancellation_reason?.includes('timed out'));
 
     return (
         <div className="flex flex-col min-h-screen">
@@ -181,7 +207,7 @@ function OrderStatusContent() {
                                     {isTimeout ? 'Timeout' : order.status.replace('_', ' ')}
                                 </h2>
                                 <p className="text-muted-foreground">
-                                    {isTimeout ? "This order has timed out." : (order.rejectionReason || order.cancellationReason || "This order could not be completed.")}
+                                    {isTimeout ? "This order has timed out." : (order.rejection_reason || order.cancellation_reason || "This order could not be completed.")}
                                 </p>
                             </>
                         )}
@@ -220,14 +246,14 @@ function OrderStatusContent() {
                     <CardContent className="space-y-3 text-sm">
                          <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Amount</span>
-                            <span className="font-semibold">₹{((order.baseAmount ?? order.amount) || 0).toFixed(2)}</span>
+                            <span className="font-semibold">₹{((order.base_amount ?? order.amount) || 0).toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Order ID</span>
-                            <span className="font-mono text-xs break-all">{order.orderId}</span>
+                            <span className="font-mono text-xs break-all">{order.order_id}</span>
                         </div>
                          <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground">{order.paymentType === 'usdt' ? 'TxHash' : 'UTR'}</span>
+                            <span className="text-muted-foreground">{order.payment_type === 'usdt' ? 'TxHash' : 'UTR'}</span>
                             <span className="font-mono break-all">{order.utr}</span>
                         </div>
                          <div className="flex justify-between items-center">
@@ -240,7 +266,7 @@ function OrderStatusContent() {
                             <span className="text-muted-foreground">Screenshot</span>
                             <Dialog>
                                 <DialogTrigger asChild>
-                                    <Button variant="link" className="p-0 h-auto text-primary" disabled={!order.screenshotURL}>View</Button>
+                                    <Button variant="link" className="p-0 h-auto text-primary" disabled={!order.screenshot_url}>View</Button>
                                 </DialogTrigger>
                                 <DialogContent>
                                     <DialogHeader>
@@ -248,7 +274,7 @@ function OrderStatusContent() {
                                     </DialogHeader>
                                     <div className="flex justify-center py-4">
                                         <img
-                                            src={order.screenshotURL}
+                                            src={order.screenshot_url}
                                             alt="Payment proof"
                                             className="max-h-[70vh] w-auto object-contain rounded-md"
                                         />

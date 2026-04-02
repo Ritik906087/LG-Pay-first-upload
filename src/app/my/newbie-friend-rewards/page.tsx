@@ -8,10 +8,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ChevronLeft, Gift, CircleDollarSign, ChevronDown, ChevronUp } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
-import { useUser, useFirestore, useCollection, useDoc } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Loader } from '@/components/ui/loader';
-import { doc, runTransaction, collection, query, where, arrayUnion, serverTimestamp, addDoc, getDocs, Timestamp } from 'firebase/firestore';
 import {
   Accordion,
   AccordionContent,
@@ -20,6 +18,8 @@ import {
 } from "@/components/ui/accordion"
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
+import { useSupabaseUser } from '@/hooks/use-supabase-user';
+import { createClient } from '@/lib/utils';
 
 
 const FRIEND_REWARD_AMOUNT = 200;
@@ -28,13 +28,13 @@ const FRIEND_PURCHASE_GOAL = 1000;
 type FriendProfile = {
     id: string;
     uid: string;
-    numericId: string;
-    claimedUserRewards?: string[];
+    numeric_id: string;
+    claimed_user_rewards?: string[];
 }
 
 type UserProfile = {
     balance: number;
-    claimedNewbieFriendRewards?: string[];
+    claimed_newbie_friend_rewards?: string[];
 }
 
 const FriendItem = ({ friend, status, progress, goal }: { friend: FriendProfile, status: 'Done' | 'Undone' | 'Received', progress: number, goal: number }) => {
@@ -52,7 +52,7 @@ const FriendItem = ({ friend, status, progress, goal }: { friend: FriendProfile,
             <CircleDollarSign className="h-6 w-6 text-yellow-500" />
             <div className="flex-1">
                 <p className="font-semibold text-sm">Invited Friend</p>
-                <p className="font-mono text-xs text-muted-foreground">{friend.numericId}</p>
+                <p className="font-mono text-xs text-muted-foreground">{friend.numeric_id}</p>
                  {status !== 'Received' && ( // Don't show progress for already claimed
                     <div className="flex items-center gap-2 mt-1">
                         <Progress value={Math.min((progress / goal) * 100, 100)} className="h-1.5 w-20" />
@@ -68,31 +68,32 @@ const FriendItem = ({ friend, status, progress, goal }: { friend: FriendProfile,
 }
 
 export default function NewbieFriendRewardsPage() {
-    const { user, loading: userLoading } = useUser();
-    const firestore = useFirestore();
+    const { user, profile: userProfile, loading: profileLoading } = useSupabaseUser();
+    const supabase = createClient();
     const { toast } = useToast();
     const router = useRouter();
 
     const [isClaiming, setIsClaiming] = useState(false);
     const [friendPurchaseStats, setFriendPurchaseStats] = useState<Record<string, number>>({});
     const [loadingStats, setLoadingStats] = useState(true);
-    
-    const userProfileRef = useMemo(() => {
-        if (!user || !firestore) return null;
-        return doc(firestore, 'users', user.uid);
-    }, [user, firestore]);
-
-    const { data: userProfile, loading: profileLoading } = useDoc<UserProfile>(userProfileRef);
-    
-    const invitedUsersQuery = useMemo(() => {
-        if (!user || !firestore) return null;
-        return query(collection(firestore, 'users'), where('inviterUid', '==', user.uid));
-    }, [user, firestore]);
-
-    const { data: invitedFriends, loading: friendsLoading } = useCollection<FriendProfile>(invitedUsersQuery);
+    const [invitedFriends, setInvitedFriends] = useState<FriendProfile[]>([]);
+    const [friendsLoading, setFriendsLoading] = useState(true);
     
     useEffect(() => {
-        if (!invitedFriends || invitedFriends.length === 0 || !firestore) {
+        if (!user) {
+            setFriendsLoading(false);
+            return;
+        }
+        setFriendsLoading(true);
+        supabase.from('users').select('id, numeric_id').eq('inviter_uid', user.id)
+            .then(({ data, error }) => {
+                if (data) setInvitedFriends(data as FriendProfile[]);
+                setFriendsLoading(false);
+            });
+    }, [user, supabase]);
+    
+    useEffect(() => {
+        if (!invitedFriends || invitedFriends.length === 0) {
             setLoadingStats(false);
             return;
         }
@@ -101,12 +102,13 @@ export default function NewbieFriendRewardsPage() {
             setLoadingStats(true);
             const stats: Record<string, number> = {};
             for (const friend of invitedFriends) {
-                const ordersQuery = query(
-                    collection(firestore, 'users', friend.id, 'orders'),
-                    where('status', '==', 'completed')
-                );
-                const ordersSnapshot = await getDocs(ordersQuery);
-                const totalPurchase = ordersSnapshot.docs.reduce((sum, doc) => sum + doc.data().amount, 0);
+                const { data, error } = await supabase
+                    .from('orders')
+                    .select('amount')
+                    .eq('user_id', friend.id)
+                    .eq('status', 'completed');
+                
+                const totalPurchase = data ? data.reduce((sum, doc) => sum + doc.amount, 0) : 0;
                 stats[friend.id] = totalPurchase;
             }
             setFriendPurchaseStats(stats);
@@ -114,12 +116,12 @@ export default function NewbieFriendRewardsPage() {
         };
 
         fetchStats();
-    }, [invitedFriends, firestore]);
+    }, [invitedFriends, supabase]);
     
     const friendStats = useMemo(() => {
         if (!invitedFriends) return { done: [], undone: [], received: [] };
 
-        const claimedFriendUids = new Set(userProfile?.claimedNewbieFriendRewards || []);
+        const claimedFriendUids = new Set(userProfile?.claimed_newbie_friend_rewards || []);
         
         const done: FriendProfile[] = [];
         const undone: FriendProfile[] = [];
@@ -150,47 +152,32 @@ export default function NewbieFriendRewardsPage() {
     const doneFriendsCount = friendStats.done.length + friendStats.received.length;
 
     const handleReceiveRewards = async () => {
-        if (!user || !firestore || !userProfileRef || friendStats.done.length === 0) return;
+        if (!user || !userProfile || friendStats.done.length === 0) return;
         
         setIsClaiming(true);
         const claimableFriends = friendStats.done;
         const totalRewardToClaim = claimableFriends.length * FRIEND_REWARD_AMOUNT;
         const friendUidsToClaim = claimableFriends.map(f => f.id);
+        
+        const { error } = await supabase.rpc('claim_newbie_friend_rewards', {
+            p_user_id: user.id,
+            p_friend_uids: friendUidsToClaim,
+            p_reward_amount: FRIEND_REWARD_AMOUNT,
+            p_reward_description: `Newbie friend bonus for ${claimableFriends.length} friends.`
+        });
 
-        try {
-            await runTransaction(firestore, async (transaction) => {
-                const userDoc = await transaction.get(userProfileRef);
-                if (!userDoc.exists()) throw new Error("User not found");
-
-                const currentData = userDoc.data() as UserProfile;
-                const newBalance = (currentData.balance || 0) + totalRewardToClaim;
-                const newClaimedFriends = arrayUnion(...friendUidsToClaim);
-
-                transaction.update(userProfileRef, {
-                    balance: newBalance,
-                    claimedNewbieFriendRewards: newClaimedFriends,
-                });
-            });
-
-            await addDoc(collection(firestore, 'users', user.uid, 'transactions'), {
-                userId: user.uid,
-                amount: totalRewardToClaim,
-                description: `Newbie friend bonus for ${claimableFriends.length} friends.`,
-                createdAt: serverTimestamp(),
-                type: 'new_user_reward',
-                orderId: `LGPAYNF${Date.now()}`
-            });
-
-            toast({ title: "Rewards Claimed!", description: `₹${totalRewardToClaim} has been added to your balance.` });
-
-        } catch (error: any) {
+        if (error) {
+            console.error("Claim reward error:", error);
             toast({ variant: 'destructive', title: "Claim Failed", description: error.message });
-        } finally {
-            setIsClaiming(false);
+        } else {
+             toast({ title: "Rewards Claimed!", description: `₹${totalRewardToClaim} has been added to your balance.` });
+             // No need to refetch, UI will update optimistically or on next full load.
         }
+
+        setIsClaiming(false);
     };
     
-    const loading = userLoading || profileLoading || friendsLoading || loadingStats;
+    const loading = profileLoading || friendsLoading || loadingStats;
 
     return (
         <div className="flex min-h-screen flex-col bg-secondary font-body">

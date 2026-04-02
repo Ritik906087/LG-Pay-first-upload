@@ -24,10 +24,10 @@ import { Progress } from '@/components/ui/progress';
 import Link from 'next/link';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import { useUser, useFirestore, useDoc } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { Loader } from '@/components/ui/loader';
-import { doc, collection, query, where, Timestamp, runTransaction, getDocs, arrayUnion, getDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useSupabaseUser } from '@/hooks/use-supabase-user';
+import { createClient } from '@/lib/utils';
 
 
 const GlassCard = ({
@@ -116,8 +116,8 @@ const orderAmountTasks = [
 ];
 
 const DailyTasksSection = () => {
-    const { user } = useUser();
-    const firestore = useFirestore();
+    const { user } = useSupabaseUser();
+    const supabase = createClient();
     const { toast } = useToast();
 
     const [loading, setLoading] = useState(true);
@@ -128,7 +128,7 @@ const DailyTasksSection = () => {
     const getTodayDateString = useCallback(() => new Date().toISOString().split('T')[0], []);
 
     const fetchData = useCallback(async () => {
-        if (!user || !firestore) {
+        if (!user || !supabase) {
             setLoading(false);
             return;
         };
@@ -136,18 +136,20 @@ const DailyTasksSection = () => {
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const todayTimestamp = Timestamp.fromDate(today);
+        const todayISO = today.toISOString();
 
         try {
-            const ordersQuery = query(
-                collection(firestore, 'users', user.uid, 'orders'),
-                where('createdAt', '>=', todayTimestamp)
-            );
-            const ordersSnapshot = await getDocs(ordersQuery);
+            const { data: ordersData, error: ordersError } = await supabase
+                .from('orders')
+                .select('amount, status')
+                .eq('user_id', user.id)
+                .gte('created_at', todayISO);
+
+            if(ordersError) throw ordersError;
+
             let orderCount = 0;
             let maxAmount = 0;
-            ordersSnapshot.forEach(doc => {
-                const order = doc.data();
+            ordersData.forEach(order => {
                 if (order.status === 'completed') {
                     orderCount++;
                     if (order.amount > maxAmount) {
@@ -157,10 +159,15 @@ const DailyTasksSection = () => {
             });
             setStats({ count: orderCount, maxAmount });
 
-            const rewardDocRef = doc(firestore, 'users', user.uid, 'dailyRewards', getTodayDateString());
-            const rewardDoc = await getDoc(rewardDocRef);
-            if (rewardDoc.exists()) {
-                setClaimedTaskIds(rewardDoc.data().claimedTaskIds || []);
+            const { data: rewardData, error: rewardError } = await supabase
+                .from('daily_rewards')
+                .select('claimed_task_ids')
+                .eq('user_id', user.id)
+                .eq('date', getTodayDateString())
+                .single();
+                
+            if (rewardData) {
+                setClaimedTaskIds(rewardData.claimed_task_ids || []);
             } else {
                 setClaimedTaskIds([]);
             }
@@ -170,49 +177,25 @@ const DailyTasksSection = () => {
         } finally {
             setLoading(false);
         }
-    }, [user, firestore, getTodayDateString, toast]);
+    }, [user, supabase, getTodayDateString, toast]);
 
     useEffect(() => {
         fetchData();
     }, [fetchData]);
 
     const handleClaim = async (taskId: string, reward: number, taskTitle: string) => {
-        if (!user || !firestore) return;
+        if (!user || !supabase) return;
         setClaimingTaskId(taskId);
 
-        const userRef = doc(firestore, 'users', user.uid);
-        const rewardDocRef = doc(firestore, 'users', user.uid, 'dailyRewards', getTodayDateString());
-        const transactionsRef = collection(firestore, 'users', user.uid, 'transactions');
-
         try {
-            await runTransaction(firestore, async (transaction) => {
-                const userDoc = await transaction.get(userRef);
-                if (!userDoc.exists()) throw new Error("User not found");
-
-                const rewardDoc = await getDoc(rewardDocRef); 
-                const alreadyClaimed = rewardDoc.exists() && (rewardDoc.data().claimedTaskIds || []).includes(taskId);
-                if (alreadyClaimed) {
-                    throw new Error("Reward already claimed.");
-                }
-
-                const newBalance = (userDoc.data().balance || 0) + reward;
-                transaction.update(userRef, { balance: newBalance });
-
-                if (rewardDoc.exists()) {
-                    transaction.update(rewardDocRef, { claimedTaskIds: arrayUnion(taskId) });
-                } else {
-                    transaction.set(rewardDocRef, { claimedTaskIds: [taskId], date: getTodayDateString() });
-                }
+             const { error } = await supabase.rpc('claim_daily_reward', {
+                p_user_id: user.id,
+                p_task_id: taskId,
+                p_reward_amount: reward,
+                p_date_string: getTodayDateString(),
+                p_task_title: taskTitle
             });
-
-            await addDoc(transactionsRef, {
-                userId: user.uid,
-                amount: reward,
-                description: `Daily Task: ${taskTitle}`,
-                createdAt: serverTimestamp(),
-                type: 'daily_task',
-                orderId: `LGPAYD${Date.now()}`
-            });
+            if(error) throw error;
 
             toast({ title: "Reward Claimed!", description: `₹${reward} has been added to your balance.` });
             await fetchData();
