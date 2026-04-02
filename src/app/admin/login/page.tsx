@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -22,6 +23,7 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +36,7 @@ export default function AdminLoginPage() {
       toast({ title: 'Login Successful', description: "Welcome, Admin!" });
       // Set a cookie with the admin's phone number to maintain session and permissions
       document.cookie = `admin-phone=${phone}; path=/; max-age=86400`; // 24 hours
-      window.location.href = '/admin/dashboard';
+      router.replace('/admin/dashboard');
     } else {
       toast({
         variant: 'destructive',

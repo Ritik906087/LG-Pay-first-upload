@@ -60,21 +60,29 @@ export async function middleware(request: NextRequest) {
   const { data: { session }} = await supabase.auth.getSession();
   const user = session?.user;
 
-  const adminPhone = request.cookies.get('admin-phone');
   const { pathname } = request.nextUrl;
-
+  
   // ===== Admin Auth Routes =====
   if (pathname.startsWith('/admin')) {
-    const isAdminLoginRoute = pathname.startsWith('/admin/login');
+    const adminPhone = request.cookies.get('admin-phone');
+    const isAdminAuthenticated = adminPhone?.value === process.env.NEXT_PUBLIC_ADMIN_PHONE;
+    const isAdminLoginRoute = pathname === '/admin/login';
 
-    if (adminPhone?.value === process.env.NEXT_PUBLIC_ADMIN_PHONE && isAdminLoginRoute) {
-      return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+    if (isAdminLoginRoute) {
+      if (isAdminAuthenticated) {
+        // Authenticated users on the login page are redirected to the dashboard.
+        return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+      }
+      // Unauthenticated users are allowed to see the login page.
+      return response;
     }
 
-    if (!adminPhone?.value && !isAdminLoginRoute) {
+    if (!isAdminAuthenticated) {
+      // Unauthenticated users on any other admin page are redirected to login.
       return NextResponse.redirect(new URL('/admin/login', request.url));
     }
     
+    // Authenticated users are allowed to see any other admin page.
     return response;
   }
 
