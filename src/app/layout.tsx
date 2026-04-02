@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 
 import type { Metadata } from 'next';
 import './globals.css';
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "LG Pay – Smart Digital Wallet",
     description: "Join LG Pay and experience fast, secure and easy digital payments. Invite friends and earn rewards instantly.",
-    url: "https://lgpayb.online",
+    url: "https.lgpayb.online",
     siteName: "LG Pay",
     images: [
       {
