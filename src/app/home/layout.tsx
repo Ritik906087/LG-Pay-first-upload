@@ -98,7 +98,7 @@ export default function HomeLayout({
   return (
     <div className="home-layout md:bg-gray-200">
       <div className="relative mx-auto flex min-h-screen w-full flex-col bg-background md:max-w-md md:shadow-lg">
-        <main className={cn("flex-grow", showNavBar ? "pb-14" : "")}>{children}</main>
+        <main className={cn("flex-grow", showNavBar ? "pb-20" : "")}>{children}</main>
         {showNavBar && (
           <footer className="fixed bottom-0 z-50 w-full border-t bg-white shadow-[0_-2px_10px_rgba(0,0,0,0.05)] md:absolute md:max-w-md">
             <nav className="flex h-14 items-center justify-around">

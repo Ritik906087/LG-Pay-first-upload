@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -13,6 +12,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useLanguage } from '@/context/language-context';
 import { Button } from '@/components/ui/button';
+import { Suspense } from 'react';
+import { Loader } from '@/components/ui/loader';
 
 export default function RegisterPage() {
   const { translations } = useLanguage();
@@ -31,7 +32,9 @@ export default function RegisterPage() {
         />
       </CardHeader>
       <CardContent>
-        <RegisterForm />
+        <Suspense fallback={<div className="flex justify-center p-8"><Loader size="sm" /></div>}>
+            <RegisterForm />
+        </Suspense>
       </CardContent>
       <CardFooter className="justify-center">
         <div className="text-sm text-center">
