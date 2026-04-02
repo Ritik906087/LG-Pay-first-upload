@@ -1,8 +1,20 @@
 import { NextResponse, NextRequest } from 'next/server';
 import crypto from 'crypto';
-import { supabaseAdmin } from '@/lib/supabase-admin';
+import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: NextRequest) {
+  // Guard check for environment variables
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.error('Razorpay Webhook Error: Supabase environment variables are not set.');
+    return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
+  }
+  
+  // Initialize Supabase client safely within the route handler
+  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+  
   const secret = process.env.RAZORPAY_WEBHOOK_SECRET || '';
   const signature = request.headers.get('x-razorpay-signature') || '';
   const body = await request.text();
