@@ -285,6 +285,7 @@ export default function HomePage() {
                 width={32}
                 height={32}
                 alt="LG Pay Logo"
+                className="rounded-full"
             />
             <h1 className="text-xl font-bold text-gradient">LG Pay</h1>
         </div>

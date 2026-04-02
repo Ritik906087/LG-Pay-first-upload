@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import type { ReactNode } from 'react';
@@ -37,7 +38,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
                 width={60}
                 height={60}
                 alt="Decorative corner image"
-                className="opacity-80"
+                className="opacity-80 rounded-full"
               />
               <LanguageSwitcher />
             </header>

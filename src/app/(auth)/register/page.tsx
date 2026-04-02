@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -28,7 +29,7 @@ export default function RegisterPage() {
           width={64}
           height={64}
           alt="LG Pay Avatar"
-          className="my-2"
+          className="my-2 rounded-full"
         />
       </CardHeader>
       <CardContent>
