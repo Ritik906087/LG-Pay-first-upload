@@ -26,7 +26,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
     return <>{children}</>;
   }
 
-  const showLogo = !['/login', '/register'].includes(pathname);
+  const showLogo = true;
 
   return (
       <div className="md:bg-gray-200">
