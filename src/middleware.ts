@@ -67,7 +67,7 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith('/admin')) {
     const isAdminLoginRoute = pathname.startsWith('/admin/login');
 
-    if (adminPhone?.value === process.env.ADMIN_PHONE && isAdminLoginRoute) {
+    if (adminPhone?.value === process.env.NEXT_PUBLIC_ADMIN_PHONE && isAdminLoginRoute) {
       return NextResponse.redirect(new URL('/admin/dashboard', request.url));
     }
 
