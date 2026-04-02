@@ -1,4 +1,3 @@
-
 'use client';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/utils';
@@ -21,11 +20,12 @@ type UserProfile = {
   session_id?: string;
 };
 
+const supabase = createClient();
+
 export function useSupabaseUser() {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -38,12 +38,10 @@ export function useSupabaseUser() {
           .select('*')
           .eq('id', currentUser.id)
           .single();
-        if (error) {
-          console.error('Error fetching user profile:', error);
-          setProfile(null);
-        } else {
-          setProfile(userProfile);
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error fetching user profile on auth change:', error);
         }
+        setProfile(userProfile);
       } else {
         setProfile(null);
       }
@@ -61,12 +59,10 @@ export function useSupabaseUser() {
             .select('*')
             .eq('id', currentUser.id)
             .single();
-            if (error) {
+            if (error && error.code !== 'PGRST116') {
                 console.error('Initial profile fetch error:', error);
-                setProfile(null);
-            } else {
-                setProfile(userProfile);
             }
+            setProfile(userProfile);
         }
         setLoading(false);
     };
@@ -75,7 +71,7 @@ export function useSupabaseUser() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [supabase]);
+  }, []);
 
   return { user, profile, loading };
 }
