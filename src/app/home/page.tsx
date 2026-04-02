@@ -214,9 +214,9 @@ export default function HomePage() {
   const [ordersLoading, setOrdersLoading] = useState(true);
 
   const carouselImages = [
-    "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/IMG_20260311_141545_291.jpg?alt=media&token=515ee5d5-47e8-4d02-887f-5318a98ae4e1",
-    "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/IMG_20260311_141548_660.jpg?alt=media&token=90e811b9-cbee-47bd-820b-4f592a6d0ddc",
-    "https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/IMG_20260311_141536_642.jpg?alt=media&token=184c0b41-bb13-4721-bf91-7aa4391eeac3"
+    "https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/IMG_20260402_224659_961.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvSU1HXzIwMjYwNDAyXzIyNDY1OV85NjEuanBnIiwiaWF0IjoxNzc1MTUwMzIyLCJleHAiOjE4MDY2ODYzMjJ9.5jVq9MeL9JaygjjOxYImzTGJHnUndoT3dPRImEX2azc",
+    "https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/IMG_20260402_224657_783.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvSU1HXzIwMjYwNDAyXzIyNDY1N183ODMuanBnIiwiaWF0IjoxNzc1MTUwMzEzLCJleHAiOjE4MDY2ODYzMTN9.hKw47njZN7CISy5mAU2P_0v63JYM1pWQfUhPRKW4h9I",
+    "https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/IMG_20260402_224656_573.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvSU1HXzIwMjYwNDAyXzIyNDY1Nl81NzMuanBnIiwiaWF0IjoxNzc1MTUwMjk4LCJleHAiOjE4MDY2ODYyOTh9.EzQzVoLK0Dnz-hYVXdljOGpT6NJlkUaQ95pzQfOo6io"
   ];
   
   const fetchOrders = useCallback(async () => {
@@ -281,7 +281,7 @@ export default function HomePage() {
       <header className="flex items-center justify-between p-4 bg-white">
         <div className="flex items-center gap-2">
             <Image
-                src="https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/InShot_20260110_205628399.png?alt=media&token=5d466aa9-095b-495f-92e8-95f3b59b4367"
+                src="https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/IMG_20260402_224708_385.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvSU1HXzIwMjYwNDAyXzIyNDcwOF8zODUuanBnIiwiaWF0IjoxNzc1MTUwMzQwLCJleHAiOjE4MDY2ODYzNDB9.g69doGZuYs7EbHQ5ngFHWSxbu_dNyknLSBVLpM5_byQ"
                 width={32}
                 height={32}
                 alt="LG Pay Logo"

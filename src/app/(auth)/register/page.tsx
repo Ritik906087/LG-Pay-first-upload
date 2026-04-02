@@ -24,7 +24,7 @@ export default function RegisterPage() {
           {translations.register}
         </CardTitle>
         <Image
-          src="https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/LG%20PAY%20AVATAR.png?alt=media&token=707ce79d-15fa-4e58-9d1d-a7d774cfe5ec"
+          src="https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/IMG_20260402_224708_385.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvSU1HXzIwMjYwNDAyXzIyNDcwOF8zODUuanBnIiwiaWF0IjoxNzc1MTUwMzQwLCJleHAiOjE4MDY2ODYzNDB9.g69doGZuYs7EbHQ5ngFHWSxbu_dNyknLSBVLpM5_byQ"
           width={64}
           height={64}
           alt="LG Pay Avatar"
