@@ -6,3 +6,10 @@ export async function GET() {
         success: false
     });
 }
+
+export async function POST() {
+    return NextResponse.json({
+        message: "Payment verification temporarily disabled",
+        success: false
+    });
+}

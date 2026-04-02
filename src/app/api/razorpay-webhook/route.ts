@@ -6,3 +6,10 @@ export async function POST() {
         success: false
     });
 }
+
+export async function GET() {
+    return NextResponse.json({
+        message: "Webhook temporarily disabled",
+        success: false
+    });
+}
