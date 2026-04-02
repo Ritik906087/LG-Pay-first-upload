@@ -1,8 +1,19 @@
+
 import { NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
-import { supabaseAdmin } from '@/lib/supabase-admin';
+import { createClient } from '@supabase/supabase-js';
 
 export async function POST(request: Request) {
+  // Guard check for environment variables and initialize Supabase client
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.error('create-qr Error: Supabase environment variables are not set.');
+    return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
+  }
+  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
   const { userId, methodName } = await request.json();
 
   if (!userId || !methodName) {
