@@ -31,42 +31,26 @@ export function useSupabaseUser() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
+      
       if (currentUser) {
-        setLoading(true);
         const { data: userProfile, error } = await supabase
           .from('users')
           .select('*')
           .eq('id', currentUser.id)
           .single();
+          
         if (error && error.code !== 'PGRST116') {
-          console.error('Error fetching user profile on auth change:', error);
+          console.error('Error fetching user profile:', error);
+          setProfile(null);
+        } else {
+          setProfile(userProfile);
         }
-        setProfile(userProfile);
       } else {
         setProfile(null);
       }
+      
       setLoading(false);
     });
-    
-    // Initial fetch
-    const fetchInitialData = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        const currentUser = session?.user ?? null;
-        setUser(currentUser);
-        if (currentUser) {
-            const { data: userProfile, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', currentUser.id)
-            .single();
-            if (error && error.code !== 'PGRST116') {
-                console.error('Initial profile fetch error:', error);
-            }
-            setProfile(userProfile);
-        }
-        setLoading(false);
-    };
-    fetchInitialData();
 
     return () => {
       subscription.unsubscribe();
