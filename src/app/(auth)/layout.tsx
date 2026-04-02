@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import type { ReactNode } from 'react';
@@ -28,6 +26,8 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
     return <>{children}</>;
   }
 
+  const showLogo = !['/login', '/register'].includes(pathname);
+
   return (
       <div className="md:bg-gray-200">
         <div className={cn("relative mx-auto flex min-h-screen w-full flex-col items-center justify-start bg-secondary md:max-w-md md:shadow-lg", !isHelpPage && "auth-layout p-4 pt-24 pb-12")}>
@@ -44,7 +44,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             </header>
           )}
           <main className="flex w-full max-w-md flex-col items-center">
-            {!isHelpPage && <Logo className="mb-6 text-2xl font-bold" />}
+            {showLogo && <Logo className="mb-6 text-2xl font-bold" />}
             {children}
           </main>
         </div>
