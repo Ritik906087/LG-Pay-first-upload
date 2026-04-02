@@ -1,8 +1,13 @@
-import { NextResponse } from 'next/server';
+export async function POST() {
+    return Response.json({
+        message: "QR payment system temporarily disabled",
+            success: false
+              });
+              }
 
-export async function POST(request: Request) {
-  return NextResponse.json(
-    { message: "Payment system temporarily disabled" },
-    { status: 503 }
-  );
-}
+              export async function GET() {
+                return Response.json({
+                    message: "QR payment system temporarily disabled",
+                        success: false
+                          });
+                          }
