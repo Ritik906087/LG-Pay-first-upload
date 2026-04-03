@@ -100,6 +100,8 @@ type Order = {
     ocr_amount_match?: boolean;
     ocr_upi_match?: boolean;
     ocr_bank_account_match?: boolean;
+    ocr_name_match?: boolean;
+    ocr_date_match?: boolean;
 };
 
 type SellOrder = {
@@ -578,7 +580,7 @@ const PaymentReceipt = React.forwardRef<HTMLDivElement, { order: SellOrder; utr:
                     </div>
                     <div className="flex justify-between">
                         <span className="text-gray-500">Order ID</span>
-                        <span className="font-medium font-mono text-xs break-all">{order.order_id}</span>
+                        <span className="font-medium font-mono text-xs break-all">{order.order_id?.toUpperCase()}</span>
                     </div>
                     <div className="flex justify-between">
                         <span className="text-gray-500">Date & Time</span>
@@ -711,7 +713,7 @@ function ProcessWithdrawalDialog({ order, onProcessed }: { order: SellOrder, onP
                     <DialogHeader>
                         <DialogTitle>Process Withdrawal</DialogTitle>
                         <div className="flex justify-between items-center text-sm pt-2">
-                            <CardDescription>Order ID: <span className="break-all">{order.order_id}</span></CardDescription>
+                            <CardDescription>Order ID: <span className="break-all font-mono">{order.order_id?.toUpperCase()}</span></CardDescription>
                             <CountdownTimer expiryTimestamp={new Date(new Date(order.created_at).getTime() + 30 * 60 * 1000).toISOString()} />
                         </div>
                     </DialogHeader>
@@ -1083,8 +1085,8 @@ function LiveChatTabContent() {
     );
 }
 
-const VerificationItem = ({ label, isMatch }: { label: string, isMatch?: boolean }) => {
-    if (isMatch === undefined) {
+const VerificationItem = ({ label, isMatch }: { label: string, isMatch?: boolean | null }) => {
+    if (isMatch === undefined || isMatch === null) {
         return (
             <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">{label}</span>
@@ -1145,47 +1147,15 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
 
         setIsApproving(true);
         try {
-            // Ideally, this would be a single atomic RPC call to a database function.
-            // But we will chain the calls from the client as a fallback.
+            // This would ideally be a single atomic RPC call to a database function `approve_buy_order`.
+            const { error } = await supabase.rpc('approve_buy_order', {
+                p_order_id: order.id,
+                p_user_id: order.user_id,
+                p_amount_to_add: order.amount,
+            });
 
-            // 1. Fetch current user to get balance
-            const { data: userData, error: userError } = await supabase
-                .from('users')
-                .select('balance')
-                .eq('id', order.user.id)
-                .single();
-
-            if (userError || !userData) {
-                throw new Error(userError?.message || 'Could not find user to update balance.');
-            }
-
-            // 2. Calculate new balance and update user
-            const newBalance = (userData.balance || 0) + order.amount;
-            const { error: balanceUpdateError } = await supabase
-                .from('users')
-                .update({ balance: newBalance })
-                .eq('id', order.user.id);
+            if(error) throw error;
             
-            if (balanceUpdateError) {
-                throw new Error('Failed to update user balance.');
-            }
-
-            // 3. Update order status to 'completed'
-            const { error: orderUpdateError } = await supabase
-                .from('orders')
-                .update({ status: 'completed' })
-                .eq('id', order.id);
-
-            if (orderUpdateError) {
-                // Attempt to revert balance update on order failure
-                await supabase.from('users').update({ balance: userData.balance }).eq('id', order.user.id);
-                throw new Error('Failed to update order status. User balance update was reverted.');
-            }
-            
-            // P2P Logic would go here if needed.
-            // Since this is a direct buy, we don't need to handle seller side.
-
-            // 4. Success
             toast({ title: 'Payment Approved!', description: `₹${order.amount} credited to user ${order.user.numeric_id}.` });
             setOpen(false);
             onProcessed(); // This will refresh the list
@@ -1270,13 +1240,19 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                                 <div className="rounded-lg border bg-secondary/50 p-3 space-y-2 text-sm">
                                     {receiverDetails.type === 'bank' && (
                                         <>
-                                            <div className="flex justify-between">
-                                                <span className="text-muted-foreground">Bank:</span>
-                                                <span className="font-semibold">{receiverDetails.bankName}</span>
+                                            <div className="flex justify-between items-start gap-2">
+                                                <span className="text-muted-foreground shrink-0">Bank:</span>
+                                                <div className="flex items-center gap-1 text-right">
+                                                    <span className="font-semibold">{receiverDetails.bankName}</span>
+                                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard(receiverDetails.bankName, 'Bank Name')}><Copy className="h-3.5 w-3.5" /></Button>
+                                                </div>
                                             </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-muted-foreground">Holder:</span>
-                                                <span className="font-semibold">{receiverDetails.accountHolderName}</span>
+                                            <div className="flex justify-between items-start gap-2">
+                                                <span className="text-muted-foreground shrink-0">Holder:</span>
+                                                <div className="flex items-center gap-1 text-right">
+                                                    <span className="font-semibold">{receiverDetails.accountHolderName}</span>
+                                                     <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard(receiverDetails.accountHolderName, 'Holder Name')}><Copy className="h-3.5 w-3.5" /></Button>
+                                                </div>
                                             </div>
                                             <div className="flex justify-between items-start gap-2">
                                                 <span className="text-muted-foreground shrink-0">Account No:</span>
@@ -1296,9 +1272,12 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                                     )}
                                     {receiverDetails.type === 'upi' && (
                                         <>
-                                            <div className="flex justify-between">
-                                                <span className="text-muted-foreground">Name:</span>
-                                                <span className="font-semibold">{receiverDetails.upiHolderName}</span>
+                                            <div className="flex justify-between items-start gap-2">
+                                                <span className="text-muted-foreground shrink-0">Name:</span>
+                                                <div className="flex items-center gap-1 text-right">
+                                                    <span className="font-semibold">{receiverDetails.upiHolderName}</span>
+                                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard(receiverDetails.upiHolderName, 'UPI Name')}><Copy className="h-3.5 w-3.5" /></Button>
+                                                </div>
                                             </div>
                                             <div className="flex justify-between items-start gap-2">
                                                 <span className="text-muted-foreground shrink-0">UPI ID:</span>
@@ -1327,8 +1306,10 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                             <div className="rounded-lg border bg-secondary/50 p-3 space-y-2 text-sm">
                                 <VerificationItem label="Amount Match" isMatch={order.ocr_amount_match} />
                                 <VerificationItem label="UTR Match" isMatch={order.ocr_utr_match} />
+                                <VerificationItem label="Name Match" isMatch={order.ocr_name_match} />
                                 {(order.payment_type === 'upi' || order.payment_type === 'p2p_upi') && <VerificationItem label="UPI Match" isMatch={order.ocr_upi_match} />}
                                 {order.payment_type === 'bank' && <VerificationItem label="Account Match" isMatch={order.ocr_bank_account_match} />}
+                                <VerificationItem label="Date Match" isMatch={order.ocr_date_match} />
                             </div>
                         </div>
 
@@ -1593,7 +1574,7 @@ function ReviewReportDialog({ report, onResolved }: { report: Report; onResolved
                 <DialogHeader>
                     <DialogTitle>Review Report: {report.case_id}</DialogTitle>
                     <DialogDescription>
-                        User {report.user_numeric_id} reported a problem with order {report.display_order_id}.
+                        User {report.user_numeric_id} reported a problem with order {report.display_order_id?.toUpperCase()}.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto">
@@ -1732,7 +1713,7 @@ function ReportsTabContent() {
                         {reports.map(report => (
                             <TableRow key={report.id}>
                                 <TableCell className="font-mono text-xs">{report.case_id}</TableCell>
-                                <TableCell className="font-mono text-xs break-all">{report.display_order_id}</TableCell>
+                                <TableCell className="font-mono text-xs break-all">{report.display_order_id?.toUpperCase()}</TableCell>
                                 <TableCell className="max-w-[200px] truncate">{report.problem_type}</TableCell>
                                 <TableCell>{new Date(report.created_at).toLocaleString()}</TableCell>
                                 <TableCell>
@@ -1906,7 +1887,7 @@ function AdminDashboard() {
 
     const handleLogout = () => {
         document.cookie = 'admin-phone=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        router.push('/admin/login');
+        router.push('/login');
     };
     
     const totalUsers = allUsers?.length || 0;

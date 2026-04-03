@@ -250,7 +250,7 @@ function OrderStatusContent() {
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Order ID</span>
-                            <span className="font-mono text-xs break-all">{order.order_id}</span>
+                            <span className="font-mono text-xs break-all">{order.order_id?.toUpperCase()}</span>
                         </div>
                          <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">{order.payment_type === 'usdt' ? 'TxHash' : 'UTR'}</span>

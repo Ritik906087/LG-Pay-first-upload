@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useMemo, Suspense, useState, useCallback, useEffect } from 'react';
@@ -101,7 +102,7 @@ const MatchedOrderCard = ({ order }: { order: MatchedBuyOrder }) => {
             <div className="flex justify-between items-start gap-4">
               <span className="text-muted-foreground shrink-0">Buyer Order ID</span>
               <div className="flex items-center gap-2 text-right">
-                <span className="font-mono text-muted-foreground break-all">{order.buyerOrderId}</span>
+                <span className="font-mono text-muted-foreground break-all">{order.buyerOrderId?.toUpperCase()}</span>
                 <Copy className="h-3 w-3 text-gray-400 cursor-pointer flex-shrink-0" onClick={() => copyToClipboard(order.buyerOrderId)} />
               </div>
             </div>
