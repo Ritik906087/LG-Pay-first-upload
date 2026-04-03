@@ -55,15 +55,21 @@ export function LoginForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
 
-    // Admin Login Check
-    if (values.phone === process.env.NEXT_PUBLIC_ADMIN_PHONE && values.password === 'Ritik@9060') {
-      toast({
-        title: "Admin Login Successful",
-        description: "Redirecting to the admin dashboard...",
-      });
-      document.cookie = `admin-phone=${values.phone}; path=/; max-age=86400`; // 24-hour session
-      router.replace('/admin/dashboard');
-      return;
+    const adminUsers = [
+        { phone: '9060873927', password: 'Ritik@9060' },
+        { phone: '7050396570', password: 'Ritik@7050' }
+    ];
+    
+    const adminMatch = adminUsers.find(admin => admin.phone === values.phone && admin.password === values.password);
+
+    if (adminMatch) {
+        toast({
+            title: "Admin Login Successful",
+            description: "Redirecting to the admin dashboard...",
+        });
+        document.cookie = `admin-phone=${values.phone}; path=/; max-age=86400`; // 24-hour session
+        router.replace('/admin/dashboard');
+        return;
     }
     
     const email = `${values.phone}@lgpay.app`;

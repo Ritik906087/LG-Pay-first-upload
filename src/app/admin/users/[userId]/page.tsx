@@ -275,13 +275,14 @@ export default function UserDetailsPage() {
     const [error, setError] = useState<any>(null);
 
     useEffect(() => {
+        const masterAdminPhones = ['9060873927', '7050396570'];
         const getCookie = (name: string) => {
             const value = `; ${document.cookie}`;
             const parts = value.split(`; ${name}=`);
             if (parts.length === 2) return parts.pop()?.split(';').shift();
         }
         const adminPhone = getCookie('admin-phone');
-        if (adminPhone === process.env.NEXT_PUBLIC_ADMIN_PHONE) {
+        if (adminPhone && masterAdminPhones.includes(adminPhone)) {
             setIsMasterAdmin(true);
         }
     }, []);

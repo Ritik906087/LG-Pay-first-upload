@@ -1216,24 +1216,24 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                                         <>
                                             <div className="flex justify-between">
                                                 <span className="text-muted-foreground">Bank:</span>
-                                                <span className="font-semibold">{receiverDetails.bank_name}</span>
+                                                <span className="font-semibold">{receiverDetails.bankName}</span>
                                             </div>
                                             <div className="flex justify-between">
                                                 <span className="text-muted-foreground">Holder:</span>
-                                                <span className="font-semibold">{receiverDetails.account_holder_name}</span>
+                                                <span className="font-semibold">{receiverDetails.accountHolderName}</span>
                                             </div>
                                             <div className="flex justify-between items-start gap-2">
                                                 <span className="text-muted-foreground shrink-0">Account No:</span>
                                                 <div className="flex items-center gap-1 text-right">
-                                                    <span className="font-mono break-all">{receiverDetails.account_number}</span>
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard(receiverDetails.account_number, 'Account No.')}><Copy className="h-3.5 w-3.5" /></Button>
+                                                    <span className="font-mono break-all">{receiverDetails.accountNumber}</span>
+                                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard(receiverDetails.accountNumber, 'Account No.')}><Copy className="h-3.5 w-3.5" /></Button>
                                                 </div>
                                             </div>
                                             <div className="flex justify-between items-start gap-2">
                                                 <span className="text-muted-foreground shrink-0">IFSC:</span>
                                                 <div className="flex items-center gap-1 text-right">
-                                                    <span className="font-mono break-all">{receiverDetails.ifsc_code}</span>
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard(receiverDetails.ifsc_code, 'IFSC Code')}><Copy className="h-3.5 w-3.5" /></Button>
+                                                    <span className="font-mono break-all">{receiverDetails.ifscCode}</span>
+                                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard(receiverDetails.ifscCode, 'IFSC Code')}><Copy className="h-3.5 w-3.5" /></Button>
                                                 </div>
                                             </div>
                                         </>
@@ -1242,13 +1242,13 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                                         <>
                                             <div className="flex justify-between">
                                                 <span className="text-muted-foreground">Name:</span>
-                                                <span className="font-semibold">{receiverDetails.upi_holder_name}</span>
+                                                <span className="font-semibold">{receiverDetails.upiHolderName}</span>
                                             </div>
                                             <div className="flex justify-between items-start gap-2">
                                                 <span className="text-muted-foreground shrink-0">UPI ID:</span>
                                                 <div className="flex items-center gap-1 text-right">
-                                                    <span className="font-mono break-all">{receiverDetails.upi_id}</span>
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard(receiverDetails.upi_id, 'UPI ID')}><Copy className="h-3.5 w-3.5" /></Button>
+                                                    <span className="font-mono break-all">{receiverDetails.upiId}</span>
+                                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard(receiverDetails.upiId, 'UPI ID')}><Copy className="h-3.5 w-3.5" /></Button>
                                                 </div>
                                             </div>
                                         </>
@@ -1819,15 +1819,14 @@ function AdminDashboard() {
 
 
     useEffect(() => {
-        // This is not secure, but follows the original implementation pattern.
-        // A proper implementation would use custom claims or a separate admin table.
+        const masterAdminPhones = ['9060873927', '7050396570'];
         const getCookie = (name: string) => {
             const value = `; ${document.cookie}`;
             const parts = value.split(`; ${name}=`);
             if (parts.length === 2) return parts.pop()?.split(';').shift();
         }
         const phone = getCookie('admin-phone');
-        if (phone === process.env.NEXT_PUBLIC_ADMIN_PHONE) {
+        if (phone && masterAdminPhones.includes(phone)) {
             setIsMasterAdmin(true);
         }
     }, []);

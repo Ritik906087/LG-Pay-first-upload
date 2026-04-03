@@ -62,8 +62,9 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   
+  const adminPhones = ['9060873927', '7050396570'];
   const adminPhone = request.cookies.get('admin-phone');
-  const isAdminAuthenticated = adminPhone?.value === '9060873927';
+  const isAdminAuthenticated = adminPhone?.value ? adminPhones.includes(adminPhone.value) : false;
 
   // If an authenticated admin visits the main login page, redirect them to their dashboard.
   if (pathname === '/login' && isAdminAuthenticated) {
