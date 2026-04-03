@@ -34,20 +34,22 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Loader } from '@/components/ui/loader';
 import { createClient } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 
 const defaultAvatarUrl = "https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/IMG_20260402_224703_814.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvSU1HXzIwMjYwNDAyXzIyNDcwM184MTQuanBnIiwiaWF0IjoxNzc1MTUwMzMxLCJleHAiOjE4MDY2ODYzMzF9.o5z7uxui9h2o-GVKG9znk4TKBAoK4WMsLKY6NPZ8_1o";
 
-const paymentMethodDetails: { [key: string]: { logo: string; bgColor: string } } = {
+const paymentMethodDetails: { [key: string]: { logo: string; bgColor: string, status?: string } } = {
   PhonePe: { logo: "https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/download%20(4).png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvZG93bmxvYWQgKDQpLnBuZyIsImlhdCI6MTc3NTE0ODYyMSwiZXhwIjoxODA2Njg0NjIxfQ.b_cMHhiCw52krGt2edtt1k5C1Keo8uGJwYIWpe6vZVo", bgColor: "bg-violet-600" },
   Paytm: { logo: "https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/download%20(5).png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvZG93bmxvYWQgKDUpLnBuZyIsImlhdCI6MTc3NTE0ODYzMiwiZXhwIjoxODA2Njg0NjMyfQ.QXSbgSLV3ULTcV3ss9Co9ZMe1oj3tb9bR_OP8xY-Nds", bgColor: "bg-sky-500" },
   MobiKwik: { logo: "https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/download%20(1).png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvZG93bmxvYWQgKDEpLnBuZyIsImlhdCI6MTc3NTE0ODU3MywiZXhwIjoxODA2Njg0NTczfQ.m8Z7gn5FV-0ss58kTEUZ833u8Wv_bFun3YZeZtyIa9s", bgColor: "bg-blue-600" },
   Freecharge: { logo: "https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/download%20(3).png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvZG93bmxvYWQgKDMpLnBuZyIsImlhdCI6MTc3NTE0ODYwOSwiZXhwIjoxODA2Njg0NjA5fQ.pus8pOlgEXCFb2pjIzNsVtU9DxnIxEeaVaeR3TuIQPc", bgColor: "bg-orange-500" },
-  Airtel: { logo: "https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/download%20(2).png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvZG93bmxvYWQgKDIpLnBuZyIsImlhdCI6MTc3NTE0ODU5OSwiZXhwIjoxODA2Njg0NTk5fQ.yDb5CBUsF_MCejlDIzrQVjg6IMylJbAzEmHFaozfNjE", bgColor: "bg-red-500" },
+  Airtel: { logo: "https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/download%20(2).png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvZG93bmxvYWQgKDIpLnBuZyIsImlhdCI6MTc3NTE0ODU5OSwiZXhwIjoxODA2Njg0NTk5fQ.yDb5CBUsF_MCejlDIzrQVjg6IMylJbAzEmHFaozfNjE", bgColor: "bg-red-500", status: "maintenance" },
 };
 
 type UserProfile = {
@@ -59,7 +61,7 @@ type UserProfile = {
     email?: string;
     phone_number?: string;
     photo_url?: string;
-    payment_methods?: { name: string; upiId: string }[];
+    payment_methods?: { name: string; upiId: string, upiHolderName?: string }[];
 };
 
 type Order = {
@@ -260,6 +262,127 @@ const HoldBalanceActionDialog = ({ userId }: { userId: string }) => {
     )
 }
 
+const AddUpiDialog = ({ userId, onUpiAdded }: { userId: string, onUpiAdded: () => void }) => {
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [selectedProvider, setSelectedProvider] = useState<string>('');
+    const [name, setName] = useState("");
+    const [upiId, setUpiId] = useState("");
+    const [isSaving, setIsSaving] = useState(false);
+    const supabase = createClient();
+    const { toast } = useToast();
+
+    const upiProviders = Object.entries(paymentMethodDetails)
+        .map(([name, details]) => ({ name, ...details }));
+
+    const handleLinkAccount = async () => {
+        if (!selectedProvider || !name.trim() || !upiId.trim()) {
+          toast({ variant: "destructive", title: "All fields are required." });
+          return;
+        }
+        
+        if (!/^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/.test(upiId)) {
+            toast({ variant: 'destructive', title: 'Invalid UPI ID format.'});
+            return;
+        }
+
+        setIsSaving(true);
+
+        try {
+          const { data: userData, error: fetchError } = await supabase
+            .from('users')
+            .select('payment_methods')
+            .eq('id', userId)
+            .single();
+
+          if (fetchError || !userData) {
+              throw new Error("Could not fetch user to update payment methods.");
+          }
+          
+          const currentMethods = userData.payment_methods || [];
+          
+          if (currentMethods.some((method: any) => method.upiId === upiId)) {
+              toast({ variant: 'destructive', title: 'This UPI ID is already linked to this user.'});
+              setIsSaving(false);
+              return;
+          }
+           if (currentMethods.some((method: any) => method.name === selectedProvider)) {
+              toast({ variant: 'destructive', title: `A ${selectedProvider} account is already linked to this user.`});
+              setIsSaving(false);
+              return;
+          }
+
+          const newMethod = {
+            type: 'upi',
+            name: selectedProvider,
+            upiId: upiId,
+            upiHolderName: name
+          };
+
+          const { error: updateError } = await supabase
+            .from('users')
+            .update({ payment_methods: [...currentMethods, newMethod] })
+            .eq('id', userId);
+
+          if (updateError) throw updateError;
+          
+          toast({ title: "Success!", description: `UPI account added successfully for the user.` });
+          setDialogOpen(false);
+          onUpiAdded();
+
+        } catch (error: any) {
+            console.error("Error adding UPI:", error);
+            toast({ variant: "destructive", title: "Failed to add UPI", description: error.message });
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    return (
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+                <Button variant="secondary" size="sm">Add UPI</Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Add UPI for User</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label>UPI Provider</Label>
+                        <Select onValueChange={setSelectedProvider} value={selectedProvider} disabled={isSaving}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select a UPI provider" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {upiProviders.map(provider => (
+                                    <SelectItem key={provider.name} value={provider.name} disabled={provider.status === 'maintenance'}>
+                                        {provider.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="upi-name">Holder Name</Label>
+                        <Input id="upi-name" placeholder="Enter name on UPI account" value={name} onChange={(e) => setName(e.target.value)} disabled={isSaving} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="upi-id">UPI ID</Label>
+                        <Input id="upi-id" placeholder="yourname@okhdfcbank" value={upiId} onChange={(e) => setUpiId(e.target.value)} disabled={isSaving} />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={isSaving}>Cancel</Button>
+                    <Button onClick={handleLinkAccount} disabled={isSaving || !selectedProvider || !name || !upiId}>
+                        {isSaving ? <Loader size="xs" className="mr-2" /> : "Link Account"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+
 export default function UserDetailsPage() {
     const params = useParams();
     const userId = params.userId as string;
@@ -287,41 +410,40 @@ export default function UserDetailsPage() {
         }
     }, []);
 
+    const fetchData = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const [userRes, ordersRes, sellOrdersRes, l1AgentsRes] = await Promise.all([
+                supabase.from('users').select('*').eq('id', userId).single(),
+                supabase.from('orders').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+                supabase.from('sell_orders').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+                supabase.from('users').select('*').eq('inviter_uid', userId)
+            ]);
+
+            if (userRes.error) throw userRes.error;
+            setUser(userRes.data as UserProfile);
+
+            if (ordersRes.error) console.error("Error fetching orders:", ordersRes.error);
+            else setOrders(ordersRes.data as Order[]);
+
+            if (sellOrdersRes.error) console.error("Error fetching sell orders:", sellOrdersRes.error);
+            else setSellOrders(sellOrdersRes.data as SellOrder[]);
+
+            if (l1AgentsRes.error) console.error("Error fetching L1 agents:", l1AgentsRes.error);
+            else setL1Agents(l1AgentsRes.data as UserProfile[]);
+
+        } catch (err: any) {
+            setError(err);
+        } finally {
+            setLoading(false);
+        }
+    }, [userId, supabase]);
+
     useEffect(() => {
         if (!userId) return;
-
-        const fetchData = async () => {
-            setLoading(true);
-            setError(null);
-            try {
-                const [userRes, ordersRes, sellOrdersRes, l1AgentsRes] = await Promise.all([
-                    supabase.from('users').select('*').eq('id', userId).single(),
-                    supabase.from('orders').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
-                    supabase.from('sell_orders').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
-                    supabase.from('users').select('*').eq('inviter_uid', userId)
-                ]);
-
-                if (userRes.error) throw userRes.error;
-                setUser(userRes.data as UserProfile);
-
-                if (ordersRes.error) console.error("Error fetching orders:", ordersRes.error);
-                else setOrders(ordersRes.data as Order[]);
-
-                if (sellOrdersRes.error) console.error("Error fetching sell orders:", sellOrdersRes.error);
-                else setSellOrders(sellOrdersRes.data as SellOrder[]);
-
-                if (l1AgentsRes.error) console.error("Error fetching L1 agents:", l1AgentsRes.error);
-                else setL1Agents(l1AgentsRes.data as UserProfile[]);
-
-            } catch (err: any) {
-                setError(err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
         fetchData();
-    }, [userId, supabase]);
+    }, [userId, fetchData]);
     
     const stats = React.useMemo(() => {
         const now = new Date();
@@ -482,8 +604,9 @@ export default function UserDetailsPage() {
 
             {/* Linked UPIs Card */}
             <Card>
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Linked UPI Accounts</CardTitle>
+                    {isMasterAdmin && <AddUpiDialog userId={userId} onUpiAdded={fetchData} />}
                 </CardHeader>
                 <CardContent>
                     {user.payment_methods && user.payment_methods.length > 0 ? (
@@ -509,6 +632,7 @@ export default function UserDetailsPage() {
                                                 </div>
                                             )}
                                             <div className="flex-grow">
+                                                <p className="text-sm font-medium">{method.upiHolderName}</p>
                                                 <span className="text-base font-semibold">{method.name}</span>
                                                 <p className="text-xs font-mono text-white/80">{method.upiId}</p>
                                             </div>
@@ -679,3 +803,5 @@ export default function UserDetailsPage() {
         </main>
     )
 }
+
+    
