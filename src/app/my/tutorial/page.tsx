@@ -92,7 +92,7 @@ export default function TutorialPage() {
                                 src={tutorial.videoUrl}
                                 controls
                                 className="h-full w-full object-contain"
-                                poster="https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/file_00000000bd5072068c98a569253739e7.png?alt=media&token=3035c470-4755-4b35-a364-60d55ae22513"
+                                poster="https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/IMG_20260402_224656_573.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvSU1HXzIwMjYwNDAyXzIyNDY1Nl81NzMuanBnIiwiaWF0IjoxNzc1MTUwMjk4LCJleHAiOjE4MDY2ODYyOTh9.EzQzVoLK0Dnz-hYVXdljOGpT6NJlkUaQ95pzQfOo6io"
                             />
                         ) : (
                             <div className="flex flex-col items-center gap-2">

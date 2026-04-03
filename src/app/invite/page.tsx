@@ -145,7 +145,7 @@ export default function InvitePage() {
           <GlassCard>
               <CardContent className="p-4 space-y-4">
                   <div className="flex justify-center rounded-lg overflow-hidden">
-                      <Image src="https://firebasestorage.googleapis.com/v0/b/studio-7631087921-85112.firebasestorage.app/o/file_000000002968720686f855daed13e880.png?alt=media&token=c4dece97-7dee-41c4-bac7-6c1f9f186fb6" width={80} height={30} alt="Invite friends" />
+                      <Image src="https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/IMG_20260402_224659_961.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvSU1HXzIwMjYwNDAyXzIyNDY1OV85NjEuanBnIiwiaWF0IjoxNzc1MTUwMzIyLCJleHAiOjE4MDY2ODYzMjJ9.5jVq9MeL9JaygjjOxYImzTGJHnUndoT3dPRImEX2azc" width={300} height={150} alt="Invite friends" className="rounded-lg" />
                   </div>
                   <h3 className="font-bold text-center">Invite friends to join LG Pay, rewards credited instantly</h3>
                   
