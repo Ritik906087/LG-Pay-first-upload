@@ -172,13 +172,48 @@ const HoldBalanceActionDialog = ({ userId }: { userId: string }) => {
         setIsLoading(true);
 
         try {
-            const { data, error } = await supabase.rpc('manage_hold_balance', {
-                p_user_id: userId,
-                p_amount: value,
-                p_action: action
-            });
+            const { data: userData, error: fetchError } = await supabase
+                .from('users')
+                .select('balance, hold_balance')
+                .eq('id', userId)
+                .single();
 
-            if(error) throw error;
+            if (fetchError || !userData) {
+                throw new Error(fetchError?.message || "Could not find user to update.");
+            }
+            
+            let newBalance = userData.balance;
+            let newHoldBalance = userData.hold_balance;
+
+            if (action === 'add') {
+                if (newBalance < value) {
+                    toast({ variant: 'destructive', title: 'Insufficient Balance', description: "User's main balance is not sufficient." });
+                    setIsLoading(false);
+                    return;
+                }
+                newBalance -= value;
+                newHoldBalance += value;
+            } else { // remove
+                if (newHoldBalance < value) {
+                    toast({ variant: 'destructive', title: 'Insufficient Hold Balance', description: "User's hold balance is not sufficient." });
+                    setIsLoading(false);
+                    return;
+                }
+                newBalance += value;
+                newHoldBalance -= value;
+            }
+
+            const { error: updateError } = await supabase
+                .from('users')
+                .update({
+                    balance: newBalance,
+                    hold_balance: newHoldBalance
+                })
+                .eq('id', userId);
+            
+            if (updateError) {
+                throw updateError;
+            }
             
             toast({ title: 'Hold Balance Updated' });
             setOpen(false);
