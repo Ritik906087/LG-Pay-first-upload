@@ -413,7 +413,11 @@ export default function UserDetailsPage() {
                          <p className="text-sm text-muted-foreground">This balance is frozen and cannot be used by the user.</p>
                     </CardContent>
                     <CardFooter>
-                         <HoldBalanceActionDialog userId={userId} />
+                         {isMasterAdmin ? (
+                            <HoldBalanceActionDialog userId={userId} />
+                         ) : (
+                            <Button disabled>Manage Hold (Master only)</Button>
+                         )}
                     </CardFooter>
                 </Card>
             </div>

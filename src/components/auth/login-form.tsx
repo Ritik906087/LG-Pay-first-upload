@@ -56,7 +56,7 @@ export function LoginForm() {
     setIsLoading(true);
 
     // Admin Login Check
-    if (values.phone === '9060873927' && values.password === 'Ritik@9060') {
+    if (values.phone === process.env.NEXT_PUBLIC_ADMIN_PHONE && values.password === 'Ritik@9060') {
       toast({
         title: "Admin Login Successful",
         description: "Redirecting to the admin dashboard...",
