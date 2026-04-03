@@ -435,9 +435,9 @@ function PaymentDetailsContent() {
 
             toast({ title: 'Payment Submitted!', description: 'Your proof is under review.' });
             router.push(`/order/${orderId}`);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error submitting payment proof: ", error);
-            toast({ variant: 'destructive', title: 'Submission Failed', description: 'Failed to save order details.' });
+            toast({ variant: 'destructive', title: 'Submission Failed', description: error.message || 'Failed to save order details.' });
             setIsConfirming(false);
         }
     };
