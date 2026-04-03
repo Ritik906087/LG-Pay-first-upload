@@ -1138,14 +1138,58 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
     };
 
     const handleApprove = async () => {
-        // This function would ideally be a single RPC call to a database function
-        // to ensure atomicity. For now, we'll chain the calls.
+        if (!order || !order.user) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Order or user data is missing.' });
+            return;
+        }
+
         setIsApproving(true);
         try {
-            // This needs to be converted to a proper transaction or RPC
-            toast({ variant: 'destructive', title: 'Approval logic not fully implemented for Supabase yet.' });
-            // The logic involves multiple table updates (users, orders, sell_orders, transactions)
-            // and should be handled in a database function for safety.
+            // Ideally, this would be a single atomic RPC call to a database function.
+            // But we will chain the calls from the client as a fallback.
+
+            // 1. Fetch current user to get balance
+            const { data: userData, error: userError } = await supabase
+                .from('users')
+                .select('balance')
+                .eq('id', order.user.id)
+                .single();
+
+            if (userError || !userData) {
+                throw new Error(userError?.message || 'Could not find user to update balance.');
+            }
+
+            // 2. Calculate new balance and update user
+            const newBalance = (userData.balance || 0) + order.amount;
+            const { error: balanceUpdateError } = await supabase
+                .from('users')
+                .update({ balance: newBalance })
+                .eq('id', order.user.id);
+            
+            if (balanceUpdateError) {
+                throw new Error('Failed to update user balance.');
+            }
+
+            // 3. Update order status to 'completed'
+            const { error: orderUpdateError } = await supabase
+                .from('orders')
+                .update({ status: 'completed' })
+                .eq('id', order.id);
+
+            if (orderUpdateError) {
+                // Attempt to revert balance update on order failure
+                await supabase.from('users').update({ balance: userData.balance }).eq('id', order.user.id);
+                throw new Error('Failed to update order status. User balance update was reverted.');
+            }
+            
+            // P2P Logic would go here if needed.
+            // Since this is a direct buy, we don't need to handle seller side.
+
+            // 4. Success
+            toast({ title: 'Payment Approved!', description: `₹${order.amount} credited to user ${order.user.numeric_id}.` });
+            setOpen(false);
+            onProcessed(); // This will refresh the list
+
         } catch (e: any) {
             console.error("Failed to approve payment:", e);
             toast({ variant: 'destructive', title: 'Approval Failed', description: e.message });
@@ -1161,8 +1205,20 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
         }
         setIsRejecting(true);
         try {
-            // This also needs to be a transaction
-            toast({ variant: 'destructive', title: 'Rejection logic not fully implemented for Supabase yet.' });
+            const { error } = await supabase
+                .from('orders')
+                .update({ 
+                    status: 'failed',
+                    rejection_reason: rejectionReason
+                })
+                .eq('id', order.id);
+
+            if (error) throw error;
+            
+            toast({ title: 'Payment Rejected', description: `Order from user ${order.user?.numeric_id} has been rejected.` });
+            setOpen(false);
+            onProcessed(); // Refresh the list
+
         } catch (e: any) {
             console.error("Failed to reject payment:", e);
             toast({ variant: 'destructive', title: 'Rejection Failed', description: e.message });
