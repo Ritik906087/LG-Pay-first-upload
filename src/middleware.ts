@@ -62,27 +62,29 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   
+  const adminPhone = request.cookies.get('admin-phone');
+  const isAdminAuthenticated = adminPhone?.value === '9060873927';
+
+  // If an authenticated admin visits the main login page, redirect them to their dashboard.
+  if (pathname === '/login' && isAdminAuthenticated) {
+    return NextResponse.redirect(new URL('/admin/dashboard', request.url));
+  }
+  
   // ===== Admin Auth Routes =====
   if (pathname.startsWith('/admin')) {
-    const adminPhone = request.cookies.get('admin-phone');
-    const isAdminAuthenticated = adminPhone?.value === process.env.NEXT_PUBLIC_ADMIN_PHONE;
     const isAdminLoginRoute = pathname === '/admin/login';
 
     if (isAdminLoginRoute) {
-      if (isAdminAuthenticated) {
-        // Authenticated users on the login page are redirected to the dashboard.
-        return NextResponse.redirect(new URL('/admin/dashboard', request.url));
-      }
-      // Unauthenticated users are allowed to see the login page.
-      return response;
+      // The dedicated admin login page is removed. Redirect all traffic to the main login page.
+      return NextResponse.redirect(new URL('/login', request.url));
     }
 
     if (!isAdminAuthenticated) {
-      // Unauthenticated users on any other admin page are redirected to login.
-      return NextResponse.redirect(new URL('/admin/login', request.url));
+      // Unauthenticated users on any other admin page are redirected to the main login page.
+      return NextResponse.redirect(new URL('/login', request.url));
     }
     
-    // Authenticated users are allowed to see any other admin page.
+    // Authenticated admin users are allowed to see any other admin page.
     return response;
   }
 

@@ -54,6 +54,17 @@ export function LoginForm() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
+
+    // Admin Login Check
+    if (values.phone === '9060873927' && values.password === 'Ritik@9060') {
+      toast({
+        title: "Admin Login Successful",
+        description: "Redirecting to the admin dashboard...",
+      });
+      document.cookie = `admin-phone=${values.phone}; path=/; max-age=86400`; // 24-hour session
+      router.replace('/admin/dashboard');
+      return;
+    }
     
     const email = `${values.phone}@lgpay.app`;
 
