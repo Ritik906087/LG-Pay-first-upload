@@ -296,9 +296,16 @@ function PaymentDetailsContent() {
     }, [order, orderLoading, type, allPaymentMethods]);
 
     useEffect(() => {
-        if (order && paymentTargetDetails?.id && order && !order.admin_payment_method_id && type !== 'p2p_upi' && type !== 'p2p_bank') {
-            supabase.from('orders').update({ admin_payment_method_id: paymentTargetDetails.id }).eq('id', order.id)
-                .catch(err => console.error("Failed to set admin payment method ID on order", err));
+        const updateAdminPaymentMethod = async () => {
+            if (order && paymentTargetDetails?.id && !order.admin_payment_method_id && type !== 'p2p_upi' && type !== 'p2p_bank') {
+                const { error } = await supabase.from('orders').update({ admin_payment_method_id: paymentTargetDetails.id }).eq('id', order.id);
+                if (error) {
+                    console.error("Failed to set admin payment method ID on order", error);
+                }
+            }
+        };
+        if(order && paymentTargetDetails){
+             updateAdminPaymentMethod();
         }
     }, [order, paymentTargetDetails, type, supabase]);
 
