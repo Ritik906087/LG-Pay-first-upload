@@ -433,13 +433,15 @@ function PaymentDetailsContent() {
             const fileName = `${user.id}-${uuidv4()}.${fileExt}`;
             const filePath = `payment-proofs/${fileName}`;
     
-            // Using the 'reports' bucket. Assumes it exists with proper policies.
+            console.log("Uploading screenshot path", filePath);
+            console.log("Current user", user?.id);
+
             const { error: uploadError } = await supabase.storage
                 .from('reports')
                 .upload(filePath, screenshotFile);
     
             if (uploadError) {
-                throw new Error(`Screenshot upload failed: ${uploadError.message}`);
+                throw uploadError;
             }
     
             const { data: { publicUrl } } = supabase.storage.from('reports').getPublicUrl(filePath);
@@ -480,7 +482,13 @@ function PaymentDetailsContent() {
             router.push(`/order/${orderId}`);
         } catch (error: any) {
             console.error("Error submitting payment proof: ", error);
-            toast({ variant: 'destructive', title: 'Submission Failed', description: error.message || 'Failed to save order details.' });
+            
+            let description = error.message || 'Failed to save order details.';
+            if (error.message && (error.message.toLowerCase().includes('security rule') || error.message.toLowerCase().includes('rls') || error.message.toLowerCase().includes('policy'))) {
+                description = "Upload permission issue. Please contact support.";
+            }
+
+            toast({ variant: 'destructive', title: 'Submission Failed', description: description });
             setIsConfirming(false);
         }
     };
