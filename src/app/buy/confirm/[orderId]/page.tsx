@@ -960,16 +960,20 @@ function PaymentDetailsContent() {
                               key={method.upiId}
                               onClick={() => handlePaymentMethodChange(method.name)}
                               disabled={isUpdatingProvider}
-                              className="w-full flex items-center p-3 rounded-lg border hover:bg-secondary transition-colors disabled:opacity-50"
+                              className={cn("w-full flex items-center p-3 rounded-lg border hover:bg-opacity-90 transition-colors disabled:opacity-50", details?.bgColor || 'bg-gray-500', "text-white")}
                           >
                               {isUpdatingProvider ? (
                                 <Loader2 className="h-5 w-5 mr-4 animate-spin" />
                               ) : (
-                                <Image src={details.logo} alt={method.name} width={32} height={32} className="mr-4" />
+                                details && (
+                                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white p-1 mr-4">
+                                      <Image src={details.logo} alt={method.name} width={32} height={32} className="object-contain" />
+                                  </div>
+                                )
                               )}
                               <div className="text-left">
                                   <span className="font-medium">{method.name}</span>
-                                  <p className="text-xs font-mono text-muted-foreground">{method.upiId}</p>
+                                  <p className="text-xs font-mono text-white/80">{method.upiId}</p>
                               </div>
                           </button>
                       )
@@ -1002,8 +1006,9 @@ function PaymentDetailsContent() {
                             Verify
                         </AlertDialogAction>
                     </AlertDialogFooter>
-                </AlertDialog>
-            </Dialog>
+                </AlertDialogContent>
+            </AlertDialog>
+    
             <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
@@ -1063,3 +1068,5 @@ export default function ConfirmPage() {
     </Suspense>
   )
 }
+
+    
