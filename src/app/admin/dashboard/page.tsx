@@ -539,250 +539,6 @@ function PaymentMethodsList({ methods, loading, onDelete, canDelete }: { methods
     )
 }
 
-const PaymentReceipt = React.forwardRef<HTMLDivElement, { order: SellOrder; utr: string }>(({ order, utr }, ref) => {
-    const receiptDate = new Date().toLocaleString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-    });
-    
-    const isBank = order.withdrawal_method?.type === 'bank';
-
-    return (
-        <div ref={ref} className="bg-white p-6 rounded-lg shadow-lg w-[360px] relative overflow-hidden font-sans">
-            <div className="absolute inset-0 flex items-center justify-center z-0">
-                <h1 className="text-[120px] font-bold text-gray-200/30 rotate-[-30deg] select-none">LG PAY</h1>
-            </div>
-            <div className="relative z-10">
-                <div className="text-center mb-6">
-                    <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
-                    <h2 className="text-xl font-semibold mt-4">Payment Successful</h2>
-                    <p className="text-3xl font-bold mt-2">₹{order.amount.toFixed(2)}</p>
-                </div>
-
-                <div className="space-y-3 text-sm border-t border-dashed pt-4">
-                    <div className="flex justify-between">
-                        <span className="text-gray-500">To</span>
-                        <span className="font-medium text-right">{isBank ? order.withdrawal_method?.accountHolderName : order.withdrawal_method?.name}</span>
-                    </div>
-                     <div className="flex justify-between">
-                        <span className="text-gray-500">{isBank ? 'Account No.' : 'UPI ID'}</span>
-                        <span className="font-medium text-right">{isBank ? order.withdrawal_method?.accountNumber : order.withdrawal_method?.upi_id}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-gray-500">From</span>
-                        <span className="font-medium">LG PAY ADMIN</span>
-                    </div>
-                     <div className="flex justify-between">
-                        <span className="text-gray-500">UTR Number</span>
-                        <span className="font-medium font-mono">{utr || 'XXXXXXXXXXXXXXXX'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-gray-500">Order ID</span>
-                        <span className="font-medium font-mono text-xs break-all">{order.order_id?.toUpperCase()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-gray-500">Date & Time</span>
-                        <span className="font-medium">{receiptDate}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-});
-PaymentReceipt.displayName = 'PaymentReceipt';
-
-
-function ProcessWithdrawalDialog({ order, onProcessed }: { order: SellOrder, onProcessed: () => void }) {
-    const [utr, setUtr] = useState('');
-    const [isConfirming, setIsConfirming] = useState(false);
-    const [isDownloading, setIsDownloading] = useState(false);
-    const [open, setOpen] = useState(false);
-    const [showRejectionUI, setShowRejectionUI] = useState(false);
-    const [rejectionReason, setRejectionReason] = useState('');
-    const [isRejecting, setIsRejecting] = useState(false);
-    const supabase = createClient();
-    const { toast } = useToast();
-    const receiptRef = useRef<HTMLDivElement>(null);
-
-    // This is the user's destination account (either bank or UPI).
-    const withdrawalDetails = order.withdrawal_method;
-    const isBankWithdrawal = withdrawalDetails?.type === 'bank';
-
-    const handleConfirm = async () => {
-        if (utr.length !== 12 || !/^\d+$/.test(utr)) {
-            toast({ variant: 'destructive', title: 'Invalid UTR', description: 'UTR must be 12 digits.' });
-            return;
-        }
-        setIsConfirming(true);
-        try {
-            const { error } = await supabase.from('sell_orders').update({
-                status: 'completed',
-                utr: utr,
-                completed_at: new Date().toISOString(),
-            }).eq('id', order.id);
-            if (error) throw error;
-            toast({ title: 'Withdrawal Confirmed!', description: `Order ${order.order_id} marked as completed.` });
-            setOpen(false);
-            onProcessed();
-        } catch (e: any) {
-            console.error("Failed to confirm withdrawal:", e);
-            toast({ variant: 'destructive', title: 'Error', description: e.message });
-        } finally {
-            setIsConfirming(false);
-        }
-    };
-    
-     const handleReject = async () => {
-        if (!rejectionReason.trim()) {
-            toast({ variant: 'destructive', title: 'Reason Required', description: 'Please provide a reason for rejection.' });
-            return;
-        }
-        setIsRejecting(true);
-        try {
-            const { data: userData, error: userError } = await supabase.from('users').select('balance').eq('id', order.user_id).single();
-            if (userError || !userData) throw new Error("User not found for refund.");
-
-            const newBalance = (userData.balance || 0) + order.amount;
-            
-            const { error: userUpdateError } = await supabase.from('users').update({ balance: newBalance }).eq('id', order.user_id);
-            if(userUpdateError) throw new Error('Failed to refund user balance.');
-
-            const { error: orderUpdateError } = await supabase.from('sell_orders').update({
-                status: 'failed',
-                failure_reason: rejectionReason,
-            }).eq('id', order.id);
-            if (orderUpdateError) throw orderUpdateError;
-
-
-            toast({ title: 'Withdrawal Rejected', description: `Order ${order.order_id} has been rejected and amount refunded.` });
-            setOpen(false);
-            onProcessed();
-        } catch (e: any) {
-            console.error("Failed to reject withdrawal:", e);
-            toast({ variant: 'destructive', title: 'Error', description: e.message });
-        } finally {
-            setIsRejecting(false);
-        }
-    };
-
-    const handleDownloadImage = async () => {
-        if (!receiptRef.current) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Receipt element not found.' });
-            return;
-        }
-        if (!utr || utr.length !== 12) {
-            toast({ variant: 'destructive', title: 'Invalid UTR', description: 'Please enter a 12-digit UTR before downloading.' });
-            return;
-        }
-
-        setIsDownloading(true);
-        try {
-            const html2canvas = (await import('html2canvas')).default;
-            const canvas = await html2canvas(receiptRef.current, {
-                backgroundColor: '#ffffff',
-                scale: 2, // Higher scale for better resolution
-            });
-            const dataUrl = canvas.toDataURL('image/png');
-            const link = document.createElement('a');
-            link.href = dataUrl;
-            link.download = `LGPAY-Receipt-${order.order_id}.png`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        } catch (error) {
-            console.error('Failed to download image:', error);
-            toast({ variant: 'destructive', title: 'Download Failed', description: 'Could not generate receipt image.' });
-        } finally {
-            setIsDownloading(false);
-        }
-    };
-
-    return (
-        <>
-            {/* Hidden receipt for capturing */}
-            <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
-                <PaymentReceipt ref={receiptRef} order={order} utr={utr} />
-            </div>
-            <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setShowRejectionUI(false); }}>
-                <DialogTrigger asChild>
-                    <Button className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold">View Details</Button>
-                </DialogTrigger>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Process Withdrawal</DialogTitle>
-                        <div className="flex justify-between items-center text-sm pt-2">
-                            <CardDescription>Order ID: <span className="break-all font-mono">{order.order_id?.toUpperCase()}</span></CardDescription>
-                            <CountdownTimer expiryTimestamp={new Date(new Date(order.created_at).getTime() + 30 * 60 * 1000).toISOString()} />
-                        </div>
-                    </DialogHeader>
-                    {showRejectionUI ? (
-                        <div className="py-4 space-y-2">
-                            <Label htmlFor="rejection-reason">Reason for Rejection</Label>
-                            <Input id="rejection-reason" value={rejectionReason} onChange={(e) => setRejectionReason(e.target.value)} placeholder="e.g., Invalid details" />
-                        </div>
-                    ) : (
-                        <div className="space-y-4 py-4">
-                            <p><strong>Amount:</strong> <span className="font-bold text-lg text-primary">₹{order.amount}</span></p>
-                            <p><strong>User UID:</strong> {order.users?.numeric_id}</p>
-                            <p><strong>Phone:</strong> {order.users?.phone_number}</p>
-                            
-                            <p><strong>Method:</strong> {withdrawalDetails?.type?.toUpperCase() ?? 'N/A'}</p>
-                            {isBankWithdrawal ? (
-                                <>
-                                <p><strong>Bank:</strong> {withdrawalDetails.bankName ?? 'N/A'}</p>
-                                <p><strong>Holder:</strong> {withdrawalDetails.accountHolderName ?? 'N/A'}</p>
-                                <p><strong>Account No:</strong> {withdrawalDetails.accountNumber ?? 'N/A'}</p>
-                                <p><strong>IFSC:</strong> {withdrawalDetails.ifscCode ?? 'N/A'}</p>
-                                </>
-                            ) : (
-                                <>
-                                <p><strong>To ({withdrawalDetails?.name || 'N/A'}):</strong> {withdrawalDetails?.upi_id || 'N/A'}</p>
-                                <p><strong>Holder Name:</strong> {order.withdrawal_method.name}</p>
-                                </>
-                            )}
-
-                            <div className="space-y-2 pt-2">
-                                <Label htmlFor="utr">12-Digit UTR Number</Label>
-                                <Input id="utr" value={utr} onChange={(e) => setUtr(e.target.value)} maxLength={12} placeholder="Enter payment UTR" />
-                            </div>
-                        </div>
-                    )}
-                    <DialogFooter className="sm:justify-between flex-col-reverse sm:flex-row sm:items-center gap-2">
-                         <Button asChild variant="secondary" className="sm:mr-auto">
-                            <Link href={`/admin/users/${order.user_id}`} target="_blank">View User</Link>
-                        </Button>
-                        {showRejectionUI ? (
-                             <div className="flex gap-2 justify-end">
-                                <Button variant="ghost" onClick={() => setShowRejectionUI(false)} disabled={isRejecting}>Back</Button>
-                                <Button variant="destructive" onClick={handleReject} disabled={isRejecting || !rejectionReason.trim()}>
-                                    {isRejecting && <Loader size="xs" className="mr-2"/>}
-                                    Confirm Rejection
-                                </Button>
-                             </div>
-                        ) : (
-                            <div className="flex gap-2 justify-end">
-                                <Button variant="outline" className="text-primary border-primary" onClick={handleDownloadImage} disabled={isDownloading || isConfirming}>
-                                    {isDownloading ? <Loader size="xs" className="mr-2"/> : <Download className="mr-2 h-4 w-4" />}
-                                    Receipt
-                                </Button>
-                                <Button variant="destructive" onClick={() => setShowRejectionUI(true)} disabled={isConfirming}>Reject</Button>
-                                <Button className="bg-green-600 hover:bg-green-700" onClick={handleConfirm} disabled={isConfirming || !utr || utr.length !== 12}>
-                                    {isConfirming && <Loader size="xs" className="mr-2"/>}
-                                    Confirm
-                                </Button>
-                            </div>
-                        )}
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </>
-    );
-}
-
 function WithdrawalsTabContent() {
     const supabase = createClient();
     const [searchTerm, setSearchTerm] = useState('');
@@ -870,9 +626,12 @@ function WithdrawalsTabContent() {
                                 <p><strong>Amount:</strong> <span className="font-bold text-lg text-primary">₹{order.amount}</span></p>
                                 <p><strong>User UID:</strong> {order.users?.numeric_id}</p>
                                 <p><strong>Phone:</strong> {order.users?.phone_number}</p>
+                                <p><strong>To:</strong> {order.withdrawal_method?.upi_id || 'N/A'}</p>
                             </CardContent>
-                            <CardFooter className="p-4 pt-0">
-                                <ProcessWithdrawalDialog order={order} onProcessed={fetchWithdrawals} />
+                             <CardFooter className="p-4 pt-0">
+                                <Button className="w-full bg-gray-400 hover:bg-gray-400 text-black font-bold cursor-not-allowed" disabled>
+                                    P2P Pending
+                                </Button>
                             </CardFooter>
                         </Card>
                     ))}
@@ -1152,12 +911,16 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
 
         setIsApproving(true);
         try {
-            // This would ideally be a single atomic RPC call to a database function `approve_buy_order`.
-            const { error } = await supabase.rpc('approve_buy_order', {
+            const rpcParams: any = {
                 p_order_id: order.id,
                 p_user_id: order.user_id,
                 p_amount_to_add: order.amount,
-            });
+            };
+            if (isP2P) {
+                rpcParams.p_matched_sell_order_id = order.matched_sell_order_id;
+            }
+
+            const { error } = await supabase.rpc('approve_buy_order', rpcParams);
 
             if(error) throw error;
             

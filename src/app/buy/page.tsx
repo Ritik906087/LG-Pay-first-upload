@@ -282,79 +282,40 @@ const createOrder = async (provider: string, orderAmount: number) => {
         });
 
         if (matchError) {
-            if (matchError.message.includes('No available sellers')) {
-                // Not a fatal error, just means we fallback to admin.
-                // The RPC should ideally return a type for this, but we'll proceed as if it's an admin case.
-            } else {
+             if (!matchError.message.includes('No available sellers')) {
                 throw matchError;
-            }
+             }
         }
         
         const bonusPercentage = activeTab === 'bank' ? 5 : activeTab === 'upi' ? 6 : (activeTab === 'usdt' ? 0 : 0);
         const finalAmount = orderAmount + (orderAmount * (bonusPercentage / 100));
-        let newOrderData;
-        let finalPaymentType = activeTab;
+
+        const isP2PMatch = matchData && matchData.type === 'seller';
         
-        // P2P Match
-        if (matchData && matchData.type === 'seller') {
-            finalPaymentType = `p2p_${activeTab}`;
-            console.log("P2P Match Found. Creating buy order with payload:", {
-                user_id: user.id,
-                amount: finalAmount,
-                base_amount: orderAmount,
-                bonus_percentage: bonusPercentage,
-                payment_provider: provider,
-                payment_type: finalPaymentType,
-                status: 'pending_payment',
-                seller_id: matchData.seller_id,
-                matched_sell_order_id: matchData.matched_sell_order_id,
-                seller_withdrawal_details: matchData.seller_withdrawal_details
-            });
+        const orderId = isP2PMatch 
+            ? matchData.sell_order_id
+            : `LGPAY${Date.now()}${Math.random().toString().slice(2, 8)}`;
             
-            const { data: insertedOrder, error: insertError } = await supabase.from('orders').insert({
-                user_id: user.id,
-                amount: finalAmount,
-                base_amount: orderAmount,
-                bonus_percentage: bonusPercentage,
-                payment_provider: provider,
-                payment_type: finalPaymentType,
-                status: 'pending_payment',
-                seller_id: matchData.seller_id,
-                matched_sell_order_id: matchData.matched_sell_order_id,
-                seller_withdrawal_details: matchData.seller_withdrawal_details
-            }).select().single();
+        const paymentType = isP2PMatch ? `p2p_${activeTab}` : activeTab;
 
-            if (insertError) throw insertError;
-            newOrderData = insertedOrder;
+        const { data: insertedOrder, error: insertError } = await supabase.from('orders').insert({
+            order_id: orderId,
+            user_id: user.id,
+            amount: finalAmount,
+            base_amount: orderAmount,
+            bonus_percentage: bonusPercentage,
+            payment_provider: provider,
+            payment_type: paymentType,
+            status: 'pending_payment',
+            seller_id: isP2PMatch ? matchData.seller_id : null,
+            matched_sell_order_id: isP2PMatch ? matchData.id : null,
+            seller_withdrawal_details: isP2PMatch ? matchData.seller_withdrawal_details : null,
+        }).select().single();
 
-        } else { // Admin Fallback
-            finalPaymentType = activeTab;
-            console.log("No P2P match. Creating admin buy order with payload:", {
-                 user_id: user.id,
-                amount: finalAmount,
-                base_amount: orderAmount,
-                bonus_percentage: bonusPercentage,
-                payment_provider: provider,
-                payment_type: finalPaymentType,
-                status: 'pending_payment'
-            });
+        if (insertError) throw insertError;
 
-            const { data: insertedOrder, error: insertError } = await supabase.from('orders').insert({
-                user_id: user.id,
-                amount: finalAmount,
-                base_amount: orderAmount,
-                bonus_percentage: bonusPercentage,
-                payment_provider: provider,
-                payment_type: finalPaymentType,
-                status: 'pending_payment'
-            }).select().single();
-
-            if (insertError) throw insertError;
-            newOrderData = insertedOrder;
-        }
-
-        if (newOrderData && newOrderData.id) {
-            router.push(`/buy/confirm/${newOrderData.id}?type=${finalPaymentType}&provider=${provider}`);
+        if (insertedOrder && insertedOrder.id) {
+            router.push(`/buy/confirm/${insertedOrder.id}?type=${paymentType}&provider=${provider}`);
         } else {
             throw new Error("Order creation failed: No ID returned after insert.");
         }
