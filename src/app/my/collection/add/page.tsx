@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -75,7 +74,7 @@ export default function AddUpiPage() {
   const [name, setName] = useState("");
   const [upiId, setUpiId] = useState("");
   const [isSaving, setIsSaving] = useState(false);
-  const [captcha, setCaptcha] = useState("");
+  const [phone, setPhone] = useState("");
 
   const handleOpenDialog = (provider: UpiProvider) => {
     if (provider.status === 'maintenance') {
@@ -93,7 +92,7 @@ export default function AddUpiPage() {
   const resetForm = () => {
     setName("");
     setUpiId("");
-    setCaptcha("");
+    setPhone("");
   };
 
   const handleDialogChange = (open: boolean) => {
@@ -104,7 +103,7 @@ export default function AddUpiPage() {
   };
 
   const handleLinkAccount = async () => {
-    if (!selectedProvider || !name.trim() || !upiId.trim()) {
+    if (!selectedProvider || !name.trim() || !upiId.trim() || !phone.trim()) {
       toast({
         variant: "destructive",
         title: "All fields are required.",
@@ -112,18 +111,18 @@ export default function AddUpiPage() {
       return;
     }
     
-    if (captcha !== "1234") {
-      toast({
-        variant: "destructive",
-        title: "Invalid Captcha",
-        description: "Please enter the correct captcha.",
-      });
-      return;
-    }
-
     if (!user || !profile) {
       toast({ variant: 'destructive', title: 'You must be logged in.' });
       return;
+    }
+
+    if (phone !== profile.phone_number) {
+        toast({
+          variant: "destructive",
+          title: "Invalid Phone Number",
+          description: "Please enter the phone number associated with your account.",
+        });
+        return;
     }
 
     if (!/^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/.test(upiId)) {
@@ -255,19 +254,16 @@ export default function AddUpiPage() {
                     />
                  </div>
                  <div className="space-y-2">
-                    <Label htmlFor="captcha">Captcha</Label>
-                    <div className="flex items-center gap-4">
-                        <Input 
-                            id="captcha" 
-                            placeholder="Enter the captcha"
-                            value={captcha}
-                            onChange={(e) => setCaptcha(e.target.value)}
-                            disabled={isSaving}
-                        />
-                         <div className="flex h-11 items-center justify-center rounded-lg border bg-muted px-4 font-mono text-xl tracking-widest">
-                            1234
-                        </div>
-                    </div>
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                        id="phone"
+                        placeholder="Enter your registered phone number"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        disabled={isSaving}
+                        type="tel"
+                        maxLength={10}
+                    />
                  </div>
             </div>
             <DialogFooter>
