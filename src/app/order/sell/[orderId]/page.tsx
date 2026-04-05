@@ -28,6 +28,15 @@ import { useSupabaseUser } from '@/hooks/use-supabase-user';
 import { createClient } from '@/lib/utils';
 
 
+type MatchedBuyOrder = {
+    order_id: string; // This is the user-facing buyer order ID
+    amount: number;
+    status: 'pending_payment' | 'pending_confirmation' | 'in_applied' | 'completed' | 'failed' | 'cancelled';
+    created_at: string;
+    buyer_id: string;
+    utr?: string;
+};
+
 type SellOrder = {
     id: string;
     order_id: string;
@@ -36,16 +45,6 @@ type SellOrder = {
     status: 'pending' | 'partially_filled' | 'completed' | 'failed' | 'processing';
     created_at: string;
     matched_buy_orders?: MatchedBuyOrder[];
-};
-
-type MatchedBuyOrder = {
-    buyOrderId: string;
-    buyerId: string;
-    amount: number;
-    status: 'pending_payment' | 'pending_confirmation' | 'in_applied' | 'completed' | 'failed' | 'cancelled';
-    created_at: string;
-    buyerOrderId?: string;
-    utr?: string;
 };
 
 const statusConfig: { [key: string]: { style: string; text: string } } = {
@@ -99,12 +98,12 @@ const MatchedOrderCard = ({ order }: { order: MatchedBuyOrder }) => {
             <span className="text-muted-foreground">Time</span>
             <span className="font-mono text-muted-foreground text-xs">{new Date(order.created_at).toLocaleString()}</span>
           </div>
-          {order.buyerOrderId && (
+          {order.order_id && (
             <div className="flex justify-between items-start gap-4">
               <span className="text-muted-foreground shrink-0">Buyer Order ID</span>
               <div className="flex items-center gap-2 text-right">
-                <span className="font-mono text-muted-foreground break-all">{order.buyerOrderId?.toUpperCase()}</span>
-                <Copy className="h-3 w-3 text-gray-400 cursor-pointer flex-shrink-0" onClick={() => copyToClipboard(order.buyerOrderId)} />
+                <span className="font-mono text-muted-foreground break-all">{order.order_id?.toUpperCase()}</span>
+                <Copy className="h-3 w-3 text-gray-400 cursor-pointer flex-shrink-0" onClick={() => copyToClipboard(order.order_id)} />
               </div>
             </div>
           )}
@@ -163,7 +162,6 @@ function SellOrderStatusContent() {
 
     const matchedOrders = useMemo(() => {
         if (!sellOrder || !sellOrder.matched_buy_orders) return [];
-        // The structure of matched_buy_orders needs to be adjusted for Supabase. Assuming it's a JSONB array of objects.
         return [...sellOrder.matched_buy_orders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }, [sellOrder]);
     
@@ -284,7 +282,7 @@ function SellOrderStatusContent() {
                         {matchedOrders && matchedOrders.length > 0 ? (
                             <div className="space-y-3">
                                 {matchedOrders.map(buyOrder => (
-                                    <MatchedOrderCard key={buyOrder.buyOrderId} order={buyOrder} />
+                                    <MatchedOrderCard key={buyOrder.order_id} order={buyOrder} />
                                 ))}
                             </div>
                         ) : (
