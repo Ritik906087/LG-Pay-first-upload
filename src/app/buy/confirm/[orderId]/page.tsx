@@ -121,7 +121,6 @@ function PaymentDetailsContent() {
     const [isConfirming, setIsConfirming] = useState(false);
     const [isUpdatingProvider, setIsUpdatingProvider] = useState(false);
     const [isChangeDialogOpen, setIsChangeDialogOpen] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
 
     const [isVerificationDialogOpen, setIsVerificationDialogOpen] = useState(false);
@@ -400,6 +399,7 @@ function PaymentDetailsContent() {
                 setScreenshotPreview(url);
                 if (details && order) {
                     const receiverUpi = details['UPI ID'] || '';
+                    const receiverName = details['Recipient Name'] || '';
                     ocrTimeoutRef.current = setTimeout(() => {
                         console.log("OCR timeout reached after 4 seconds.");
                     }, 4000);
@@ -407,7 +407,8 @@ function PaymentDetailsContent() {
                         screenshotDataUri: url,
                         expectedAmount: order.base_amount,
                         expectedUtr: utr,
-                        expectedReceiverUpi: receiverUpi
+                        expectedReceiverUpi: receiverUpi,
+                        expectedReceiverName: receiverName,
                     }).then(result => {
                          if (ocrTimeoutRef.current) {
                             clearTimeout(ocrTimeoutRef.current);
@@ -477,12 +478,13 @@ function PaymentDetailsContent() {
             };
 
             if (ocrResult) {
-                updatePayload.ocr_amount_match = ocrResult.amountMatch;
-                updatePayload.ocr_utr_match = ocrResult.utrMatch;
-                updatePayload.ocr_upi_match = ocrResult.upiMatch;
-                updatePayload.ocr_date_match = ocrResult.dateMatch;
-                updatePayload.ocr_status_match = ocrResult.statusMatch;
-                updatePayload.ocr_raw_text = ocrResult.rawText;
+                updatePayload.ocr_amount_match = ocrResult.amountMatch ?? false;
+                updatePayload.ocr_utr_match = ocrResult.utrMatch ?? false;
+                updatePayload.ocr_upi_match = ocrResult.upiMatch ?? false;
+                updatePayload.ocr_name_match = ocrResult.nameMatch ?? false;
+                updatePayload.ocr_date_match = ocrResult.dateMatch ?? false;
+                updatePayload.ocr_status_match = ocrResult.statusMatch ?? false;
+                updatePayload.ocr_raw_text = ocrResult.rawText ?? '';
             }
     
             const { error } = await supabase.from('orders').update(updatePayload).eq('id', order.id);
@@ -1068,5 +1070,3 @@ export default function ConfirmPage() {
     </Suspense>
   )
 }
-
-    
