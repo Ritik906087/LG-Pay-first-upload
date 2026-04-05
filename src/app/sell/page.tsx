@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -14,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ChevronLeft, Info, Wallet, Landmark } from 'lucide-react';
+import { ChevronLeft, Info, Wallet } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSupabaseUser } from '@/hooks/use-supabase-user';
@@ -24,15 +23,12 @@ import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Loader } from '@/components/ui/loader';
 
+// Simplified for UPI-only sell flow
 type WithdrawalMethod = {
-    type: 'upi' | 'bank';
+    type: 'upi';
     name: string;
-    upiId?: string;
+    upiId: string; // The user profile stores it as upiId (camelCase)
     upiHolderName?: string;
-    bankName?: string;
-    accountHolderName?: string;
-    accountNumber?: string;
-    ifscCode?: string;
 }
 
 const paymentMethodDetails: { [key: string]: { logo: string; bgColor: string } } = {
@@ -54,13 +50,18 @@ export default function SellPage() {
   const [isAmountValid, setIsAmountValid] = useState(true);
   const [isSelling, setIsSelling] = useState(false);
 
+  const upiMethods: WithdrawalMethod[] = useMemo(() => {
+    if (!userProfile?.payment_methods) return [];
+    return userProfile.payment_methods.filter((method: any): method is WithdrawalMethod => method.type === 'upi');
+  }, [userProfile]);
+
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     // Allow only numbers
     if (/^\d*$/.test(value)) {
       setAmount(value);
       const numValue = parseInt(value, 10);
-      if (value === '' || (numValue > 0 && numValue % 100 === 0)) {
+      if (value === '' || (numValue >= 100 && numValue % 100 === 0)) {
         setIsAmountValid(true);
       } else {
         setIsAmountValid(false);
@@ -71,13 +72,18 @@ export default function SellPage() {
   const handleSell = async () => {
     const sellAmount = parseInt(amount, 10);
     
-    if (!isAmountValid || !sellAmount || sellAmount <= 0) {
-        toast({ variant: 'destructive', title: 'Invalid Amount', description: 'Please enter a valid amount ending in 00.' });
+    if (!isAmountValid || !sellAmount || sellAmount < 100) {
+        toast({ variant: 'destructive', title: 'Invalid Amount', description: 'Please enter a valid amount of at least ₹100, in multiples of 100.' });
         return;
     }
     
     if (!selectedMethod) {
         toast({ variant: 'destructive', title: 'No method selected', description: 'Please select a withdrawal method.' });
+        return;
+    }
+    
+    if (!selectedMethod.upiId) {
+        toast({ variant: 'destructive', title: 'Invalid UPI Method', description: 'The selected UPI method is invalid.' });
         return;
     }
 
@@ -104,17 +110,20 @@ export default function SellPage() {
     setIsSelling(true);
 
     try {
-        // Ensure the withdrawal method object has a consistent structure with all possible fields.
         const p_withdrawal_method = {
-            type: selectedMethod.type,
+            type: 'upi',
             name: selectedMethod.name,
-            upiId: selectedMethod.upiId || null,
-            upiHolderName: selectedMethod.upiHolderName || null,
-            bankName: selectedMethod.bankName || null,
-            accountHolderName: selectedMethod.accountHolderName || null,
-            accountNumber: selectedMethod.accountNumber || null,
-            ifscCode: selectedMethod.ifscCode || null,
+            upi_id: selectedMethod.upiId, // Correctly map from camelCase to snake_case
+            upiHolderName: selectedMethod.upiHolderName,
         };
+
+        console.log("Final sell payload:", {
+            p_user_id: user.id,
+            p_amount: sellAmount,
+            p_user_numeric_id: userProfile.numeric_id,
+            p_user_phone_number: userProfile.phone_number,
+            p_withdrawal_method,
+        });
 
         const { error } = await supabase.rpc('create_sell_order', {
             p_user_id: user.id,
@@ -207,41 +216,28 @@ export default function SellPage() {
             <CardContent>
                 {profileLoading ? (
                     <Skeleton className="h-24 w-full" />
-                ) : userProfile?.payment_methods && userProfile.payment_methods.length > 0 ? (
+                ) : upiMethods.length > 0 ? (
                     <RadioGroup 
                         onValueChange={(value) => setSelectedMethod(JSON.parse(value))}
                         className="space-y-3"
                     >
-                        {userProfile.payment_methods.map((method: any, index: number) => {
-                            const methodType = method.type || (method.upiId ? 'upi' : 'bank');
-                            const isUpi = methodType === 'upi';
-                            const isBank = methodType === 'bank';
-
-                            const key = isUpi ? method.upiId : (isBank ? method.accountNumber : `method-${index}`);
-                            const id = isUpi ? method.upiId : (isBank ? `bank-${index}` : `method-id-${index}`);
+                        {upiMethods.map((method, index) => {
+                            const upiDetails = paymentMethodDetails[method.name];
+                            const id = method.upiId || `method-id-${index}`;
                             
-                            const upiDetails = isUpi ? paymentMethodDetails[method.name] : null;
-                            const bgColor = isBank ? 'bg-slate-700' : (upiDetails ? upiDetails.bgColor : 'bg-gray-500');
-
-                            if (!key || !id) return null;
+                            if (!upiDetails) return null;
 
                             return (
-                                <Label key={key} htmlFor={id} className={cn("flex items-center gap-4 rounded-xl p-3 border-2 border-transparent has-[:checked]:border-primary", bgColor)}>
+                                <Label key={id} htmlFor={id} className={cn("flex items-center gap-4 rounded-xl p-3 border-2 border-transparent has-[:checked]:border-primary", upiDetails.bgColor)}>
                                     <RadioGroupItem value={JSON.stringify(method)} id={id} className="border-white text-white ring-offset-0" />
                                     
                                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white p-1">
-                                        {isUpi && upiDetails ? (
-                                            <Image src={upiDetails.logo} alt={`${method.name} logo`} width={32} height={32} className="object-contain" />
-                                        ) : isBank ? (
-                                            <Landmark className="h-6 w-6 text-slate-700"/>
-                                        ) : (
-                                            <Wallet className="h-6 w-6 text-gray-500"/>
-                                        )}
+                                        <Image src={upiDetails.logo} alt={`${method.name} logo`} width={32} height={32} className="object-contain" />
                                     </div>
 
                                     <div className="text-white">
-                                        <span className="text-lg font-semibold">{isUpi ? method.name : method.bankName}</span>
-                                        <p className="text-sm font-mono text-white/80">{isUpi ? method.upiId : method.accountNumber}</p>
+                                        <span className="text-lg font-semibold">{method.name}</span>
+                                        <p className="text-sm font-mono text-white/80">{method.upiId}</p>
                                     </div>
                                 </Label>
                             );
@@ -250,7 +246,7 @@ export default function SellPage() {
                 ) : (
                     <div className="flex flex-col items-center justify-center h-24 text-center text-muted-foreground">
                         <Wallet className="h-8 w-8 opacity-50 mb-2" />
-                        <p>No withdrawal method active</p>
+                        <p>No UPI withdrawal method active</p>
                         <Button asChild variant="link" className="mt-1">
                             <Link href="/my/collection/add">Add Payment Method</Link>
                         </Button>
