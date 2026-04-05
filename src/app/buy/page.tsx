@@ -292,25 +292,47 @@ const createOrder = async (provider: string, orderAmount: number) => {
 
         const isP2PMatch = matchData && matchData.type === 'seller';
         
-        const orderId = isP2PMatch 
-            ? matchData.sell_order_id
-            : `LGPAY${Date.now()}${Math.random().toString().slice(2, 8)}`;
-            
-        const paymentType = isP2PMatch ? `p2p_${activeTab}` : activeTab;
+        let insertPayload: any;
+        let paymentType: string;
 
-        const { data: insertedOrder, error: insertError } = await supabase.from('orders').insert({
-            order_id: orderId,
-            user_id: user.id,
-            amount: finalAmount,
-            base_amount: orderAmount,
-            bonus_percentage: bonusPercentage,
-            payment_provider: provider,
-            payment_type: paymentType,
-            status: 'pending_payment',
-            seller_id: isP2PMatch ? matchData.seller_id : null,
-            matched_sell_order_id: isP2PMatch ? matchData.id : null,
-            seller_withdrawal_details: isP2PMatch ? matchData.seller_withdrawal_details : null,
-        }).select().single();
+        if (isP2PMatch) {
+            // P2P Match Flow
+            paymentType = `p2p_${activeTab}`;
+            insertPayload = {
+                order_id: matchData.order_id, // From RPC
+                user_id: user.id,
+                amount: finalAmount,
+                base_amount: orderAmount,
+                bonus_percentage: bonusPercentage,
+                payment_provider: provider,
+                payment_type: paymentType,
+                status: 'pending_payment',
+                seller_id: matchData.seller_id || null, // from RPC
+                seller_withdrawal_details: matchData.withdrawal_method || null, // from RPC
+                matched_sell_order_id: matchData.sell_order_id || null, // from RPC
+            };
+        } else {
+            // Admin Fallback Flow
+            paymentType = activeTab;
+            insertPayload = {
+                order_id: `LGPAY${Date.now()}${Math.random().toString().slice(2, 8)}`,
+                user_id: user.id,
+                amount: finalAmount,
+                base_amount: orderAmount,
+                bonus_percentage: bonusPercentage,
+                payment_provider: provider,
+                payment_type: paymentType,
+                status: 'pending_payment',
+            };
+        }
+
+        console.log("P2P insert payload", insertPayload);
+
+        const { data: insertedOrder, error: insertError } = await supabase
+            .from('orders')
+            .insert(insertPayload)
+            .select()
+            .single();
 
         if (insertError) throw insertError;
 

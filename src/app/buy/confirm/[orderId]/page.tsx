@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { Suspense, useMemo, useState, useRef, useEffect, useCallback } from 'react';
@@ -297,11 +298,8 @@ function PaymentDetailsContent() {
         if (orderLoading || !order) return null;
 
         // Case 1: P2P Match. The details are embedded in the order.
-        if (type === 'p2p_upi' || type === 'p2p_bank') {
-            if (order.seller_withdrawal_details) {
-                return order.seller_withdrawal_details;
-            }
-            return null;
+        if (order.seller_withdrawal_details) {
+            return order.seller_withdrawal_details;
         }
         
         // Case 2: Admin Fallback. Find the appropriate admin method.
