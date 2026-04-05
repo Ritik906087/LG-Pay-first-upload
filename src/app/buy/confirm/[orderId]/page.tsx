@@ -38,6 +38,7 @@ import { sendOrderConfirmationToTelegram } from '@/lib/telegram';
 import { useSupabaseUser } from '@/hooks/use-supabase-user';
 import { createClient } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
+import { ocrVerify, type OcrVerifyOutput } from '@/ai/flows/ocr-verify-flow';
 
 
 type AdminPaymentMethod = {
@@ -135,6 +136,9 @@ function PaymentDetailsContent() {
 
     const [order, setOrder] = useState<Order | null>(null);
     const [orderLoading, setOrderLoading] = useState(true);
+    
+    const [ocrResult, setOcrResult] = useState<OcrVerifyOutput | null>(null);
+    const ocrTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     const isUSDT = type === 'usdt';
 
@@ -384,6 +388,7 @@ function PaymentDetailsContent() {
                 }
                 setScreenshotFile(null);
                 setScreenshotPreview(null);
+                setOcrResult(null);
                 return;
             }
             
@@ -393,6 +398,24 @@ function PaymentDetailsContent() {
             reader.onload = (e) => {
                 const url = e.target?.result as string;
                 setScreenshotPreview(url);
+                if (details && order) {
+                    const receiverUpi = details['UPI ID'] || '';
+                    ocrTimeoutRef.current = setTimeout(() => {
+                        console.log("OCR timeout reached after 4 seconds.");
+                    }, 4000);
+                    ocrVerify({
+                        screenshotDataUri: url,
+                        expectedAmount: order.base_amount,
+                        expectedUtr: utr,
+                        expectedReceiverUpi: receiverUpi
+                    }).then(result => {
+                         if (ocrTimeoutRef.current) {
+                            clearTimeout(ocrTimeoutRef.current);
+                            ocrTimeoutRef.current = null;
+                            setOcrResult(result);
+                         }
+                    });
+                }
             };
             reader.readAsDataURL(file);
 
@@ -452,6 +475,15 @@ function PaymentDetailsContent() {
                 submitted_at: new Date().toISOString(),
                 screenshot_url: publicUrl,
             };
+
+            if (ocrResult) {
+                updatePayload.ocr_amount_match = ocrResult.amountMatch;
+                updatePayload.ocr_utr_match = ocrResult.utrMatch;
+                updatePayload.ocr_upi_match = ocrResult.upiMatch;
+                updatePayload.ocr_date_match = ocrResult.dateMatch;
+                updatePayload.ocr_status_match = ocrResult.statusMatch;
+                updatePayload.ocr_raw_text = ocrResult.rawText;
+            }
     
             const { error } = await supabase.from('orders').update(updatePayload).eq('id', order.id);
 
@@ -970,8 +1002,8 @@ function PaymentDetailsContent() {
                             Verify
                         </AlertDialogAction>
                     </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+                </AlertDialog>
+            </Dialog>
             <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
                 <DialogContent>
                     <DialogHeader>

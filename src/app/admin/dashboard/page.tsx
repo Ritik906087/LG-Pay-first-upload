@@ -38,6 +38,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Loader } from '@/components/ui/loader';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { createClient } from '@/lib/utils';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 
 const defaultAvatarUrl = "https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/IMG_20260402_224703_814.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvSU1HXzIwMjYwNDAyXzIyNDcwM184MTQuanBnIiwiaWF0IjoxNzc1MTUwMzMxLCJleHAiOjE4MDY2ODYzMzF9.o5z7uxui9h2o-GVKG9znk4TKBAoK4WMsLKY6NPZ8_1o";
@@ -97,13 +103,13 @@ type Order = {
     admin_payment_method_id?: string;
     seller_withdrawal_details?: WithdrawalMethod;
     matched_sell_order_id?: string;
-    ocr_verified?: boolean;
-    ocr_utr_match?: boolean;
     ocr_amount_match?: boolean;
+    ocr_utr_match?: boolean;
     ocr_upi_match?: boolean;
-    ocr_bank_account_match?: boolean;
     ocr_name_match?: boolean;
     ocr_date_match?: boolean;
+    ocr_status_match?: boolean;
+    ocr_raw_text?: string;
 };
 
 type SellOrder = {
@@ -1075,10 +1081,22 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                             <div className="rounded-lg border bg-secondary/50 p-3 space-y-2 text-sm">
                                 <VerificationItem label="Amount Match" isMatch={order.ocr_amount_match} />
                                 <VerificationItem label="UTR Match" isMatch={order.ocr_utr_match} />
-                                <VerificationItem label="Name Match" isMatch={order.ocr_name_match} />
-                                {(order.payment_type === 'upi' || order.payment_type === 'p2p_upi') && <VerificationItem label="UPI Match" isMatch={order.ocr_upi_match} />}
-                                {order.payment_type === 'bank' && <VerificationItem label="Account Match" isMatch={order.ocr_bank_account_match} />}
+                                <VerificationItem label="UPI/Name Match" isMatch={order.ocr_upi_match || order.ocr_name_match} />
                                 <VerificationItem label="Date Match" isMatch={order.ocr_date_match} />
+                                <VerificationItem label="Status Match" isMatch={order.ocr_status_match} />
+                                
+                                {order.ocr_raw_text && (
+                                    <Accordion type="single" collapsible className="w-full">
+                                        <AccordionItem value="item-1" className="border-none">
+                                            <AccordionTrigger className="text-xs pt-2 pb-0 text-muted-foreground">View Raw Text</AccordionTrigger>
+                                            <AccordionContent className="pt-2">
+                                                <p className="text-xs text-muted-foreground font-mono bg-background p-2 rounded-md max-h-24 overflow-y-auto">
+                                                    {order.ocr_raw_text}
+                                                </p>
+                                            </AccordionContent>
+                                        </AccordionItem>
+                                    </Accordion>
+                                )}
                             </div>
                         </div>
 

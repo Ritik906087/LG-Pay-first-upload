@@ -237,10 +237,13 @@
           "format": "date-time",
           "description": "Timestamp when the user submitted payment proof."
         },
-        "verificationResult": {
-            "type": "string",
-            "description": "Result from the AI payment verification flow."
-        }
+        "ocr_amount_match": { "type": "boolean" },
+        "ocr_utr_match": { "type": "boolean" },
+        "ocr_upi_match": { "type": "boolean" },
+        "ocr_name_match": { "type": "boolean" },
+        "ocr_date_match": { "type": "boolean" },
+        "ocr_status_match": { "type": "boolean" },
+        "ocr_raw_text": { "type": "string" }
       },
       "required": ["userId", "amount", "status", "createdAt", "orderId"]
     },
