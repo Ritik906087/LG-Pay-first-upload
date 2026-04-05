@@ -104,24 +104,22 @@ export default function SellPage() {
     setIsSelling(true);
 
     try {
-        const withdrawalPayloadForRpc = {
-          type: selectedMethod.type,
-          name: selectedMethod.name,
-          upiId: selectedMethod.type === 'upi' ? selectedMethod.upiId || null : null,
-          upiHolderName: selectedMethod.type === 'upi' ? selectedMethod.upiHolderName || null : null,
-          bankName: selectedMethod.type === 'bank' ? selectedMethod.bankName || null : null,
-          accountHolderName: selectedMethod.type === 'bank' ? selectedMethod.accountHolderName || null : null,
-          accountNumber: selectedMethod.type === 'bank' ? selectedMethod.accountNumber || null : null,
-          ifscCode: selectedMethod.type === 'bank' ? selectedMethod.ifscCode || null : null,
-        };
-
-        const { error } = await supabase.rpc('create_sell_order', {
+        const rpcParams = {
             p_user_id: user.id,
             p_amount: sellAmount,
-            p_withdrawal_method: withdrawalPayloadForRpc,
             p_user_numeric_id: userProfile.numeric_id,
             p_user_phone_number: userProfile.phone_number,
-        });
+            p_withdrawal_type: selectedMethod.type,
+            p_withdrawal_name: selectedMethod.name,
+            p_withdrawal_upi_id: selectedMethod.type === 'upi' ? selectedMethod.upiId : null,
+            p_withdrawal_upi_holder_name: selectedMethod.type === 'upi' ? selectedMethod.upiHolderName : null,
+            p_withdrawal_bank_name: selectedMethod.type === 'bank' ? selectedMethod.bankName : null,
+            p_withdrawal_account_holder_name: selectedMethod.type === 'bank' ? selectedMethod.accountHolderName : null,
+            p_withdrawal_account_number: selectedMethod.type === 'bank' ? selectedMethod.accountNumber : null,
+            p_withdrawal_ifsc_code: selectedMethod.type === 'bank' ? selectedMethod.ifscCode : null,
+        };
+
+        const { error } = await supabase.rpc('create_sell_order', rpcParams);
 
         if (error) throw error;
 
