@@ -275,27 +275,88 @@ const createOrder = async (provider: string, orderAmount: number) => {
     if (!user) return;
     setIsCreatingOrder(true);
     
-    const bonusPercentage = activeTab === 'bank' ? 5 : activeTab === 'upi' ? 6 : (activeTab === 'usdt' ? 0 : 0);
-    const finalAmount = orderAmount + (orderAmount * (bonusPercentage / 100));
-
     try {
-        const { data, error } = await supabase.rpc('create_buy_order', {
-            p_user_id: user.id,
-            p_amount: finalAmount,
-            p_base_amount: orderAmount,
-            p_bonus_percentage: bonusPercentage,
-            p_payment_provider: provider,
-            p_payment_type: activeTab,
+        const { data: matchData, error: matchError } = await supabase.rpc('match_buy_order', {
+            p_buyer_id: user.id,
+            p_amount: orderAmount
         });
 
-        if (error) throw error;
+        if (matchError) {
+            if (matchError.message.includes('No available sellers')) {
+                // Not a fatal error, just means we fallback to admin.
+                // The RPC should ideally return a type for this, but we'll proceed as if it's an admin case.
+            } else {
+                throw matchError;
+            }
+        }
         
-        const { order_id, final_payment_type } = data[0];
+        const bonusPercentage = activeTab === 'bank' ? 5 : activeTab === 'upi' ? 6 : (activeTab === 'usdt' ? 0 : 0);
+        const finalAmount = orderAmount + (orderAmount * (bonusPercentage / 100));
+        let newOrderData;
+        let finalPaymentType = activeTab;
+        
+        // P2P Match
+        if (matchData && matchData.type === 'seller') {
+            finalPaymentType = `p2p_${activeTab}`;
+            console.log("P2P Match Found. Creating buy order with payload:", {
+                user_id: user.id,
+                amount: finalAmount,
+                base_amount: orderAmount,
+                bonus_percentage: bonusPercentage,
+                payment_provider: provider,
+                payment_type: finalPaymentType,
+                status: 'pending_payment',
+                seller_id: matchData.seller_id,
+                matched_sell_order_id: matchData.matched_sell_order_id,
+                seller_withdrawal_details: matchData.seller_withdrawal_details
+            });
+            
+            const { data: insertedOrder, error: insertError } = await supabase.from('orders').insert({
+                user_id: user.id,
+                amount: finalAmount,
+                base_amount: orderAmount,
+                bonus_percentage: bonusPercentage,
+                payment_provider: provider,
+                payment_type: finalPaymentType,
+                status: 'pending_payment',
+                seller_id: matchData.seller_id,
+                matched_sell_order_id: matchData.matched_sell_order_id,
+                seller_withdrawal_details: matchData.seller_withdrawal_details
+            }).select().single();
 
-        if (order_id) {
-            router.push(`/buy/confirm/${order_id}?type=${final_payment_type}&provider=${provider}`);
+            if (insertError) throw insertError;
+            newOrderData = insertedOrder;
+
+        } else { // Admin Fallback
+            finalPaymentType = activeTab;
+            console.log("No P2P match. Creating admin buy order with payload:", {
+                 user_id: user.id,
+                amount: finalAmount,
+                base_amount: orderAmount,
+                bonus_percentage: bonusPercentage,
+                payment_provider: provider,
+                payment_type: finalPaymentType,
+                status: 'pending_payment'
+            });
+
+            const { data: insertedOrder, error: insertError } = await supabase.from('orders').insert({
+                user_id: user.id,
+                amount: finalAmount,
+                base_amount: orderAmount,
+                bonus_percentage: bonusPercentage,
+                payment_provider: provider,
+                payment_type: finalPaymentType,
+                status: 'pending_payment'
+            }).select().single();
+
+            if (insertError) throw insertError;
+            newOrderData = insertedOrder;
+        }
+
+        if (newOrderData && newOrderData.id) {
+            router.push(`/buy/confirm/${newOrderData.id}?type=${finalPaymentType}&provider=${provider}`);
         } else {
-            throw new Error("Order creation failed unexpectedly.");
+            throw new Error("Order creation failed: No ID returned after insert.");
         }
 
     } catch (error: any) {

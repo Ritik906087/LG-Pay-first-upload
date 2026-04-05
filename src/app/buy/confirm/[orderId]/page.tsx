@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { Suspense, useMemo, useState, useRef, useEffect, useCallback } from 'react';
@@ -293,21 +294,24 @@ function PaymentDetailsContent() {
 
 
     const paymentTargetDetails = useMemo(() => {
-        if (orderLoading) return null;
+        if (orderLoading || !order) return null;
 
+        // Case 1: P2P Match. The details are embedded in the order.
         if (type === 'p2p_upi' || type === 'p2p_bank') {
-            if (order && order.seller_withdrawal_details) {
+            if (order.seller_withdrawal_details) {
                 return order.seller_withdrawal_details;
             }
             return null;
         }
-
+        
+        // Case 2: Admin Fallback. Find the appropriate admin method.
         if (!allPaymentMethods || allPaymentMethods.length === 0 || !type) return null;
         return allPaymentMethods.find(m => m.type === type);
     }, [order, orderLoading, type, allPaymentMethods]);
 
     useEffect(() => {
         const updateAdminPaymentMethod = async () => {
+            // Only run for non-P2P admin orders
             if (order && paymentTargetDetails?.id && !order.admin_payment_method_id && type !== 'p2p_upi' && type !== 'p2p_bank') {
                 const { error } = await supabase.from('orders').update({ admin_payment_method_id: paymentTargetDetails.id }).eq('id', order.id);
                 if (error) {
@@ -323,31 +327,43 @@ function PaymentDetailsContent() {
 
     const details = useMemo(() => {
         if (!paymentTargetDetails) return null;
+        const isP2P = type === 'p2p_upi' || type === 'p2p_bank';
 
-        if (paymentTargetDetails.type === 'bank') {
+        // Normalize P2P seller details (camelCase) to match admin details (snake_case)
+        const normalizedDetails: any = isP2P ? {
+            type: paymentTargetDetails.type,
+            bank_name: (paymentTargetDetails as any).bankName,
+            account_holder_name: (paymentTargetDetails as any).accountHolderName,
+            account_number: (paymentTargetDetails as any).accountNumber,
+            ifsc_code: (paymentTargetDetails as any).ifscCode,
+            upi_holder_name: (paymentTargetDetails as any).upiHolderName || (paymentTargetDetails as any).name,
+            upi_id: (paymentTargetDetails as any).upiId,
+        } : paymentTargetDetails;
+
+        if (normalizedDetails.type === 'bank') {
             return {
-                'Bank Name': paymentTargetDetails.bank_name,
-                'Account Holder': paymentTargetDetails.account_holder_name,
-                'Account Number': paymentTargetDetails.account_number,
-                'IFSC Code': paymentTargetDetails.ifsc_code,
+                'Bank Name': normalizedDetails.bank_name,
+                'Account Holder': normalizedDetails.account_holder_name,
+                'Account Number': normalizedDetails.account_number,
+                'IFSC Code': normalizedDetails.ifsc_code,
             };
         }
-        if (paymentTargetDetails.type === 'upi') {
+        if (normalizedDetails.type === 'upi') {
             const detailsObj: { [key: string]: string | undefined } = {
-                'UPI ID': paymentTargetDetails.upi_id,
+                'UPI ID': normalizedDetails.upi_id,
             };
-            if (paymentTargetDetails.upi_holder_name) {
-                detailsObj['Recipient Name'] = paymentTargetDetails.upi_holder_name;
+            if (normalizedDetails.upi_holder_name) {
+                detailsObj['Recipient Name'] = normalizedDetails.upi_holder_name;
             }
             return detailsObj;
         }
-        if (paymentTargetDetails.type === 'usdt') {
+        if (normalizedDetails.type === 'usdt') {
             return {
-                'USDT Address (TRC20)': paymentTargetDetails.usdt_wallet_address,
+                'USDT Address (TRC20)': normalizedDetails.usdt_wallet_address,
             }
         }
         return null;
-    }, [paymentTargetDetails]);
+    }, [paymentTargetDetails, type]);
 
     const copyToClipboard = (text: string) => {
         if (!text) return;
