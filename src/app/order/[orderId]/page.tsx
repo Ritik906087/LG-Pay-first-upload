@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, Suspense, useCallback } from 'react';
@@ -31,8 +32,8 @@ type Order = {
     submitted_at: string; // ISO String
     cancellation_reason?: string;
     rejection_reason?: string;
-    payment_type?: 'bank' | 'upi' | 'usdt' | 'p2p_upi';
-    matched_sell_order_path?: string;
+    payment_type?: 'bank' | 'upi' | 'usdt' | 'p2p_upi' | 'p2p_bank';
+    matched_sell_order_id?: string;
 };
 
 const formatTime = (seconds: number) => {
@@ -259,7 +260,7 @@ function OrderStatusContent() {
                          <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Status</span>
                             <span className={cn("font-semibold capitalize", isTimeout ? "text-orange-600" : "")}>
-                                {isUpdatingStatus ? 'Updating...' : (isTimeout ? 'Timeout' : order.status.replace('_', ' '))}
+                                {isUpdatingStatus ? 'Updating...' : (isTimeout ? 'Timeout' : order.status.replace(/_/g, ' '))}
                             </span>
                         </div>
                          <div className="flex justify-between items-center">

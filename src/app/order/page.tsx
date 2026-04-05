@@ -30,7 +30,7 @@ import { startOfDay, startOfWeek, startOfMonth, isAfter } from 'date-fns';
 
 type Order = {
   id: string;
-  orderId: string;
+  order_id: string;
   amount: number;
   status: 'pending_payment' | 'pending_confirmation' | 'in_applied' | 'completed' | 'cancelled' | 'failed';
   utr?: string;
@@ -40,7 +40,7 @@ type Order = {
 
 type SellOrder = {
   id: string;
-  orderId: string;
+  order_id: string;
   amount: number;
   remaining_amount: number;
   status: 'pending' | 'partially_filled' | 'processing' | 'completed' | 'failed';
@@ -103,8 +103,8 @@ const BuyTransactionCard = React.memo(({ transaction }: { transaction: Order }) 
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground">Order Number</span>
             <div className="flex items-center gap-2">
-              <span className="font-mono text-muted-foreground" style={{wordBreak: 'break-all'}}>{transaction.orderId?.toUpperCase()}</span>
-              <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={() => copyToClipboard(transaction.orderId)} />
+              <span className="font-mono text-muted-foreground" style={{wordBreak: 'break-all'}}>{transaction.order_id?.toUpperCase()}</span>
+              <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={() => copyToClipboard(transaction.order_id)} />
             </div>
           </div>
         </div>
@@ -166,8 +166,8 @@ const SellTransactionCard = React.memo(({ transaction }: { transaction: SellOrde
                 <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Order Number</span>
                     <div className="flex items-center gap-2">
-                    <span className="font-mono text-muted-foreground" style={{wordBreak: 'break-all'}}>{transaction.orderId?.toUpperCase()}</span>
-                    <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={(e) => {e.preventDefault(); copyToClipboard(transaction.orderId)}} />
+                    <span className="font-mono text-muted-foreground" style={{wordBreak: 'break-all'}}>{transaction.order_id?.toUpperCase()}</span>
+                    <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={(e) => {e.preventDefault(); copyToClipboard(transaction.order_id)}} />
                     </div>
                 </div>
                 </div>

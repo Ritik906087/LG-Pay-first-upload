@@ -194,6 +194,10 @@
                 "ifscCode": { "type": "string" }
             }
         },
+         "matchedSellOrderId": {
+            "type": "string",
+            "description": "The ID of the sell order this buy order is matched against."
+        },
         "status": {
           "type": "string",
           "description": "The current status of the order.",
@@ -202,7 +206,8 @@
             "pending_confirmation",
             "completed",
             "cancelled",
-            "failed"
+            "failed",
+            "in_applied"
           ]
         },
         "cancellationReason": {
@@ -247,14 +252,6 @@
         "userId": {
           "type": "string",
           "description": "The ID of the user who created the sell order."
-        },
-        "userNumericId": {
-          "type": "string",
-          "description": "The numeric ID of the user who created the order."
-        },
-        "userPhoneNumber": {
-            "type": "string",
-            "description": "The phone number of the user who created the order."
         },
         "orderId": {
           "type": "string",
@@ -347,7 +344,7 @@
           "description": "Timestamp when the sell order was completed by the admin."
         }
       },
-      "required": ["userId", "amount", "withdrawalMethod", "status", "createdAt", "orderId", "userNumericId", "userPhoneNumber"]
+      "required": ["userId", "amount", "withdrawalMethod", "status", "createdAt", "orderId", "remainingAmount"]
     },
     "ChatRequest": {
       "title": "Chat Request",
@@ -576,17 +573,17 @@
       },
       "description": "Stores admin-configured payment methods (Bank or UPI) for users to make payments to."
     },
-    "/users/{userId}/orders/{orderId}": {
+    "/orders/{orderId}": {
       "schema": {
         "$ref": "#/entities/Order"
       },
-      "description": "Stores user orders to buy LGB."
+      "description": "Stores user orders to buy LGB. This collection is now also used for P2P matches."
     },
-     "/users/{userId}/sellOrders/{orderId}": {
+     "/sell_orders/{orderId}": {
       "schema": {
         "$ref": "#/entities/SellOrder"
       },
-      "description": "Stores user orders to sell LGB."
+      "description": "Stores user orders to sell LGB, which form the P2P liquidity pool."
     },
     "/users/{userId}/transactions/{transactionId}": {
         "schema": {

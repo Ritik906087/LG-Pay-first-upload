@@ -94,7 +94,7 @@ type Order = {
     payment_provider?: string;
     admin_payment_method_id?: string;
     seller_withdrawal_details?: WithdrawalMethod;
-    matched_sell_order_path?: string;
+    matched_sell_order_id?: string;
     ocr_verified?: boolean;
     ocr_utr_match?: boolean;
     ocr_amount_match?: boolean;
@@ -190,7 +190,7 @@ const paymentMethodDetails: { [key: string]: { logo: string; bgColor: string } }
     bgColor: "bg-sky-500",
   },
   MobiKwik: {
-    logo: "https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/download%20(1).png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvZG93bmxvYWQgKDEpLnBuZyIsImlhdCI6MTc3NTE0ODU3MywiZXhwIjoxODA2Njg0NTczfQ.m87gn5FV-0ss58kTEUZ833u8Wv_bFun3YZeZtyIa9s",
+    logo: "https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/download%20(1).png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvZG93bmxvYWQgKDEpLnBuZyIsImlhdCI6MTc3NTE0ODU3MywiZXhwIjoxODA2Njg0NTczfQ.m8Z7gn5FV-0ss58kTEUZ833u8Wv_bFun3YZeZtyIa9s",
     bgColor: "bg-blue-600",
   },
   Freecharge: {
@@ -739,7 +739,10 @@ function ProcessWithdrawalDialog({ order, onProcessed }: { order: SellOrder, onP
                                 <p><strong>IFSC:</strong> {withdrawalDetails.ifscCode ?? 'N/A'}</p>
                                 </>
                             ) : (
+                                <>
                                 <p><strong>To ({withdrawalDetails?.name || 'N/A'}):</strong> {withdrawalDetails?.upi_id || 'N/A'}</p>
+                                <p><strong>Holder Name:</strong> {order.withdrawal_method.name}</p>
+                                </>
                             )}
 
                             <div className="space-y-2 pt-2">

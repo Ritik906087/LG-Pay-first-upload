@@ -361,7 +361,7 @@ const createOrder = async (provider: string, orderAmount: number) => {
     if (!inProgressOrder) return;
     let path = '';
     if (inProgressOrder.status === 'pending_payment') {
-        path = `/buy/confirm/${inProgressOrder.id}?type=${inProgressOrder.paymentType}&provider=${inProgressOrder.paymentProvider || ''}`;
+        path = `/buy/confirm/${inProgressOrder.id}?type=${inProgressOrder.payment_type}&provider=${inProgressOrder.payment_provider || ''}`;
     } else if (inProgressOrder.status === 'pending_confirmation') {
         path = `/order/${inProgressOrder.id}`;
     }

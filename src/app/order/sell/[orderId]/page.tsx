@@ -42,7 +42,7 @@ type MatchedBuyOrder = {
     buyOrderId: string;
     buyerId: string;
     amount: number;
-    status: 'pending_payment' | 'pending_confirmation' | 'completed' | 'failed' | 'cancelled';
+    status: 'pending_payment' | 'pending_confirmation' | 'in_applied' | 'completed' | 'failed' | 'cancelled';
     created_at: string;
     buyerOrderId?: string;
     utr?: string;
@@ -57,6 +57,7 @@ const statusConfig: { [key: string]: { style: string; text: string } } = {
   processing: { style: "bg-blue-100 text-blue-800", text: "Processing" },
   pending_payment: { style: "bg-yellow-100 text-yellow-800", text: "Pending Payment" },
   pending_confirmation: { style: "bg-blue-100 text-blue-800", text: "Confirming" },
+  in_applied: { style: "bg-orange-100 text-orange-800", text: "In Applied" },
 };
 
 
