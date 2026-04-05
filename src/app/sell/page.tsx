@@ -104,21 +104,17 @@ export default function SellPage() {
     setIsSelling(true);
 
     try {
-        const p_withdrawal_method: any = {
+        // Ensure the withdrawal method object has a consistent structure with all possible fields.
+        const p_withdrawal_method = {
             type: selectedMethod.type,
             name: selectedMethod.name,
+            upiId: selectedMethod.upiId || null,
+            upiHolderName: selectedMethod.upiHolderName || null,
+            bankName: selectedMethod.bankName || null,
+            accountHolderName: selectedMethod.accountHolderName || null,
+            accountNumber: selectedMethod.accountNumber || null,
+            ifscCode: selectedMethod.ifscCode || null,
         };
-
-        if (selectedMethod.type === 'upi') {
-            p_withdrawal_method.upiId = selectedMethod.upiId;
-            p_withdrawal_method.upiHolderName = selectedMethod.upiHolderName;
-        } else if (selectedMethod.type === 'bank') {
-            p_withdrawal_method.bankName = selectedMethod.bankName;
-            p_withdrawal_method.accountHolderName = selectedMethod.accountHolderName;
-            p_withdrawal_method.accountNumber = selectedMethod.accountNumber;
-            p_withdrawal_method.ifscCode = selectedMethod.ifscCode;
-        }
-
 
         const { error } = await supabase.rpc('create_sell_order', {
             p_user_id: user.id,
