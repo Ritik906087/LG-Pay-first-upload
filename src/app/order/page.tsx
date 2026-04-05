@@ -4,7 +4,7 @@
 
 export const dynamic = "force-dynamic";
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import {
   Card,
   CardContent,
@@ -225,20 +225,45 @@ export default function OrderHistoryPage() {
   const [sellOrders, setSellOrders] = useState<SellOrder[]>([]);
   const [loading, setLoading] = useState(true);
 
-  React.useEffect(() => {
-    const fetchOrders = async () => {
-      if (!user) return;
-      setLoading(true);
-      const [buyRes, sellRes] = await Promise.all([
-        supabase.from('orders').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50),
-        supabase.from('sell_orders').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50)
-      ]);
-      setBuyOrders(buyRes.data as Order[] || []);
-      setSellOrders(sellRes.data as SellOrder[] || []);
-      setLoading(false);
+  const fetchOrders = useCallback(async () => {
+    if (!user) {
+        setLoading(false);
+        return;
     };
-    fetchOrders();
+    
+    const [buyRes, sellRes] = await Promise.all([
+      supabase.from('orders').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50),
+      supabase.from('sell_orders').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50)
+    ]);
+    setBuyOrders(buyRes.data as Order[] || []);
+    setSellOrders(sellRes.data as SellOrder[] || []);
+    setLoading(false);
   }, [user, supabase]);
+
+  React.useEffect(() => {
+    setLoading(true);
+    fetchOrders();
+  }, [fetchOrders]);
+
+  React.useEffect(() => {
+    if (!user) return;
+
+    const buyChannel = supabase.channel('orders-history-buy')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders', filter: `user_id=eq.${user.id}` }, () => {
+        fetchOrders();
+      }).subscribe();
+      
+    const sellChannel = supabase.channel('sell-orders-history-sell')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sell_orders', filter: `user_id=eq.${user.id}` }, () => {
+        fetchOrders();
+      }).subscribe();
+
+    return () => {
+      supabase.removeChannel(buyChannel);
+      supabase.removeChannel(sellChannel);
+    };
+  }, [user, supabase, fetchOrders]);
+
 
   const filteredBuyOrders = useMemo(() => {
     if (!buyOrders) return [];

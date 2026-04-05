@@ -91,6 +91,37 @@ function OrderStatusContent() {
             supabase.removeChannel(channel);
         };
     }, [orderId, supabase, toast]);
+    
+    useEffect(() => {
+        if (!order || !['pending_confirmation', 'in_applied'].includes(order.status)) {
+            return;
+        }
+
+        const fetchLatestStatus = async () => {
+             if (!order) return;
+             const { data: latestOrder } = await supabase
+                .from('orders')
+                .select('status')
+                .eq('id', order.id)
+                .single();
+            
+            if (latestOrder && latestOrder.status !== order.status) {
+                const { data: fullOrder } = await supabase
+                    .from('orders')
+                    .select('*')
+                    .eq('id', order.id)
+                    .single();
+                if (fullOrder) {
+                    setOrder(fullOrder);
+                }
+            }
+        };
+
+        const intervalId = setInterval(fetchLatestStatus, 5000); // Poll every 5 seconds
+
+        return () => clearInterval(intervalId);
+    }, [order, supabase]);
+
 
     const handleOrderExpiry = useCallback(async () => {
         if (!order || order.status !== 'pending_confirmation') return;
