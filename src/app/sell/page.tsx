@@ -104,25 +104,21 @@ export default function SellPage() {
     setIsSelling(true);
 
     try {
-        const sanitizedWithdrawalMethod: Partial<WithdrawalMethod> = {
-            type: selectedMethod.type,
-            name: selectedMethod.name,
+        const withdrawalPayloadForRpc = {
+          type: selectedMethod.type,
+          name: selectedMethod.name,
+          upiId: selectedMethod.type === 'upi' ? selectedMethod.upiId || null : null,
+          upiHolderName: selectedMethod.type === 'upi' ? selectedMethod.upiHolderName || null : null,
+          bankName: selectedMethod.type === 'bank' ? selectedMethod.bankName || null : null,
+          accountHolderName: selectedMethod.type === 'bank' ? selectedMethod.accountHolderName || null : null,
+          accountNumber: selectedMethod.type === 'bank' ? selectedMethod.accountNumber || null : null,
+          ifscCode: selectedMethod.type === 'bank' ? selectedMethod.ifscCode || null : null,
         };
-
-        if (selectedMethod.type === 'upi') {
-            sanitizedWithdrawalMethod.upiId = selectedMethod.upiId;
-            sanitizedWithdrawalMethod.upiHolderName = selectedMethod.upiHolderName;
-        } else if (selectedMethod.type === 'bank') {
-            sanitizedWithdrawalMethod.bankName = selectedMethod.bankName;
-            sanitizedWithdrawalMethod.accountHolderName = selectedMethod.accountHolderName;
-            sanitizedWithdrawalMethod.accountNumber = selectedMethod.accountNumber;
-            sanitizedWithdrawalMethod.ifscCode = selectedMethod.ifscCode;
-        }
 
         const { error } = await supabase.rpc('create_sell_order', {
             p_user_id: user.id,
             p_amount: sellAmount,
-            p_withdrawal_method: sanitizedWithdrawalMethod,
+            p_withdrawal_method: withdrawalPayloadForRpc,
             p_user_numeric_id: userProfile.numeric_id,
             p_user_phone_number: userProfile.phone_number,
         });
