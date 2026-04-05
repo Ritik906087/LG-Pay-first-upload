@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { Suspense, useMemo, useState, useRef, useEffect, useCallback } from 'react';
@@ -37,6 +35,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { sendOrderConfirmationToTelegram } from '@/lib/telegram';
 import { useSupabaseUser } from '@/hooks/use-supabase-user';
 import { createClient } from '@/lib/utils';
+import { v4 as uuidv4 } from 'uuid';
 
 
 type AdminPaymentMethod = {
@@ -114,7 +113,8 @@ function PaymentDetailsContent() {
     const provider = searchParams.get('provider');
 
     const [utr, setUtr] = useState('');
-    const [screenshotDataUrl, setScreenshotDataUrl] = useState<string | null>(null);
+    const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
+    const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
     const [isConfirming, setIsConfirming] = useState(false);
     const [isUpdatingProvider, setIsUpdatingProvider] = useState(false);
     const [isChangeDialogOpen, setIsChangeDialogOpen] = useState(false);
@@ -159,19 +159,30 @@ function PaymentDetailsContent() {
     }, [supabase, toast]);
 
     useEffect(() => {
-        const fetchOrder = async () => {
-            if(!user || !orderId) return;
+        const fetchOrderWithRetry = async (retries = 3, delay = 1000) => {
+            if (!user || !orderId) return;
             setOrderLoading(true);
-            const {data, error} = await supabase.from('orders').select('*').eq('id', orderId).single();
-            if(error || !data) {
-                toast({variant: 'destructive', title: 'Order not found'});
-                router.push('/order');
-            } else {
-                setOrder(data as Order);
+
+            for (let i = 0; i < retries; i++) {
+                const { data, error } = await supabase.from('orders').select('*').eq('id', orderId).single();
+                
+                if (data && !error) {
+                    setOrder(data as Order);
+                    setOrderLoading(false);
+                    return;
+                }
+
+                if (i < retries - 1) {
+                    await new Promise(res => setTimeout(res, delay));
+                } else {
+                    toast({ variant: 'destructive', title: 'Order not found', description: 'Could not load order details. Please try again.' });
+                    router.push('/order');
+                    setOrderLoading(false);
+                }
             }
-            setOrderLoading(false);
         };
-        fetchOrder();
+
+        fetchOrderWithRetry();
     }, [user, orderId, supabase, router, toast]);
 
     const handleCancelOrder = useCallback(async (isAutoCancel = false, reason = "Order expired") => {
@@ -357,14 +368,17 @@ function PaymentDetailsContent() {
                 if(fileInputRef.current) {
                     fileInputRef.current.value = "";
                 }
-                setScreenshotDataUrl(null);
+                setScreenshotFile(null);
+                setScreenshotPreview(null);
                 return;
             }
+            
+            setScreenshotFile(file);
             
             const reader = new FileReader();
             reader.onload = (e) => {
                 const url = e.target?.result as string;
-                setScreenshotDataUrl(url);
+                setScreenshotPreview(url);
             };
             reader.readAsDataURL(file);
 
@@ -377,7 +391,7 @@ function PaymentDetailsContent() {
     
     const handleConfirm = async () => {
         if (isUSDT) {
-            if (!utr || utr.length < 50) { // A loose validation for TxHash
+            if (!utr || utr.length < 50) {
                 toast({ variant: 'destructive', title: 'Invalid Transaction Hash', description: 'Please provide a valid TxID.' });
                 return;
             }
@@ -388,7 +402,7 @@ function PaymentDetailsContent() {
             }
         }
         
-        if (!screenshotDataUrl) {
+        if (!screenshotFile) {
             toast({ variant: 'destructive', title: 'Missing Screenshot', description: 'Please upload your payment proof screenshot.' });
             return;
         }
@@ -401,11 +415,26 @@ function PaymentDetailsContent() {
         setIsConfirming(true);
     
         try {
+            const fileExt = screenshotFile.name.split('.').pop();
+            const fileName = `${user.id}-${uuidv4()}.${fileExt}`;
+            const filePath = `payment-proofs/${fileName}`;
+    
+            // Using the 'reports' bucket. Assumes it exists with proper policies.
+            const { error: uploadError } = await supabase.storage
+                .from('reports')
+                .upload(filePath, screenshotFile);
+    
+            if (uploadError) {
+                throw new Error(`Screenshot upload failed: ${uploadError.message}`);
+            }
+    
+            const { data: { publicUrl } } = supabase.storage.from('reports').getPublicUrl(filePath);
+
             const { error } = await supabase.from('orders').update({
                 utr,
                 status: 'pending_confirmation',
                 submitted_at: new Date().toISOString(),
-                screenshot_url: screenshotDataUrl,
+                screenshot_url: publicUrl,
                 ocr_amount_match: null,
                 ocr_utr_match: null,
                 ocr_name_match: null,
@@ -580,8 +609,8 @@ function PaymentDetailsContent() {
                                <Label>Upload Screenshot</Label>
                                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" disabled={isConfirming} accept="image/*" />
                                <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="w-full flex items-center justify-center gap-2 border-dashed h-24" disabled={isConfirming}>
-                                  {screenshotDataUrl ? (
-                                      <Image src={screenshotDataUrl} alt="Screenshot preview" width={80} height={80} className="object-contain h-full" />
+                                  {screenshotPreview ? (
+                                      <Image src={screenshotPreview} alt="Screenshot preview" width={80} height={80} className="object-contain h-full" />
                                   ) : (
                                       <>
                                           <Upload className="h-4 w-4"/>
@@ -620,7 +649,7 @@ function PaymentDetailsContent() {
                         </AlertDialogContent>
                     </AlertDialog>
 
-                    <Button onClick={handleConfirm} className="h-12 text-base font-bold bg-green-500 hover:bg-green-600 text-white" disabled={isConfirming || !utr || !screenshotDataUrl}>
+                    <Button onClick={handleConfirm} className="h-12 text-base font-bold bg-green-500 hover:bg-green-600 text-white" disabled={isConfirming || !utr || !screenshotFile}>
                         {isConfirming ? <Loader2 className="h-6 w-6 animate-spin"/> : 'CONFIRM'}
                     </Button>
                 </footer>
@@ -821,8 +850,8 @@ function PaymentDetailsContent() {
                              <Label>Upload Screenshot</Label>
                              <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" disabled={isConfirming || isUpdatingProvider} accept="image/*" />
                              <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="w-full flex items-center justify-center gap-2 border-dashed h-24" disabled={isConfirming || isUpdatingProvider}>
-                                {screenshotDataUrl ? (
-                                    <Image src={screenshotDataUrl} alt="Screenshot preview" width={80} height={80} className="object-contain h-full" />
+                                {screenshotPreview ? (
+                                    <Image src={screenshotPreview} alt="Screenshot preview" width={80} height={80} className="object-contain h-full" />
                                 ) : (
                                     <>
                                         <Upload className="h-4 w-4"/>
@@ -862,7 +891,7 @@ function PaymentDetailsContent() {
                 </AlertDialog>
 
 
-                <Button onClick={handleConfirm} className="h-12 text-base font-bold bg-green-500 hover:bg-green-600 text-white" disabled={isConfirming || isUpdatingProvider || !utr || !screenshotDataUrl}>
+                <Button onClick={handleConfirm} className="h-12 text-base font-bold bg-green-500 hover:bg-green-600 text-white" disabled={isConfirming || isUpdatingProvider || !utr || !screenshotFile}>
                     {isConfirming ? <Loader2 className="h-6 w-6 animate-spin"/> : 'CONFIRM'}
                 </Button>
             </footer>
@@ -925,7 +954,7 @@ function PaymentDetailsContent() {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-             <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+            <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Cancel Order</DialogTitle>
