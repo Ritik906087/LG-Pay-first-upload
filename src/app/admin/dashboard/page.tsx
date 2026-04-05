@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { LogOut, Users, LayoutDashboard, Wallet, Eye, Search, Landmark, Banknote, Trash2, Clock, History, CheckCircle, Download, XCircle, MessageSquare, Send, Paperclip, X, FileClock, AlertCircle, FileWarning, MessageCircleQuestion, Video, Image as ImageIcon, Loader2, RefreshCw, Copy } from 'lucide-react';
+import { LogOut, Users, LayoutDashboard, Wallet, Eye, Search, Landmark, Banknote, Trash2, Clock, History, CheckCircle, Download, XCircle, MessageSquare, Send, Paperclip, X, FileClock, AlertCircle, FileWarning, MessageCircleQuestion, Video, Image as ImageIcon, Loader2, RefreshCw, Copy, Phone, User, FileText, Info } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Logo } from '@/components/logo';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -90,6 +90,8 @@ type Order = {
     verification_result?: string;
     created_at: string;
     user?: UserProfile;
+    seller?: UserProfile;
+    seller_id?: string;
     payment_type?: 'bank' | 'upi' | 'usdt' | 'p2p_upi' | 'p2p_bank';
     payment_provider?: string;
     admin_payment_method_id?: string;
@@ -891,11 +893,29 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
 
     const receiverDetails = useMemo(() => {
         if (isP2P) {
-            return order.seller_withdrawal_details;
+            return null; // For P2P, details are handled separately now
         }
         if (!order.admin_payment_method_id || !adminPaymentMethods) return null;
         return adminPaymentMethods.find(m => m.id.toString() === order.admin_payment_method_id);
     }, [order, adminPaymentMethods, isP2P]);
+
+    const DetailItem = ({ icon: Icon, label, value, onCopy, children }: { icon: React.ElementType, label: string, value?: string | number, onCopy?: () => void, children?: React.ReactNode }) => {
+        if (!value && !children) return null;
+        return (
+            <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                    <Icon className="h-4 w-4 flex-shrink-0" />
+                    <span className="font-medium">{label}</span>
+                </div>
+                <div className="flex items-center gap-1.5 text-right">
+                    {children || <span className="font-semibold break-all">{value}</span>}
+                    {onCopy && (
+                         <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={onCopy}><Copy className="h-3.5 w-3.5" /></Button>
+                    )}
+                </div>
+            </div>
+        );
+    };
 
     const copyToClipboard = (text: string | undefined, label: string) => {
         if (!text) return;
@@ -1002,72 +1022,53 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                             </Dialog>
                         </div>
 
-                        {receiverDetails && (
-                            <div className="mt-4">
-                                <h3 className="font-semibold text-foreground mb-2 text-sm">Receiver Details</h3>
-                                <div className="rounded-lg border bg-secondary/50 p-3 space-y-2 text-sm">
-                                    {receiverDetails.type === 'bank' && (
-                                        <>
-                                            <div className="flex justify-between items-start gap-2">
-                                                <span className="text-muted-foreground shrink-0">Bank:</span>
-                                                <div className="flex items-center gap-1 text-right">
-                                                    <span className="font-semibold">{receiverDetails.bankName}</span>
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard(receiverDetails.bankName, 'Bank Name')}><Copy className="h-3.5 w-3.5" /></Button>
-                                                </div>
-                                            </div>
-                                            <div className="flex justify-between items-start gap-2">
-                                                <span className="text-muted-foreground shrink-0">Holder:</span>
-                                                <div className="flex items-center gap-1 text-right">
-                                                    <span className="font-semibold">{receiverDetails.accountHolderName}</span>
-                                                     <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard(receiverDetails.accountHolderName, 'Holder Name')}><Copy className="h-3.5 w-3.5" /></Button>
-                                                </div>
-                                            </div>
-                                            <div className="flex justify-between items-start gap-2">
-                                                <span className="text-muted-foreground shrink-0">Account No:</span>
-                                                <div className="flex items-center gap-1 text-right">
-                                                    <span className="font-mono break-all">{receiverDetails.accountNumber}</span>
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard(receiverDetails.accountNumber, 'Account No.')}><Copy className="h-3.5 w-3.5" /></Button>
-                                                </div>
-                                            </div>
-                                            <div className="flex justify-between items-start gap-2">
-                                                <span className="text-muted-foreground shrink-0">IFSC:</span>
-                                                <div className="flex items-center gap-1 text-right">
-                                                    <span className="font-mono break-all">{receiverDetails.ifscCode}</span>
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard(receiverDetails.ifscCode, 'IFSC Code')}><Copy className="h-3.5 w-3.5" /></Button>
-                                                </div>
-                                            </div>
-                                        </>
-                                    )}
-                                    {receiverDetails.type === 'upi' && (
-                                        <>
-                                            <div className="flex justify-between items-start gap-2">
-                                                <span className="text-muted-foreground shrink-0">Name:</span>
-                                                <div className="flex items-center gap-1 text-right">
-                                                    <span className="font-semibold">{receiverDetails.upiHolderName}</span>
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard(receiverDetails.upiHolderName, 'UPI Name')}><Copy className="h-3.5 w-3.5" /></Button>
-                                                </div>
-                                            </div>
-                                            <div className="flex justify-between items-start gap-2">
-                                                <span className="text-muted-foreground shrink-0">UPI ID:</span>
-                                                <div className="flex items-center gap-1 text-right">
-                                                    <span className="font-mono break-all">{receiverDetails.upi_id}</span>
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard(receiverDetails.upi_id, 'UPI ID')}><Copy className="h-3.5 w-3.5" /></Button>
-                                                </div>
-                                            </div>
-                                        </>
-                                    )}
-                                    {receiverDetails.type === 'usdt' && (
-                                        <div className="flex justify-between items-start gap-2">
-                                            <span className="text-muted-foreground shrink-0">Wallet:</span>
-                                            <div className="flex items-center gap-1 text-right">
-                                                <span className="font-mono break-all">{receiverDetails.usdt_wallet_address}</span>
-                                                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard(receiverDetails.usdt_wallet_address, 'Wallet Address')}><Copy className="h-3.5 w-3.5" /></Button>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
+                        <div className="mt-4">
+                            <h3 className="font-semibold text-foreground mb-2 text-sm">Payment Receiver Details</h3>
+                            <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2 text-sm">
+                                {isP2P ? (
+                                    <>
+                                        <DetailItem icon={Users} label="Method" value="P2P Transfer" />
+                                        {order.seller_withdrawal_details?.name && 
+                                            <DetailItem icon={Landmark} label="App" value={order.seller_withdrawal_details.name} />
+                                        }
+                                        {order.seller_withdrawal_details?.upi_id && 
+                                            <DetailItem icon={Banknote} label="UPI ID" value={order.seller_withdrawal_details.upi_id} onCopy={() => copyToClipboard(order.seller_withdrawal_details?.upi_id, 'UPI ID')} />
+                                        }
+                                        {order.seller && 
+                                            <DetailItem icon={User} label="Receiver UID" value={order.seller.numeric_id} />
+                                        }
+                                        {order.seller && 
+                                            <DetailItem icon={Phone} label="Phone" value={order.seller.phone_number} />
+                                        }
+                                        {order.matched_sell_order_id && 
+                                            <DetailItem icon={FileText} label="Sell Order ID" value={order.matched_sell_order_id} />
+                                        }
+                                    </>
+                                ) : (
+                                    <>
+                                       <DetailItem icon={Landmark} label="Method" value="Admin Payment" />
+                                        {receiverDetails?.type === 'bank' && (
+                                            <>
+                                                <DetailItem icon={Landmark} label="Bank" value={receiverDetails.bank_name} onCopy={() => copyToClipboard(receiverDetails.bank_name, 'Bank Name')} />
+                                                <DetailItem icon={User} label="Holder" value={receiverDetails.account_holder_name} onCopy={() => copyToClipboard(receiverDetails.account_holder_name, 'Holder Name')} />
+                                                <DetailItem icon={Banknote} label="Account No." value={receiverDetails.account_number} onCopy={() => copyToClipboard(receiverDetails.account_number, 'Account No.')} />
+                                                <DetailItem icon={Info} label="IFSC" value={receiverDetails.ifsc_code} onCopy={() => copyToClipboard(receiverDetails.ifsc_code, 'IFSC Code')} />
+                                            </>
+                                        )}
+                                        {receiverDetails?.type === 'upi' && (
+                                            <>
+                                                <DetailItem icon={User} label="Name" value={receiverDetails.upi_holder_name} onCopy={() => copyToClipboard(receiverDetails.upi_holder_name, 'UPI Name')} />
+                                                <DetailItem icon={Banknote} label="UPI ID" value={receiverDetails.upi_id} onCopy={() => copyToClipboard(receiverDetails.upi_id, 'UPI ID')} />
+                                            </>
+                                        )}
+                                        {receiverDetails?.type === 'usdt' && (
+                                            <DetailItem icon={Wallet} label="Wallet" value={receiverDetails.usdt_wallet_address} onCopy={() => copyToClipboard(receiverDetails.usdt_wallet_address, 'Wallet Address')} />
+                                        )}
+                                    </>
+                                )}
                             </div>
-                        )}
+                        </div>
+
 
                         <div className="mt-4">
                             <h3 className="font-semibold text-foreground mb-2 text-sm">Automated Verification</h3>
@@ -1143,8 +1144,11 @@ function ConfirmationsTabContent() {
             setAllOrders(combinedOrders);
 
             if (combinedOrders.length > 0) {
-                const userIds = [...new Set(combinedOrders.map(order => order.user_id))];
-                const { data: usersData, error: usersError } = await supabase.from('users').select('*').in('id', userIds);
+                const buyerIds = combinedOrders.map(order => order.user_id);
+                const sellerIds = combinedOrders.map(order => order.seller_id).filter((id): id is string => !!id);
+                const allUserIds = [...new Set([...buyerIds, ...sellerIds])];
+
+                const { data: usersData, error: usersError } = await supabase.from('users').select('*').in('id', allUserIds);
                 if(usersError) throw usersError;
                 
                 const newUsersMap = new Map<string, UserProfile>();
@@ -1185,7 +1189,8 @@ function ConfirmationsTabContent() {
     const ordersWithUserData = useMemo(() => {
         return allOrders.map(order => ({
             ...order,
-            user: usersMap.get(order.user_id)
+            user: usersMap.get(order.user_id),
+            seller: order.seller_id ? usersMap.get(order.seller_id) : undefined,
         }));
     }, [allOrders, usersMap]);
 
