@@ -72,7 +72,7 @@ export default function SellPage() {
   const handleSell = async () => {
     const sellAmount = parseInt(amount, 10);
     
-    if (!isAmountValid || !sellAmount || sellAmount < 100) {
+    if (!isAmountValid || !sellAmount || !amount) {
         toast({ variant: 'destructive', title: 'Invalid Amount', description: 'Please enter a valid amount of at least ₹100, in multiples of 100.' });
         return;
     }
@@ -83,11 +83,11 @@ export default function SellPage() {
     }
     
     if (!selectedMethod.upiId) {
-        toast({ variant: 'destructive', title: 'Invalid UPI Method', description: 'The selected UPI method is invalid.' });
-        return;
+      toast({ variant: 'destructive', title: 'Invalid UPI Method', description: 'The selected UPI method does not have a valid UPI ID.' });
+      return;
     }
 
-    if (!userProfile) {
+    if (!userProfile || !user) {
         toast({ variant: 'destructive', title: 'User not loaded', description: 'Please wait a moment and try again.' });
         return;
     }
@@ -96,42 +96,27 @@ export default function SellPage() {
         toast({ variant: 'destructive', title: 'Insufficient Balance', description: 'You do not have enough balance to make this transaction.' });
         return;
     }
-    
-    if (!user) {
-        toast({ variant: 'destructive', title: 'Authentication Error', description: 'You are not logged in.' });
-        return;
-    }
-
-    if (!userProfile.numeric_id || !userProfile.phone_number) {
-        toast({ variant: 'destructive', title: 'Profile Incomplete', description: 'Your user ID or phone number is missing. Please contact support.' });
-        return;
-    }
 
     setIsSelling(true);
 
     try {
+        // Prepare the payload for the RPC call
         const p_withdrawal_method = {
             type: 'upi',
             name: selectedMethod.name,
-            upi_id: selectedMethod.upiId, // Correctly map from camelCase to snake_case
-            upiHolderName: selectedMethod.upiHolderName,
+            upi_id: selectedMethod.upiId,
+            upi_holder_name: selectedMethod.upiHolderName,
         };
 
-        console.log("Final sell payload:", {
+        const rpc_payload = {
             p_user_id: user.id,
             p_amount: sellAmount,
-            p_user_numeric_id: userProfile.numeric_id,
-            p_user_phone_number: userProfile.phone_number,
-            p_withdrawal_method,
-        });
-
-        const { error } = await supabase.rpc('create_sell_order', {
-            p_user_id: user.id,
-            p_amount: sellAmount,
-            p_user_numeric_id: userProfile.numeric_id,
-            p_user_phone_number: userProfile.phone_number,
             p_withdrawal_method: p_withdrawal_method,
-        });
+        };
+        
+        console.log('Attempting to create sell order with payload:', rpc_payload);
+
+        const { error } = await supabase.rpc('create_sell_order', rpc_payload);
 
         if (error) throw error;
 

@@ -69,7 +69,7 @@ type PaymentMethod = {
 type WithdrawalMethod = {
     type: 'upi' | 'bank';
     name: string;
-    upiId?: string;
+    upi_id?: string;
     bankName?: string;
     accountHolderName?: string;
     accountNumber?: string;
@@ -107,15 +107,13 @@ type Order = {
 type SellOrder = {
     id: string;
     user_id: string;
-    user_numeric_id: string;
-    user_phone_number: string;
     order_id: string;
     amount: number;
     status: 'pending' | 'processing' | 'completed' | 'failed';
     withdrawal_method: { 
         type: 'upi' | 'bank';
         name: string;
-        upiId?: string;
+        upi_id?: string;
         bankName?: string;
         accountHolderName?: string;
         accountNumber?: string;
@@ -124,6 +122,10 @@ type SellOrder = {
     created_at: string;
     completed_at?: string;
     failure_reason?: string;
+    users: {
+        numeric_id: string;
+        phone_number: string;
+    } | null;
 }
 
 type Attachment = {
@@ -188,7 +190,7 @@ const paymentMethodDetails: { [key: string]: { logo: string; bgColor: string } }
     bgColor: "bg-sky-500",
   },
   MobiKwik: {
-    logo: "https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/download%20(1).png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvZG93bmxvYWQgKDEpLnBuZyIsImlhdCI6MTc3NTE0ODU3MywiZXhwIjoxODA2Njg0NTczfQ.m8Z7gn5FV-0ss58kTEUZ833u8Wv_bFun3YZeZtyIa9s",
+    logo: "https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/download%20(1).png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvZG93bmxvYWQgKDEpLnBuZyIsImlhdCI6MTc3NTE0ODU3MywiZXhwIjoxODA2Njg0NTczfQ.m87gn5FV-0ss58kTEUZ833u8Wv_bFun3YZeZtyIa9s",
     bgColor: "bg-blue-600",
   },
   Freecharge: {
@@ -568,7 +570,7 @@ const PaymentReceipt = React.forwardRef<HTMLDivElement, { order: SellOrder; utr:
                     </div>
                      <div className="flex justify-between">
                         <span className="text-gray-500">{isBank ? 'Account No.' : 'UPI ID'}</span>
-                        <span className="font-medium text-right">{isBank ? order.withdrawal_method?.accountNumber : order.withdrawal_method?.upiId}</span>
+                        <span className="font-medium text-right">{isBank ? order.withdrawal_method?.accountNumber : order.withdrawal_method?.upi_id}</span>
                     </div>
                     <div className="flex justify-between">
                         <span className="text-gray-500">From</span>
@@ -725,8 +727,8 @@ function ProcessWithdrawalDialog({ order, onProcessed }: { order: SellOrder, onP
                     ) : (
                         <div className="space-y-4 py-4">
                             <p><strong>Amount:</strong> <span className="font-bold text-lg text-primary">₹{order.amount}</span></p>
-                            <p><strong>User UID:</strong> {order.user_numeric_id}</p>
-                            <p><strong>Phone:</strong> {order.user_phone_number}</p>
+                            <p><strong>User UID:</strong> {order.users?.numeric_id}</p>
+                            <p><strong>Phone:</strong> {order.users?.phone_number}</p>
                             
                             <p><strong>Method:</strong> {withdrawalDetails?.type?.toUpperCase() ?? 'N/A'}</p>
                             {isBankWithdrawal ? (
@@ -737,7 +739,7 @@ function ProcessWithdrawalDialog({ order, onProcessed }: { order: SellOrder, onP
                                 <p><strong>IFSC:</strong> {withdrawalDetails.ifscCode ?? 'N/A'}</p>
                                 </>
                             ) : (
-                                <p><strong>To ({withdrawalDetails?.name || 'N/A'}):</strong> {withdrawalDetails?.upiId || 'N/A'}</p>
+                                <p><strong>To ({withdrawalDetails?.name || 'N/A'}):</strong> {withdrawalDetails?.upi_id || 'N/A'}</p>
                             )}
 
                             <div className="space-y-2 pt-2">
@@ -789,9 +791,9 @@ function WithdrawalsTabContent() {
         setLoading(true);
         setError(null);
         try {
-            const { data, error } = await supabase.from('sell_orders').select('*').eq('status', 'pending').order('created_at', { ascending: false });
+            const { data, error } = await supabase.from('sell_orders').select('*, users ( numeric_id, phone_number )').eq('status', 'pending').order('created_at', { ascending: false });
             if (error) throw error;
-            setAllOrders(data);
+            setAllOrders(data as SellOrder[]);
         } catch (error) {
             console.error("Error fetching withdrawals:", error);
             setError(error);
@@ -812,8 +814,8 @@ function WithdrawalsTabContent() {
         const lowercasedTerm = searchTerm.toLowerCase();
         return pendingOrders.filter(order =>
             order.order_id.toLowerCase().includes(lowercasedTerm) ||
-            order.user_numeric_id.toLowerCase().includes(lowercasedTerm) ||
-            order.user_phone_number?.toLowerCase().includes(lowercasedTerm)
+            order.users?.numeric_id?.toLowerCase().includes(lowercasedTerm) ||
+            order.users?.phone_number?.toLowerCase().includes(lowercasedTerm)
         );
     }, [allOrders, searchTerm]);
 
@@ -863,8 +865,8 @@ function WithdrawalsTabContent() {
                         <Card key={order.id} className="flex flex-col">
                             <CardContent className="flex-grow p-4 space-y-2 text-sm">
                                 <p><strong>Amount:</strong> <span className="font-bold text-lg text-primary">₹{order.amount}</span></p>
-                                <p><strong>User UID:</strong> {order.user_numeric_id}</p>
-                                <p><strong>Phone:</strong> {order.user_phone_number}</p>
+                                <p><strong>User UID:</strong> {order.users?.numeric_id}</p>
+                                <p><strong>Phone:</strong> {order.users?.phone_number}</p>
                             </CardContent>
                             <CardFooter className="p-4 pt-0">
                                 <ProcessWithdrawalDialog order={order} onProcessed={fetchWithdrawals} />
@@ -1282,8 +1284,8 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                                             <div className="flex justify-between items-start gap-2">
                                                 <span className="text-muted-foreground shrink-0">UPI ID:</span>
                                                 <div className="flex items-center gap-1 text-right">
-                                                    <span className="font-mono break-all">{receiverDetails.upiId}</span>
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard(receiverDetails.upiId, 'UPI ID')}><Copy className="h-3.5 w-3.5" /></Button>
+                                                    <span className="font-mono break-all">{receiverDetails.upi_id}</span>
+                                                    <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => copyToClipboard(receiverDetails.upi_id, 'UPI ID')}><Copy className="h-3.5 w-3.5" /></Button>
                                                 </div>
                                             </div>
                                         </>
@@ -1939,8 +1941,8 @@ function AdminDashboard() {
                 data.forEach(order => {
                     const method = order.withdrawal_method as WithdrawalMethod;
 
-                    if (method?.type === 'upi' && method.upiId) {
-                        const id = method.upiId;
+                    if (method?.type === 'upi' && method.upi_id) {
+                        const id = method.upi_id;
                         const current = totals.get(id) || { total: 0, name: method.name || 'Unknown UPI', type: 'UPI' };
                         current.total += order.amount;
                         totals.set(id, current);
