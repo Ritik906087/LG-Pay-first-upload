@@ -21,6 +21,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useSupabaseUser } from '@/hooks/use-supabase-user';
 import { createClient } from '@/lib/utils';
