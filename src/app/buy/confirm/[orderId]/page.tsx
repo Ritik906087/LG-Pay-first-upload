@@ -138,6 +138,7 @@ function PaymentDetailsContent() {
     
     const [ocrResult, setOcrResult] = useState<OcrVerifyOutput | null>(null);
     const ocrTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const isUSDT = type === 'usdt';
 
