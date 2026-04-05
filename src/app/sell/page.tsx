@@ -104,8 +104,6 @@ export default function SellPage() {
     setIsSelling(true);
 
     try {
-        // Sanitize the withdrawal method to ensure it matches the expected schema in the database function,
-        // preventing errors from extra fields like 'upiHolderName'.
         const sanitizedWithdrawalMethod: Partial<WithdrawalMethod> = {
             type: selectedMethod.type,
             name: selectedMethod.name,
