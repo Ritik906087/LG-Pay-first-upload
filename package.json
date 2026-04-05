@@ -52,7 +52,7 @@
     "genkit": "1.1.0",
     "html2canvas": "^1.4.1",
     "lucide-react": "^0.475.0",
-    "next": "15.0.0",
+    "next": "15.0.7",
     "patch-package": "^8.0.0",
     "pg": "^8.12.0",
     "react": "18.2.0",
