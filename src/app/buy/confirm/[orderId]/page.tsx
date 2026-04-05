@@ -30,7 +30,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Textarea } from '@/components/ui/textarea';
@@ -446,18 +445,14 @@ function PaymentDetailsContent() {
     
             const { data: { publicUrl } } = supabase.storage.from('reports').getPublicUrl(filePath);
 
-            const { error } = await supabase.from('orders').update({
+            const updatePayload: any = {
                 utr,
                 status: 'pending_confirmation',
                 submitted_at: new Date().toISOString(),
                 screenshot_url: publicUrl,
-                ocr_amount_match: null,
-                ocr_utr_match: null,
-                ocr_name_match: null,
-                ocr_upi_match: null,
-                ocr_bank_account_match: null,
-                ocr_date_match: null
-            }).eq('id', order.id);
+            };
+    
+            const { error } = await supabase.from('orders').update(updatePayload).eq('id', order.id);
 
             if (error) throw error;
     
