@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -103,12 +104,28 @@ export default function SellPage() {
     setIsSelling(true);
 
     try {
+        const p_withdrawal_method: any = {
+            type: selectedMethod.type,
+            name: selectedMethod.name,
+        };
+
+        if (selectedMethod.type === 'upi') {
+            p_withdrawal_method.upiId = selectedMethod.upiId;
+            p_withdrawal_method.upiHolderName = selectedMethod.upiHolderName;
+        } else if (selectedMethod.type === 'bank') {
+            p_withdrawal_method.bankName = selectedMethod.bankName;
+            p_withdrawal_method.accountHolderName = selectedMethod.accountHolderName;
+            p_withdrawal_method.accountNumber = selectedMethod.accountNumber;
+            p_withdrawal_method.ifscCode = selectedMethod.ifscCode;
+        }
+
+
         const { error } = await supabase.rpc('create_sell_order', {
             p_user_id: user.id,
             p_amount: sellAmount,
             p_user_numeric_id: userProfile.numeric_id,
             p_user_phone_number: userProfile.phone_number,
-            p_withdrawal_method: selectedMethod
+            p_withdrawal_method: p_withdrawal_method,
         });
 
         if (error) throw error;
