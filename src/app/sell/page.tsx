@@ -80,12 +80,25 @@ export default function SellPage() {
         return;
     }
 
-    if (!userProfile || (userProfile.balance < sellAmount)) {
+    if (!userProfile) {
+        toast({ variant: 'destructive', title: 'User not loaded', description: 'Please wait a moment and try again.' });
+        return;
+    }
+
+    if (userProfile.balance < sellAmount) {
         toast({ variant: 'destructive', title: 'Insufficient Balance', description: 'You do not have enough balance to make this transaction.' });
         return;
     }
     
-    if (!user) return;
+    if (!user) {
+        toast({ variant: 'destructive', title: 'Authentication Error', description: 'You are not logged in.' });
+        return;
+    }
+
+    if (!userProfile.numeric_id || !userProfile.phone_number) {
+        toast({ variant: 'destructive', title: 'Profile Incomplete', description: 'Your user ID or phone number is missing. Please contact support.' });
+        return;
+    }
 
     setIsSelling(true);
 
@@ -108,7 +121,7 @@ export default function SellPage() {
 
     } catch (error: any) {
         console.error('Sell transaction failed:', error);
-        toast({ variant: 'destructive', title: 'Sell Failed', description: error.message || 'An unexpected error occurred.' });
+        toast({ variant: 'destructive', title: 'Sell Failed', description: error.message || 'An unexpected error occurred. If the problem persists, please contact support.' });
     } finally {
         setIsSelling(false);
     }
