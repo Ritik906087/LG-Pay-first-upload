@@ -273,6 +273,7 @@ export default function BuyPage() {
 
 const createOrder = async (provider: string, orderAmount: number) => {
     if (!user) return;
+    if (isCreatingOrder) return;
     setIsCreatingOrder(true);
     
     try {
@@ -287,19 +288,32 @@ const createOrder = async (provider: string, orderAmount: number) => {
              }
         }
         
+        const isP2PMatch = matchData && matchData.type === 'seller';
         const bonusPercentage = activeTab === 'bank' ? 5 : activeTab === 'upi' ? 6 : (activeTab === 'usdt' ? 0 : 0);
         const finalAmount = orderAmount + (orderAmount * (bonusPercentage / 100));
 
-        const isP2PMatch = matchData && matchData.type === 'seller';
-        
-        let insertPayload: any;
         let paymentType: string;
-
+        let insertedOrder: any | null = null;
+        
         if (isP2PMatch) {
-            // P2P Match Flow
             paymentType = `p2p_${activeTab}`;
-            insertPayload = {
-                order_id: matchData.order_id, // From RPC
+            const p2pOrderId = matchData.order_id;
+            
+            const { data: existingOrder, error: fetchError } = await supabase
+              .from("orders")
+              .select("id")
+              .eq("order_id", p2pOrderId)
+              .maybeSingle();
+
+            if (fetchError) throw fetchError;
+
+            if (existingOrder) {
+                router.push(`/buy/confirm/${existingOrder.id}?type=${paymentType}&provider=${provider}`);
+                return;
+            }
+            
+            const insertPayload = {
+                order_id: p2pOrderId,
                 user_id: user.id,
                 amount: finalAmount,
                 base_amount: orderAmount,
@@ -307,14 +321,26 @@ const createOrder = async (provider: string, orderAmount: number) => {
                 payment_provider: provider,
                 payment_type: paymentType,
                 status: 'pending_payment',
-                seller_id: matchData.seller_id || null, // from RPC
-                seller_withdrawal_details: matchData.withdrawal_method || null, // from RPC
-                matched_sell_order_id: matchData.sell_order_id || null, // from RPC
+                seller_id: matchData.seller_id || null,
+                seller_withdrawal_details: matchData.withdrawal_method || null,
+                matched_sell_order_id: matchData.sell_order_id || null,
             };
+            
+            console.log("P2P insert payload", insertPayload);
+
+            const { data: newOrder, error: insertError } = await supabase
+                .from('orders')
+                .insert(insertPayload)
+                .select()
+                .single();
+            
+            if (insertError) throw insertError;
+            insertedOrder = newOrder;
+
         } else {
             // Admin Fallback Flow
             paymentType = activeTab;
-            insertPayload = {
+            const insertPayload = {
                 order_id: `LGPAY${Date.now()}${Math.random().toString().slice(2, 8)}`,
                 user_id: user.id,
                 amount: finalAmount,
@@ -324,17 +350,16 @@ const createOrder = async (provider: string, orderAmount: number) => {
                 payment_type: paymentType,
                 status: 'pending_payment',
             };
+
+            const { data: newOrder, error: insertError } = await supabase
+                .from('orders')
+                .insert(insertPayload)
+                .select()
+                .single();
+
+            if (insertError) throw insertError;
+            insertedOrder = newOrder;
         }
-
-        console.log("P2P insert payload", insertPayload);
-
-        const { data: insertedOrder, error: insertError } = await supabase
-            .from('orders')
-            .insert(insertPayload)
-            .select()
-            .single();
-
-        if (insertError) throw insertError;
 
         if (insertedOrder && insertedOrder.id) {
             router.push(`/buy/confirm/${insertedOrder.id}?type=${paymentType}&provider=${provider}`);
