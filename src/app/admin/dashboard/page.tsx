@@ -886,7 +886,7 @@ const VerificationItem = ({ label, isMatch }: { label: string, isMatch?: boolean
 };
 
 
-function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: { order: Order; onProcessed: () => void; adminPaymentMethods: PaymentMethod[] }) {
+function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: { order: Order; onProcessed: (orderId: string) => void; adminPaymentMethods: PaymentMethod[] }) {
     const [open, setOpen] = useState(false);
     const [isApproving, setIsApproving] = useState(false);
     const [isRejecting, setIsRejecting] = useState(false);
@@ -952,11 +952,18 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
             
             toast({ title: 'Payment Approved!', description: `₹${order.amount} credited to user ${order.user.numeric_id}.` });
             setOpen(false);
-            onProcessed(); // This will refresh the list
+            onProcessed(order.id);
 
         } catch (e: any) {
             console.error("Failed to approve payment:", e);
-            toast({ variant: 'destructive', title: 'Approval Failed', description: e.message });
+             const isColumnError = e.message?.includes("column") && e.message?.includes("does not exist");
+            toast({
+                variant: 'destructive',
+                title: 'Approval Failed',
+                description: isColumnError
+                    ? "Database migration pending. Please run latest SQL schema."
+                    : e.message
+            });
         } finally {
             setIsApproving(false);
         }
@@ -981,7 +988,7 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
             
             toast({ title: 'Payment Rejected', description: `Order from user ${order.user?.numeric_id} has been rejected.` });
             setOpen(false);
-            onProcessed(); // Refresh the list
+            onProcessed(order.id);
 
         } catch (e: any) {
             console.error("Failed to reject payment:", e);
@@ -1223,6 +1230,11 @@ function ConfirmationsTabContent() {
         );
     }, [ordersWithUserData, searchTerm]);
     
+    const handleOrderProcessed = useCallback((processedOrderId: string) => {
+        setAllOrders(prevOrders => prevOrders.filter(o => o.id !== processedOrderId));
+        fetchConfirmations();
+    }, [fetchConfirmations]);
+
     const loading = ordersLoading || methodsLoading;
 
     if (error) {
@@ -1312,7 +1324,7 @@ function ConfirmationsTabContent() {
                                     )}
                                 </CardContent>
                                 <CardFooter className="p-4 pt-0">
-                                    <ProcessConfirmationDialog order={order} onProcessed={fetchConfirmations} adminPaymentMethods={adminPaymentMethods} />
+                                    <ProcessConfirmationDialog order={order} onProcessed={handleOrderProcessed} adminPaymentMethods={adminPaymentMethods} />
                                 </CardFooter>
                             </Card>
                         )
