@@ -28,6 +28,7 @@ type WithdrawalMethod = {
     type: 'upi' | 'bank';
     name: string;
     upiId?: string;
+    upiHolderName?: string;
     bankName?: string;
     accountHolderName?: string;
     accountNumber?: string;
@@ -103,10 +104,27 @@ export default function SellPage() {
     setIsSelling(true);
 
     try {
+        // Sanitize the withdrawal method to ensure it matches the expected schema in the database function,
+        // preventing errors from extra fields like 'upiHolderName'.
+        const sanitizedWithdrawalMethod: Partial<WithdrawalMethod> = {
+            type: selectedMethod.type,
+            name: selectedMethod.name,
+        };
+
+        if (selectedMethod.type === 'upi') {
+            sanitizedWithdrawalMethod.upiId = selectedMethod.upiId;
+            sanitizedWithdrawalMethod.upiHolderName = selectedMethod.upiHolderName;
+        } else if (selectedMethod.type === 'bank') {
+            sanitizedWithdrawalMethod.bankName = selectedMethod.bankName;
+            sanitizedWithdrawalMethod.accountHolderName = selectedMethod.accountHolderName;
+            sanitizedWithdrawalMethod.accountNumber = selectedMethod.accountNumber;
+            sanitizedWithdrawalMethod.ifscCode = selectedMethod.ifscCode;
+        }
+
         const { error } = await supabase.rpc('create_sell_order', {
             p_user_id: user.id,
             p_amount: sellAmount,
-            p_withdrawal_method: selectedMethod,
+            p_withdrawal_method: sanitizedWithdrawalMethod,
             p_user_numeric_id: userProfile.numeric_id,
             p_user_phone_number: userProfile.phone_number,
         });
