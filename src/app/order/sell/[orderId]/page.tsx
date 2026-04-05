@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useMemo, Suspense, useState, useCallback, useEffect } from 'react';
@@ -22,7 +21,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useSupabaseUser } from '@/hooks/use-supabase-user';
 import { createClient } from '@/lib/utils';
@@ -162,7 +160,12 @@ function SellOrderStatusContent() {
 
     const matchedOrders = useMemo(() => {
         if (!sellOrder || !sellOrder.matched_buy_orders) return [];
-        return [...sellOrder.matched_buy_orders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        // Safely parse, even though it should be an array from Supabase
+        const orders = Array.isArray(sellOrder.matched_buy_orders)
+            ? sellOrder.matched_buy_orders
+            : [];
+        // Sort by most recent first
+        return orders.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     }, [sellOrder]);
     
     const handleCancelRemaining = useCallback(async () => {
