@@ -934,7 +934,7 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
             toast({ variant: 'destructive', title: 'Error', description: 'Order or user data is missing.' });
             return;
         }
-    
+
         const buyerUUID = order.user.id;
         
         if (!buyerUUID) {
@@ -958,6 +958,7 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                 }
             }
             
+            console.log("APPROVE DEBUG", order);
             console.log("approve payload", {
               orderId: order.id,
               userUuid: buyerUUID,
@@ -991,11 +992,15 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
     
         } catch (e: any) {
             console.error("Failed to approve payment:", e);
-            const errorMessage = e?.message || (typeof e === 'object' && Object.keys(e).length > 0 ? JSON.stringify(e) : "An unknown RPC error occurred.");
+            const description = e?.message || (typeof e === 'object' && e !== null ? JSON.stringify(e) : "An unknown error occurred.");
+            const isColumnError = description.includes("column") && description.includes("does not exist");
+            
             toast({
                 variant: 'destructive',
                 title: 'Approval Failed',
-                description: errorMessage
+                description: isColumnError 
+                    ? "Database migration pending. Please run latest SQL schema."
+                    : description
             });
         } finally {
             setIsApproving(false);
@@ -1202,16 +1207,16 @@ function ConfirmationsTabContent() {
             setAllOrders(combinedOrders);
 
             if (combinedOrders.length > 0) {
-                const buyerNumericIds = combinedOrders.map(order => order.user_id);
-                const sellerNumericIds = combinedOrders.map(order => order.seller_id).filter((id): id is string => !!id);
-                const allNumericIds = [...new Set([...buyerNumericIds, ...sellerNumericIds])];
+                const buyerUserIds = combinedOrders.map(order => order.user_id);
+                const sellerUserIds = combinedOrders.map(order => order.seller_id).filter((id): id is string => !!id);
+                const allUserIds = [...new Set([...buyerUserIds, ...sellerUserIds])];
 
-                if (allNumericIds.length > 0) {
-                    const { data: usersData, error: usersError } = await supabase.from('users').select('*').in('numeric_id', allNumericIds);
+                if (allUserIds.length > 0) {
+                    const { data: usersData, error: usersError } = await supabase.from('users').select('*').in('id', allUserIds);
                     if(usersError) throw usersError;
                     
                     const newUsersMap = new Map<string, UserProfile>();
-                    usersData.forEach((user: UserProfile) => newUsersMap.set(user.numeric_id, user));
+                    usersData.forEach((user: UserProfile) => newUsersMap.set(user.id, user));
                     setUsersMap(newUsersMap);
                 } else {
                     setUsersMap(new Map());
@@ -1344,7 +1349,7 @@ function ConfirmationsTabContent() {
                                     </div>
                                 </CardHeader>
                                 <CardContent className="p-4 pt-0 space-y-2 text-sm">
-                                    <p><strong>User:</strong> {order.user ? `${order.user.display_name} (${order.user.numeric_id})` : <Skeleton className="h-4 w-20 inline-block"/>}</p>
+                                    <div><strong>User:</strong>{order.user ? ` ${order.user.display_name} (${order.user.numeric_id})` : <Skeleton className="h-4 w-20 inline-block ml-1"/>}</div>
                                     <p className="flex items-start gap-2"><strong>UTR/TxHash:</strong> <span className="font-mono text-right break-all">{order.utr}</span></p>
                                      {order.payment_provider && (
                                         <p className="flex items-center gap-2">
