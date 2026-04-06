@@ -979,13 +979,14 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
 
         } catch (e: any) {
             console.error("Failed to approve payment:", e);
-             const isColumnError = e.message?.includes("column") && e.message?.includes("does not exist");
+             const description = e?.message || (typeof e === 'object' && e !== null ? JSON.stringify(e) : "An unknown error occurred.");
+             const isColumnError = description.includes("column") && description.includes("does not exist");
             toast({
                 variant: 'destructive',
                 title: 'Approval Failed',
                 description: isColumnError
                     ? "Database migration pending. Please run latest SQL schema."
-                    : e.message
+                    : description
             });
         } finally {
             setIsApproving(false);
