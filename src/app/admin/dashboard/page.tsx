@@ -930,21 +930,28 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
     };
 
     const handleApprove = async () => {
-        if (!order || !order.user) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Order or user data is missing.' });
+        if (!order) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Order data is missing.' });
             return;
         }
 
+        const buyerUUID = order.user_id;
+        
+        if (!buyerUUID) {
+            toast({ variant: 'destructive', title: 'Error', description: 'User ID is missing from the order record.' });
+            return;
+        }
+    
         setIsApproving(true);
         try {
-            const buyerUUID = order.user.id;
-
+            const isP2P = order.payment_type === 'p2p_upi' || order.payment_type === 'p2p_bank';
+    
             const rpcParams: any = {
                 p_order_id: order.id,
                 p_user_id: buyerUUID,
                 p_amount_to_add: Number(order.amount),
             };
-
+    
             if (isP2P && order.matched_sell_order_id) {
                 if (order.matched_sell_order_id.length > 30) {
                     rpcParams.p_matched_sell_order_id = order.matched_sell_order_id;
@@ -956,17 +963,18 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
               userUuid: buyerUUID,
               matchedSell: rpcParams.p_matched_sell_order_id
             })
-
+    
             const { error: rpcError } = await supabase.rpc('approve_buy_order', rpcParams);
-
-            if (rpcError) throw rpcError;
+    
+            if (rpcError) {
+                throw rpcError;
+            }
             
-            // Explicitly update the order status to 'completed' to ensure UI consistency
             const { error: updateError } = await supabase
               .from('orders')
               .update({ status: 'completed' })
               .eq('id', order.id);
-
+    
             if (updateError) {
                 console.error("Critical: Failed to manually set order status to completed after RPC success.", updateError);
                 toast({
@@ -975,15 +983,15 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                     description: "Wallet credited, but status update failed. The order might still appear as pending. Please refresh."
                 });
             } else {
-                 toast({ title: 'Payment approved and wallet credited', description: `₹${order.amount} credited to user ${order.user.numeric_id}.` });
+                 toast({ title: 'Payment approved and wallet credited', description: `₹${order.amount} credited to user ${order.user?.numeric_id || buyerUUID}.` });
             }
             
             setOpen(false);
             onProcessed(order.id);
-
+    
         } catch (e: any) {
             console.error("Failed to approve payment:", e);
-            const description = e?.message || (e && typeof e === 'object' && Object.keys(e).length > 0 ? JSON.stringify(e) : "An unknown error occurred. Check the browser and server logs for more details.");
+            const description = e?.message || (typeof e === 'object' && e !== null && Object.keys(e).length > 0 ? JSON.stringify(e) : "An unknown error occurred. Check the browser and server logs for more details.");
             const isColumnError = description.includes("column") && description.includes("does not exist");
             toast({
                 variant: 'destructive',
