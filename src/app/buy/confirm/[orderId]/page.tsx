@@ -222,8 +222,8 @@ function PaymentDetailsContent() {
     }, [order, supabase, toast]);
 
     const handleCancelOrder = useCallback(async (isAutoCancel = false, reason = "Order expired") => {
-        if (!orderId || !supabase) return;
-
+        if (!orderId || !supabase || !order) return;
+    
         setIsCancelling(true);
         try {
             const { error } = await supabase.rpc('cancel_buy_order', {
@@ -233,6 +233,18 @@ function PaymentDetailsContent() {
             });
             if (error) throw error;
             
+            // If it was a P2P order, restore the seller's order
+            if (order.payment_type?.startsWith('p2p_') && order.matched_sell_order_id && order.base_amount) {
+                const { error: restoreError } = await supabase.rpc('restore_sell_order_on_failed_buy', {
+                    p_sell_order_id: order.matched_sell_order_id,
+                    p_amount: order.base_amount
+                });
+                if (restoreError) {
+                    console.error("Failed to restore seller order:", restoreError);
+                    toast({ variant: 'destructive', title: 'Partial Error', description: 'Could not restore seller order. Please contact support.' });
+                }
+            }
+            
             if (!isAutoCancel) {
                 toast({ title: 'Order Cancelled' });
                 router.push('/order');
@@ -240,7 +252,7 @@ function PaymentDetailsContent() {
                 toast({ title: 'Order Timeout', variant: 'destructive' });
                 router.push('/order');
             }
-
+    
         } catch (e: any) {
             console.error("Error cancelling order:", e);
             toast({ variant: 'destructive', title: 'Error', description: `Could not cancel the order. ${e.message}` });
@@ -248,7 +260,7 @@ function PaymentDetailsContent() {
             setIsCancelling(false);
             setIsCancelDialogOpen(false);
         }
-    }, [supabase, router, toast, orderId]);
+    }, [supabase, router, toast, orderId, order]);
     
     const handleConfirmCancellation = async () => {
         let finalReason = cancelReason;
@@ -443,9 +455,13 @@ function PaymentDetailsContent() {
                 if (details && order) {
                     const receiverUpi = details['UPI ID'] || '';
                     const receiverName = details['Recipient Name'] || '';
+                    
+                    if (ocrTimeoutRef.current) clearTimeout(ocrTimeoutRef.current);
+                    
                     ocrTimeoutRef.current = setTimeout(() => {
                         console.log("OCR timeout reached after 4 seconds.");
                     }, 4000);
+
                     ocrVerify({
                         screenshotDataUri: url,
                         expectedAmount: order.base_amount,
@@ -458,6 +474,13 @@ function PaymentDetailsContent() {
                             ocrTimeoutRef.current = null;
                             setOcrResult(result);
                          }
+                    }).catch(error => {
+                        console.error("OCR Verification failed:", error);
+                        if (ocrTimeoutRef.current) {
+                           clearTimeout(ocrTimeoutRef.current);
+                           ocrTimeoutRef.current = null;
+                        }
+                        toast({variant: 'destructive', title: 'Could not analyze screenshot.'})
                     });
                 }
             };

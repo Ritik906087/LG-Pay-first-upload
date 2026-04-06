@@ -89,6 +89,7 @@ type Order = {
     user_id: string;
     order_id: string;
     amount: number;
+    base_amount?: number;
     status: 'pending_confirmation' | 'in_applied';
     submitted_at?: string;
     utr?: string;
@@ -934,49 +935,51 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
             toast({ variant: 'destructive', title: 'Error', description: 'Order or user data is missing.' });
             return;
         }
-
-
         
         setIsApproving(true);
         try {
-           const isP2P =
-             order.payment_type === "p2p_upi" ||
-               order.payment_type === "p2p_bank";
+            const isP2P = order.payment_type === "p2p_upi" || order.payment_type === "p2p_bank";
 
-               const rpcParams: any = {
-                 p_order_id: order.id,
-                   p_user_id: order.user_id,
-                     p_amount_to_add: Number(order.amount),
-                     };
+            const rpcParams: any = {
+                p_order_id: order.id,
+                p_user_id: order.user_id,
+                p_amount_to_add: Number(order.amount),
+            };
 
-                     if (isP2P && order.matched_sell_order_id) {
-                       rpcParams.p_matched_sell_order_id = order.matched_sell_order_id;
-                       }
+            if (isP2P && order.matched_sell_order_id) {
+                rpcParams.p_matched_sell_order_id = order.matched_sell_order_id;
+            }
 
-                       const { error: rpcError } = await supabase.rpc(
-                         "approve_buy_order",
-                           rpcParams
-                           );
+            console.log("APPROVE DEBUG", order);
+            console.log("approve payload", {
+              orderId: order.id,
+              userUuid: order.user_id, // Log the UUID being sent
+              matchedSell: order.matched_sell_order_id
+            });
 
-                           if (rpcError) throw rpcError;
+            const { error: rpcError } = await supabase.rpc('approve_buy_order', rpcParams);
 
-                           const { error: updateError } = await supabase
-                             .from("orders")
-                               .update({ status: "completed" })
-                                 .eq("id", order.id);
-
-                                 if (updateError) {
-                                   console.error("Critical: Failed to manually set order status", updateError);
-                                     toast({
-                                         variant: "destructive",
-                                             title: "Approval Sync Error",
-                                                 description: "Wallet credited, but status update failed",
-                                                   });
-                                                   } else {
-                                                     toast({
-                                                         title: "Payment approved and wallet credited",
-                                                           });
-                                                           }
+            if (rpcError) throw rpcError;
+            
+            // Explicitly update the order status to 'completed' to ensure UI consistency
+            const { error: updateError } = await supabase
+              .from('orders')
+              .update({ status: 'completed' })
+              .eq('id', order.id);
+            
+            if (updateError) {
+              // This is a non-critical error, the main logic succeeded. Log it.
+              console.error("Critical: Failed to manually set order status after RPC success.", updateError);
+              toast({
+                  variant: "destructive",
+                  title: "Approval Sync Error",
+                  description: "Wallet was credited, but status update failed. The UI might be delayed.",
+              });
+            } else {
+              toast({
+                  title: "Payment approved and wallet credited!",
+              });
+            }
             
             setOpen(false);
             onProcessed(order.id);
@@ -1015,6 +1018,19 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
 
             if (error) throw error;
             
+            // If it was a P2P order, restore the seller's order
+            if (order.payment_type?.startsWith('p2p_') && order.matched_sell_order_id && order.base_amount) {
+                const { error: restoreError } = await supabase.rpc('restore_sell_order_on_failed_buy', {
+                    p_sell_order_id: order.matched_sell_order_id,
+                    p_amount: order.base_amount
+                });
+
+                if (restoreError) {
+                    console.error("Failed to restore seller order on rejection:", restoreError);
+                    toast({ variant: 'destructive', title: 'Partial Error', description: 'Could not restore seller order. Please contact support.' });
+                }
+            }
+            
             toast({ title: 'Payment Rejected', description: `Order from user ${order.user?.numeric_id} has been rejected.` });
             setOpen(false);
             onProcessed(order.id);
@@ -1047,7 +1063,14 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                     </div>
                 ) : (
                     <div className="space-y-4 py-4 text-sm">
-                        <div className="flex justify-between"><span>User:</span> <span className="font-semibold">{order.user?.display_name || 'N/A'} ({order.user?.numeric_id})</span></div>
+                        <div>
+                            <span className="font-semibold text-foreground mb-2 text-sm">User: </span> 
+                            {order.user ? (
+                                <span className="font-semibold">{order.user.display_name || 'N/A'} ({order.user.numeric_id})</span>
+                            ) : (
+                                <div><Skeleton className="h-4 w-32 mt-1"/></div>
+                            )}
+                        </div>
                         <div className="flex justify-between items-start gap-2"><span>UTR / TxHash:</span> <span className="font-mono text-right break-all">{order.utr}</span></div>
                         <div className="flex justify-between items-center">
                             <span>Screenshot:</span> 
@@ -1322,7 +1345,7 @@ function ConfirmationsTabContent() {
                         return (
                             <Card key={order.id}>
                                 <CardHeader className="flex flex-row items-start justify-between p-4 pb-2">
-                                    <div>
+                                    <div className="flex-grow">
                                         <p className="text-sm text-muted-foreground">Amount</p>
                                         <p className="font-bold text-lg text-primary">₹{order.amount.toFixed(2)}</p>
                                     </div>
@@ -1340,7 +1363,7 @@ function ConfirmationsTabContent() {
                                     </div>
                                 </CardHeader>
                                 <CardContent className="p-4 pt-0 space-y-2 text-sm">
-                                    <div><strong>User:</strong>{order.user ? ` ${order.user.display_name} (${order.user.numeric_id})` : <Skeleton className="h-4 w-20 inline-block ml-1"/>}</div>
+                                    <div className="truncate"><strong>User:</strong>{order.user ? ` ${order.user.display_name} (${order.user.numeric_id})` : <Skeleton className="h-4 w-20 inline-block ml-1"/>}</div>
                                     <p className="flex items-start gap-2"><strong>UTR/TxHash:</strong> <span className="font-mono text-right break-all">{order.utr}</span></p>
                                      {order.payment_provider && (
                                         <p className="flex items-center gap-2">
