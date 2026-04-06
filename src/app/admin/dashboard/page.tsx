@@ -946,11 +946,28 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                 rpcParams.p_matched_sell_order_id = order.matched_sell_order_id;
             }
 
-            const { error } = await supabase.rpc('approve_buy_order', rpcParams);
+            const { error: rpcError } = await supabase.rpc('approve_buy_order', rpcParams);
 
-            if(error) throw error;
+            if (rpcError) throw rpcError;
             
-            toast({ title: 'Payment Approved!', description: `₹${order.amount} credited to user ${order.user.numeric_id}.` });
+            // Explicitly update the order status to 'completed' to ensure UI consistency
+            const { error: updateError } = await supabase
+              .from('orders')
+              .update({ status: 'completed' })
+              .eq('id', order.id);
+
+            if (updateError) {
+                // If this fails, the wallet was credited but status update failed. Critical but not fatal for the user's balance.
+                console.error("Critical: Failed to manually set order status to completed after RPC success.", updateError);
+                toast({
+                    variant: "destructive",
+                    title: "Approval Sync Error",
+                    description: "Wallet credited, but status update failed. The order might still appear as pending. Please refresh."
+                });
+            } else {
+                 toast({ title: 'Payment approved and wallet credited', description: `₹${order.amount} credited to user ${order.user.numeric_id}.` });
+            }
+            
             setOpen(false);
             onProcessed(order.id);
 
