@@ -939,12 +939,18 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
         try {
             const rpcParams: any = {
                 p_order_id: order.id,
-                p_user_id: order.user_id,
+                p_user_id: order.user.id,
                 p_amount_to_add: order.amount,
             };
             if (isP2P) {
                 rpcParams.p_matched_sell_order_id = order.matched_sell_order_id;
             }
+            
+            console.log("approve payload", {
+              orderId: order.id,
+              userUuid: order.user.id,
+              matchedSell: order.matched_sell_order_id
+            })
 
             const { error: rpcError } = await supabase.rpc('approve_buy_order', rpcParams);
 
