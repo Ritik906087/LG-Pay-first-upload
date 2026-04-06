@@ -957,13 +957,6 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                     rpcParams.p_matched_sell_order_id = order.matched_sell_order_id;
                 }
             }
-            
-            console.log("APPROVE DEBUG", order);
-            console.log("approve payload", {
-              orderId: order.id,
-              userUuid: buyerUUID,
-              matchedSell: rpcParams.p_matched_sell_order_id
-            });
     
             const { error: rpcError } = await supabase.rpc('approve_buy_order', rpcParams);
     
