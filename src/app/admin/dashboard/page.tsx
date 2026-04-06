@@ -938,18 +938,31 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
 
         setIsApproving(true);
         try {
+            let buyerUUID = order.user_id;
+
+            if (!buyerUUID || buyerUUID.length < 30) {
+                const { data: userData } = await supabase
+                    .from("users")
+                    .select("id")
+                    .eq("numeric_id", order.user?.numeric_id)
+                    .single();
+
+                buyerUUID = userData?.id;
+            }
+
             const rpcParams: any = {
                 p_order_id: order.id,
-                p_user_id: order.user_id, // Use the user_id from the order, which is the correct UUID FK
-                p_amount_to_add: order.amount,
+                p_user_id: buyerUUID,
+                p_amount_to_add: Number(order.amount),
             };
-            if (isP2P) {
+
+            if (isP2P && order.matched_sell_order_id) {
                 rpcParams.p_matched_sell_order_id = order.matched_sell_order_id;
             }
             
             console.log("approve payload", {
               orderId: order.id,
-              userUuid: order.user_id, // Log the UUID being sent
+              userUuid: buyerUUID,
               matchedSell: order.matched_sell_order_id
             })
 
