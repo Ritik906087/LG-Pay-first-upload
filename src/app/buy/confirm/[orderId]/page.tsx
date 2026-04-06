@@ -81,8 +81,9 @@ type Order = {
 };
 
 type UserProfile = {
-    payment_methods?: { name: string; upiId: string }[];
+    payment_methods?: { name: string; upiId: string; upiHolderName?: string }[];
     numeric_id?: string;
+    display_name?: string;
 };
 
 
@@ -139,6 +140,9 @@ function PaymentDetailsContent() {
     const [ocrResult, setOcrResult] = useState<OcrVerifyOutput | null>(null);
     const ocrTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    
+    const [sellerProfile, setSellerProfile] = useState<UserProfile | null>(null);
+    const [sellerLoading, setSellerLoading] = useState(true);
 
     const isUSDT = type === 'usdt';
 
@@ -190,6 +194,32 @@ function PaymentDetailsContent() {
 
         fetchOrderWithRetry();
     }, [user, orderId, supabase, router, toast]);
+
+    useEffect(() => {
+        const fetchSeller = async () => {
+            if (!order || !order.seller_id || !(order.payment_type === 'p2p_upi' || order.payment_type === 'p2p_bank')) {
+                setSellerLoading(false);
+                return;
+            }
+            setSellerLoading(true);
+            const { data: sellerData, error } = await supabase
+                .from('users')
+                .select('payment_methods, display_name')
+                .eq('id', order.seller_id)
+                .single();
+
+            if (error) {
+                toast({ variant: 'destructive', title: 'Could not load seller details.' });
+                setSellerProfile(null);
+            } else {
+                setSellerProfile(sellerData as UserProfile);
+            }
+            setSellerLoading(false);
+        };
+        if (order) {
+            fetchSeller();
+        }
+    }, [order, supabase, toast]);
 
     const handleCancelOrder = useCallback(async (isAutoCancel = false, reason = "Order expired") => {
         if (!orderId || !supabase) return;
@@ -299,23 +329,35 @@ function PaymentDetailsContent() {
 
 
     const paymentTargetDetails = useMemo(() => {
-        if (orderLoading || !order) return null;
-
-        // Case 1: P2P Match. The details are embedded in the order.
-        if (order.seller_withdrawal_details) {
-            return order.seller_withdrawal_details;
+        if (orderLoading) return null;
+        if (!order) return null;
+    
+        const isP2P = order.payment_type === 'p2p_upi' || order.payment_type === 'p2p_bank';
+    
+        if (isP2P) {
+            // P2P flow: use seller details
+            if (sellerLoading) return null; // Wait for seller profile to be fetched
+            if (!sellerProfile || !order.seller_withdrawal_details) return null;
+    
+            // Find the specific payment method from the seller's profile
+            const sellerMethod = sellerProfile.payment_methods?.find(
+                (pm) => pm.name === order.seller_withdrawal_details?.name
+            );
+            
+            // Return the found method. It should have upiId, upiHolderName, etc.
+            return sellerMethod || null;
         }
         
-        // Case 2: Admin Fallback. Find the appropriate admin method.
+        // Admin Fallback flow
         if (!allPaymentMethods || allPaymentMethods.length === 0 || !type) return null;
         return allPaymentMethods.find(m => m.type === type);
-    }, [order, orderLoading, type, allPaymentMethods]);
+    }, [order, orderLoading, type, allPaymentMethods, sellerProfile, sellerLoading]);
 
     useEffect(() => {
         const updateAdminPaymentMethod = async () => {
             // Only run for non-P2P admin orders
-            if (order && paymentTargetDetails?.id && !order.admin_payment_method_id && type !== 'p2p_upi' && type !== 'p2p_bank') {
-                const { error } = await supabase.from('orders').update({ admin_payment_method_id: paymentTargetDetails.id }).eq('id', order.id);
+            if (order && (paymentTargetDetails as any)?.id && !order.admin_payment_method_id && type !== 'p2p_upi' && type !== 'p2p_bank') {
+                const { error } = await supabase.from('orders').update({ admin_payment_method_id: (paymentTargetDetails as any).id }).eq('id', order.id);
                 if (error) {
                     console.error("Failed to set admin payment method ID on order", error);
                 }
@@ -333,7 +375,7 @@ function PaymentDetailsContent() {
 
         // Normalize P2P seller details (camelCase) to match admin details (snake_case)
         const normalizedDetails: any = isP2P ? {
-            type: paymentTargetDetails.type,
+            type: (paymentTargetDetails as any).type,
             bank_name: (paymentTargetDetails as any).bankName,
             account_holder_name: (paymentTargetDetails as any).accountHolderName,
             account_number: (paymentTargetDetails as any).accountNumber,
@@ -524,7 +566,7 @@ function PaymentDetailsContent() {
         }
     };
 
-    const loading = allPaymentMethodsLoading || orderLoading;
+    const loading = allPaymentMethodsLoading || orderLoading || (order && (order.payment_type === 'p2p_upi' || order.payment_type === 'p2p_bank') && sellerLoading);
     const currentProviderDetails = provider ? paymentMethodDetails[provider] : null;
     
     const usdtAmount = useMemo(() => {
