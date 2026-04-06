@@ -935,50 +935,48 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
             return;
         }
 
-        const buyerUUID = order.user.id;
+
         
-        if (!buyerUUID) {
-            toast({ variant: 'destructive', title: 'Error', description: 'User UUID could not be found.' });
-            return;
-        }
-    
         setIsApproving(true);
         try {
-            const isP2P = order.payment_type === 'p2p_upi' || order.payment_type === 'p2p_bank';
-    
-            const rpcParams: any = {
-                p_order_id: order.id,
-                p_user_id: buyerUUID,
-                p_amount_to_add: Number(order.amount),
-            };
-    
-            if (isP2P && order.matched_sell_order_id) {
-                if (order.matched_sell_order_id.length > 30) {
-                    rpcParams.p_matched_sell_order_id = order.matched_sell_order_id;
-                }
-            }
-    
-            const { error: rpcError } = await supabase.rpc('approve_buy_order', rpcParams);
-    
-            if (rpcError) {
-                throw rpcError;
-            }
-            
-            const { error: updateError } = await supabase
-              .from('orders')
-              .update({ status: 'completed' })
-              .eq('id', order.id);
-    
-            if (updateError) {
-                console.error("Critical: Failed to manually set order status to completed after RPC success.", updateError);
-                toast({
-                    variant: "destructive",
-                    title: "Approval Sync Error",
-                    description: "Wallet credited, but status update failed. The order might still appear as pending. Please refresh."
-                });
-            } else {
-                 toast({ title: 'Payment approved and wallet credited', description: `₹${order.amount} credited to user ${order.user?.numeric_id || buyerUUID}.` });
-            }
+           const isP2P =
+             order.payment_type === "p2p_upi" ||
+               order.payment_type === "p2p_bank";
+
+               const rpcParams: any = {
+                 p_order_id: order.id,
+                   p_user_id: order.user_id,
+                     p_amount_to_add: Number(order.amount),
+                     };
+
+                     if (isP2P && order.matched_sell_order_id) {
+                       rpcParams.p_matched_sell_order_id = order.matched_sell_order_id;
+                       }
+
+                       const { error: rpcError } = await supabase.rpc(
+                         "approve_buy_order",
+                           rpcParams
+                           );
+
+                           if (rpcError) throw rpcError;
+
+                           const { error: updateError } = await supabase
+                             .from("orders")
+                               .update({ status: "completed" })
+                                 .eq("id", order.id);
+
+                                 if (updateError) {
+                                   console.error("Critical: Failed to manually set order status", updateError);
+                                     toast({
+                                         variant: "destructive",
+                                             title: "Approval Sync Error",
+                                                 description: "Wallet credited, but status update failed",
+                                                   });
+                                                   } else {
+                                                     toast({
+                                                         title: "Payment approved and wallet credited",
+                                                           });
+                                                           }
             
             setOpen(false);
             onProcessed(order.id);
