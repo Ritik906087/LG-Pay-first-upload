@@ -930,7 +930,6 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
     };
 
     const handleApprove = async () => {
-        console.log("APPROVE DEBUG", order);
         if (!order || !order.user) {
             toast({ variant: 'destructive', title: 'Error', description: 'Order or user data is missing.' });
             return;
@@ -938,17 +937,7 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
 
         setIsApproving(true);
         try {
-            let buyerUUID = order.user_id;
-
-            if (!buyerUUID || buyerUUID.length < 30) {
-                const { data: userData } = await supabase
-                    .from("users")
-                    .select("id")
-                    .eq("numeric_id", order.user?.numeric_id)
-                    .single();
-
-                buyerUUID = userData?.id;
-            }
+            const buyerUUID = order.user.id;
 
             const rpcParams: any = {
                 p_order_id: order.id,
@@ -957,13 +946,15 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
             };
 
             if (isP2P && order.matched_sell_order_id) {
-                rpcParams.p_matched_sell_order_id = order.matched_sell_order_id;
+                if (order.matched_sell_order_id.length > 30) {
+                    rpcParams.p_matched_sell_order_id = order.matched_sell_order_id;
+                }
             }
             
             console.log("approve payload", {
               orderId: order.id,
               userUuid: buyerUUID,
-              matchedSell: order.matched_sell_order_id
+              matchedSell: rpcParams.p_matched_sell_order_id
             })
 
             const { error: rpcError } = await supabase.rpc('approve_buy_order', rpcParams);
@@ -992,7 +983,7 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
 
         } catch (e: any) {
             console.error("Failed to approve payment:", e);
-            const description = e?.message || (typeof e === 'object' && e !== null ? JSON.stringify(e) : "An unknown error occurred.");
+            const description = e?.message || (e && typeof e === 'object' && Object.keys(e).length > 0 ? JSON.stringify(e) : "An unknown error occurred. Check the browser and server logs for more details.");
             const isColumnError = description.includes("column") && description.includes("does not exist");
             toast({
                 variant: 'destructive',
