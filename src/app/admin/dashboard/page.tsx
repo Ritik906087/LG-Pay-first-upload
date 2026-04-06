@@ -931,8 +931,8 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
     };
 
     const handleApprove = async () => {
-        if (!order || !order.user) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Order or user data is missing.' });
+        if (!order || !order.user || !order.user.id) {
+            toast({ variant: 'destructive', title: 'Error', description: 'User data is missing from order. Cannot approve.' });
             return;
         }
         
@@ -942,20 +942,13 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
 
             const rpcParams: any = {
                 p_order_id: order.id,
-                p_user_id: order.user_id,
+                p_user_id: order.user.id,
                 p_amount_to_add: Number(order.amount),
             };
 
             if (isP2P && order.matched_sell_order_id) {
                 rpcParams.p_matched_sell_order_id = order.matched_sell_order_id;
             }
-
-            console.log("APPROVE DEBUG", order);
-            console.log("approve payload", {
-              orderId: order.id,
-              userUuid: order.user_id, // Log the UUID being sent
-              matchedSell: order.matched_sell_order_id
-            });
 
             const { error: rpcError } = await supabase.rpc('approve_buy_order', rpcParams);
 
@@ -968,7 +961,6 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
               .eq('id', order.id);
             
             if (updateError) {
-              // This is a non-critical error, the main logic succeeded. Log it.
               console.error("Critical: Failed to manually set order status after RPC success.", updateError);
               toast({
                   variant: "destructive",
@@ -986,15 +978,12 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
     
         } catch (e: any) {
             console.error("Failed to approve payment:", e);
-            const description = e?.message || (typeof e === 'object' && e !== null ? JSON.stringify(e) : "An unknown error occurred.");
-            const isColumnError = description.includes("column") && description.includes("does not exist");
+            const description = e?.message || 'An unknown error occurred. Please check the console.';
             
             toast({
                 variant: 'destructive',
                 title: 'Approval Failed',
-                description: isColumnError 
-                    ? "Database migration pending. Please run latest SQL schema."
-                    : description
+                description: description
             });
         } finally {
             setIsApproving(false);
@@ -1018,7 +1007,6 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
 
             if (error) throw error;
             
-            // If it was a P2P order, restore the seller's order
             if (order.payment_type?.startsWith('p2p_') && order.matched_sell_order_id && order.base_amount) {
                 const { error: restoreError } = await supabase.rpc('restore_sell_order_on_failed_buy', {
                     p_sell_order_id: order.matched_sell_order_id,
@@ -1026,8 +1014,14 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                 });
 
                 if (restoreError) {
-                    console.error("Failed to restore seller order on rejection:", restoreError);
-                    toast({ variant: 'destructive', title: 'Partial Error', description: 'Could not restore seller order. Please contact support.' });
+                    console.error("CRITICAL: Failed to restore seller order on rejection.", {
+                        message: restoreError.message,
+                        code: restoreError.code,
+                        details: restoreError.details,
+                        sellOrderId: order.matched_sell_order_id,
+                        amountToRestore: order.base_amount
+                    });
+                    toast({ variant: 'destructive', title: 'Seller Order Restore Failed', description: `Error: ${restoreError.message}. Please contact support.` });
                 }
             }
             
@@ -1063,10 +1057,10 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                     </div>
                 ) : (
                     <div className="space-y-4 py-4 text-sm">
-                        <div>
-                            <span className="font-semibold text-foreground mb-2 text-sm">User: </span> 
+                        <div className="font-semibold text-foreground mb-2 text-sm">
+                            <span className="text-muted-foreground">User: </span> 
                             {order.user ? (
-                                <span className="font-semibold">{order.user.display_name || 'N/A'} ({order.user.numeric_id})</span>
+                                <span>{order.user.display_name || 'N/A'} ({order.user.numeric_id})</span>
                             ) : (
                                 <div><Skeleton className="h-4 w-32 mt-1"/></div>
                             )}
@@ -1098,9 +1092,6 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                                         }
                                         {order.seller_withdrawal_details?.upi_id && 
                                             <DetailItem icon={Banknote} label="UPI ID" value={order.seller_withdrawal_details.upi_id} onCopy={() => copyToClipboard(order.seller_withdrawal_details?.upi_id, 'UPI ID')} />
-                                        }
-                                        {order.seller && 
-                                            <DetailItem icon={User} label="Receiver UID" value={order.seller.numeric_id} />
                                         }
                                         {order.seller && 
                                             <DetailItem icon={Phone} label="Phone" value={order.seller.phone_number} />
@@ -1363,7 +1354,14 @@ function ConfirmationsTabContent() {
                                     </div>
                                 </CardHeader>
                                 <CardContent className="p-4 pt-0 space-y-2 text-sm">
-                                    <div className="truncate"><strong>User:</strong>{order.user ? ` ${order.user.display_name} (${order.user.numeric_id})` : <Skeleton className="h-4 w-20 inline-block ml-1"/>}</div>
+                                    <div className="truncate">
+                                        <span className="font-semibold">User: </span>
+                                        {order.user ? (
+                                            `${order.user.display_name} (${order.user.numeric_id})`
+                                        ) : (
+                                            <Skeleton className="h-4 w-20 inline-block ml-1"/>
+                                        )}
+                                    </div>
                                     <p className="flex items-start gap-2"><strong>UTR/TxHash:</strong> <span className="font-mono text-right break-all">{order.utr}</span></p>
                                      {order.payment_provider && (
                                         <p className="flex items-center gap-2">

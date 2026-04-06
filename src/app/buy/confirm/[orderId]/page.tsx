@@ -233,15 +233,24 @@ function PaymentDetailsContent() {
             });
             if (error) throw error;
             
-            // If it was a P2P order, restore the seller's order
             if (order.payment_type?.startsWith('p2p_') && order.matched_sell_order_id && order.base_amount) {
                 const { error: restoreError } = await supabase.rpc('restore_sell_order_on_failed_buy', {
                     p_sell_order_id: order.matched_sell_order_id,
                     p_amount: order.base_amount
                 });
                 if (restoreError) {
-                    console.error("Failed to restore seller order:", restoreError);
-                    toast({ variant: 'destructive', title: 'Partial Error', description: 'Could not restore seller order. Please contact support.' });
+                    console.error("CRITICAL: Failed to restore seller order on cancellation.", {
+                        message: restoreError.message,
+                        code: restoreError.code,
+                        details: restoreError.details,
+                        sellOrderId: order.matched_sell_order_id,
+                        amountToRestore: order.base_amount
+                    });
+                    toast({
+                        variant: 'destructive',
+                        title: 'Seller Order Not Restored',
+                        description: `Error: ${restoreError.message}. Please contact support.`
+                    });
                 }
             }
             
@@ -552,10 +561,47 @@ function PaymentDetailsContent() {
                 updatePayload.ocr_status_match = ocrResult.statusMatch ?? false;
                 updatePayload.ocr_raw_text = ocrResult.rawText ?? '';
             }
-    
-            const { error } = await supabase.from('orders').update(updatePayload).eq('id', order.id);
+            
+            const { error: buyOrderError } = await supabase.from('orders').update(updatePayload).eq('id', order.id);
+            if (buyOrderError) throw buyOrderError;
 
-            if (error) throw error;
+            if (order.payment_type?.startsWith('p2p_') && order.matched_sell_order_id) {
+                const { data: sellOrderData, error: fetchSellOrderError } = await supabase
+                    .from('sell_orders')
+                    .select('matched_buy_orders')
+                    .eq('id', order.matched_sell_order_id)
+                    .single();
+
+                if (fetchSellOrderError) {
+                    console.error("CRITICAL: Failed to fetch sell order for P2P update after buyer submitted proof.", fetchSellOrderError);
+                    toast({
+                        variant: 'destructive',
+                        title: 'Seller Not Updated',
+                        description: 'Could not update seller status. Please contact support.'
+                    });
+                } else if (sellOrderData) {
+                    const currentMatched = (sellOrderData.matched_buy_orders || []) as any[];
+                    const updatedMatched = currentMatched.map(match => 
+                        match.order_id === order.order_id
+                            ? { ...match, status: 'pending_confirmation', utr: utr }
+                            : match
+                    );
+
+                    const { error: updateSellOrderError } = await supabase
+                        .from('sell_orders')
+                        .update({ matched_buy_orders: updatedMatched })
+                        .eq('id', order.matched_sell_order_id);
+
+                    if (updateSellOrderError) {
+                        console.error("CRITICAL: Failed to update matched_buy_orders on sell order.", updateSellOrderError);
+                        toast({
+                            variant: 'destructive',
+                            title: 'Seller Not Updated',
+                            description: `Error: ${updateSellOrderError.message}. Please contact support.`
+                        });
+                    }
+                }
+            }
     
             if (order && userProfile && details) {
                 try {
