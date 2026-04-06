@@ -930,6 +930,7 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
     };
 
     const handleApprove = async () => {
+        console.log("APPROVE DEBUG", order);
         if (!order || !order.user) {
             toast({ variant: 'destructive', title: 'Error', description: 'Order or user data is missing.' });
             return;
@@ -939,7 +940,7 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
         try {
             const rpcParams: any = {
                 p_order_id: order.id,
-                p_user_id: order.user.id,
+                p_user_id: order.user_id, // Use the user_id from the order, which is the correct UUID FK
                 p_amount_to_add: order.amount,
             };
             if (isP2P) {
@@ -948,7 +949,7 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
             
             console.log("approve payload", {
               orderId: order.id,
-              userUuid: order.user.id,
+              userUuid: order.user_id, // Log the UUID being sent
               matchedSell: order.matched_sell_order_id
             })
 
@@ -963,7 +964,6 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
               .eq('id', order.id);
 
             if (updateError) {
-                // If this fails, the wallet was credited but status update failed. Critical but not fatal for the user's balance.
                 console.error("Critical: Failed to manually set order status to completed after RPC success.", updateError);
                 toast({
                     variant: "destructive",
@@ -979,8 +979,8 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
 
         } catch (e: any) {
             console.error("Failed to approve payment:", e);
-             const description = e?.message || (typeof e === 'object' && e !== null ? JSON.stringify(e) : "An unknown error occurred.");
-             const isColumnError = description.includes("column") && description.includes("does not exist");
+            const description = e?.message || (typeof e === 'object' && e !== null ? JSON.stringify(e) : "An unknown error occurred.");
+            const isColumnError = description.includes("column") && description.includes("does not exist");
             toast({
                 variant: 'destructive',
                 title: 'Approval Failed',
