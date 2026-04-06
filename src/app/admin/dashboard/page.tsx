@@ -930,15 +930,15 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
     };
 
     const handleApprove = async () => {
-        if (!order) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Order data is missing.' });
+        if (!order || !order.user) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Order or user data is missing.' });
             return;
         }
-
-        const buyerUUID = order.user_id;
+    
+        const buyerUUID = order.user.id;
         
         if (!buyerUUID) {
-            toast({ variant: 'destructive', title: 'Error', description: 'User ID is missing from the order record.' });
+            toast({ variant: 'destructive', title: 'Error', description: 'User UUID could not be found.' });
             return;
         }
     
@@ -962,7 +962,7 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
               orderId: order.id,
               userUuid: buyerUUID,
               matchedSell: rpcParams.p_matched_sell_order_id
-            })
+            });
     
             const { error: rpcError } = await supabase.rpc('approve_buy_order', rpcParams);
     
@@ -991,14 +991,11 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
     
         } catch (e: any) {
             console.error("Failed to approve payment:", e);
-            const description = e?.message || (typeof e === 'object' && e !== null && Object.keys(e).length > 0 ? JSON.stringify(e) : "An unknown error occurred. Check the browser and server logs for more details.");
-            const isColumnError = description.includes("column") && description.includes("does not exist");
+            const errorMessage = e?.message || (typeof e === 'object' && Object.keys(e).length > 0 ? JSON.stringify(e) : "An unknown RPC error occurred.");
             toast({
                 variant: 'destructive',
                 title: 'Approval Failed',
-                description: isColumnError
-                    ? "Database migration pending. Please run latest SQL schema."
-                    : description
+                description: errorMessage
             });
         } finally {
             setIsApproving(false);
@@ -1205,16 +1202,20 @@ function ConfirmationsTabContent() {
             setAllOrders(combinedOrders);
 
             if (combinedOrders.length > 0) {
-                const buyerIds = combinedOrders.map(order => order.user_id);
-                const sellerIds = combinedOrders.map(order => order.seller_id).filter((id): id is string => !!id);
-                const allUserIds = [...new Set([...buyerIds, ...sellerIds])];
+                const buyerNumericIds = combinedOrders.map(order => order.user_id);
+                const sellerNumericIds = combinedOrders.map(order => order.seller_id).filter((id): id is string => !!id);
+                const allNumericIds = [...new Set([...buyerNumericIds, ...sellerNumericIds])];
 
-                const { data: usersData, error: usersError } = await supabase.from('users').select('*').in('id', allUserIds);
-                if(usersError) throw usersError;
-                
-                const newUsersMap = new Map<string, UserProfile>();
-                usersData.forEach((user: UserProfile) => newUsersMap.set(user.id, user));
-                setUsersMap(newUsersMap);
+                if (allNumericIds.length > 0) {
+                    const { data: usersData, error: usersError } = await supabase.from('users').select('*').in('numeric_id', allNumericIds);
+                    if(usersError) throw usersError;
+                    
+                    const newUsersMap = new Map<string, UserProfile>();
+                    usersData.forEach((user: UserProfile) => newUsersMap.set(user.numeric_id, user));
+                    setUsersMap(newUsersMap);
+                } else {
+                    setUsersMap(new Map());
+                }
             } else {
                 setUsersMap(new Map());
             }
