@@ -944,24 +944,33 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                 setIsApproving(false);
                 return;
             }
-
+    
             const isP2P = order.payment_type === "p2p_upi" || order.payment_type === "p2p_bank";
-
+    
             const rpcParams: any = {
                 p_order_id: numericOrderId,
                 p_user_id: order.user.id,
                 p_amount_to_add: Number(order.amount),
             };
-
+    
             if (isP2P && order.matched_sell_order_id) {
-                rpcParams.p_matched_sell_order_id = order.matched_sell_order_id;
+                 const { data: sellOrderData, error: sellOrderError } = await supabase
+                    .from('sell_orders')
+                    .select('id')
+                    .eq('id', Number(order.matched_sell_order_id)) // Query by integer ID
+                    .single();
+    
+                if (sellOrderError || !sellOrderData) {
+                    console.error("Critical: Could not find matched sell_order to approve.", { sell_order_id_str: order.matched_sell_order_id, error: sellOrderError });
+                    throw new Error(`Could not find matched sell order: ${order.matched_sell_order_id}`);
+                }
+                rpcParams.p_matched_sell_order_id = sellOrderData.id;
             }
             
             const { error: rpcError } = await supabase.rpc('approve_buy_order', rpcParams);
-
+    
             if (rpcError) throw rpcError;
             
-            // Explicitly update the order status to 'completed' to ensure UI consistency
             const { error: updateError } = await supabase
               .from('orders')
               .update({ status: 'completed' })
@@ -1021,20 +1030,31 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
             if (error) throw error;
             
             if (order.payment_type?.startsWith('p2p_') && order.matched_sell_order_id && order.base_amount) {
-                const { error: restoreError } = await supabase.rpc('restore_sell_order_on_failed_buy', {
-                    p_sell_order_id: order.matched_sell_order_id,
-                    p_amount: order.base_amount
-                });
+                const { data: sellOrderData, error: sellOrderError } = await supabase
+                    .from('sell_orders')
+                    .select('id')
+                    .eq('id', Number(order.matched_sell_order_id)) // Query by integer ID
+                    .single();
 
-                if (restoreError) {
-                    console.error("CRITICAL: Failed to restore seller order on rejection.", {
-                        message: restoreError.message,
-                        code: restoreError.code,
-                        details: restoreError.details,
-                        sellOrderId: order.matched_sell_order_id,
-                        amountToRestore: order.base_amount
+                if (sellOrderError || !sellOrderData) {
+                    console.error("CRITICAL: Could not find matched sell_order to restore on rejection.", { sell_order_id_str: order.matched_sell_order_id, error: sellOrderError });
+                    toast({ variant: 'destructive', title: 'Seller Order Restore Failed', description: `Could not find sell order ${order.matched_sell_order_id}. Please contact support.` });
+                } else {
+                    const { error: restoreError } = await supabase.rpc('restore_sell_order_on_failed_buy', {
+                        p_sell_order_id: sellOrderData.id,
+                        p_amount: order.base_amount
                     });
-                    toast({ variant: 'destructive', title: 'Seller Order Restore Failed', description: `Error: ${restoreError.message}. Please contact support.` });
+
+                    if (restoreError) {
+                        console.error("CRITICAL: Failed to restore seller order on rejection.", {
+                            message: restoreError.message,
+                            code: restoreError.code,
+                            details: restoreError.details,
+                            sellOrderId: sellOrderData.id,
+                            amountToRestore: order.base_amount
+                        });
+                        toast({ variant: 'destructive', title: 'Seller Order Restore Failed', description: `Error: ${restoreError.message}. Please contact support.` });
+                    }
                 }
             }
             
