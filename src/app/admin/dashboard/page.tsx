@@ -949,7 +949,7 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
             if (isP2P && order.matched_sell_order_id) {
                 rpcParams.p_matched_sell_order_id = order.matched_sell_order_id;
             }
-
+            
             const { error: rpcError } = await supabase.rpc('approve_buy_order', rpcParams);
 
             if (rpcError) throw rpcError;
