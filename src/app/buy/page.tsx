@@ -229,7 +229,7 @@ export default function BuyPage() {
   useEffect(() => {
     const fetchInProgressOrders = async () => {
         if(!user) return;
-        const { data } = await supabase.from('orders').select('*').in('status', ['pending_payment', 'pending_confirmation']);
+        const { data } = await supabase.from('orders').select('*').eq('user_id', user.id).in('status', ['pending_payment', 'pending_confirmation']);
         setInProgressBuyOrders(data || []);
     }
     fetchInProgressOrders();
