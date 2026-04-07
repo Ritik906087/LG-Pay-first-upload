@@ -957,7 +957,7 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                  const { data: sellOrderData, error: sellOrderError } = await supabase
                     .from('sell_orders')
                     .select('id')
-                    .eq('id', Number(order.matched_sell_order_id)) // Query by integer ID
+                    .eq('order_id', order.matched_sell_order_id)
                     .single();
     
                 if (sellOrderError || !sellOrderData) {
@@ -1033,7 +1033,7 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                 const { data: sellOrderData, error: sellOrderError } = await supabase
                     .from('sell_orders')
                     .select('id')
-                    .eq('id', Number(order.matched_sell_order_id)) // Query by integer ID
+                    .eq('order_id', order.matched_sell_order_id)
                     .single();
 
                 if (sellOrderError || !sellOrderData) {
