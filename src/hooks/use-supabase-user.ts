@@ -29,27 +29,35 @@ export function useSupabaseUser() {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-      
-      if (currentUser) {
-        const { data: userProfile, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', currentUser.id)
-          .single();
-          
-        if (error && error.code !== 'PGRST116') {
-          console.error('Error fetching user profile:', error);
-          setProfile(null);
+      try {
+        const currentUser = session?.user ?? null;
+        setUser(currentUser);
+        
+        if (currentUser) {
+          const { data: userProfile, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', currentUser.id)
+            .single();
+            
+          if (error && error.code !== 'PGRST116') {
+            console.error('Error fetching user profile:', error);
+            setProfile(null);
+          } else {
+            setProfile(userProfile);
+          }
         } else {
-          setProfile(userProfile);
+          setProfile(null);
         }
-      } else {
+      } catch (e) {
+        console.error("Error in onAuthStateChange handler:", e);
+        // Ensure state is reset on error
+        setUser(null);
         setProfile(null);
+      } finally {
+        // This will always run, ensuring the loading spinner is removed.
+        setLoading(false);
       }
-      
-      setLoading(false);
     });
 
     return () => {
