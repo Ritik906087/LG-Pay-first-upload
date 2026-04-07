@@ -1,12 +1,11 @@
 
-
 'use client';
 
 import React, { useMemo, Suspense, useState, useCallback, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Copy } from 'lucide-react';
+import { ChevronLeft, Copy, Clock, CheckCircle, Hourglass, XCircle, AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
@@ -24,9 +23,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
 import { useSupabaseUser } from '@/hooks/use-supabase-user';
 import { createClient } from '@/lib/utils';
-
+import Image from 'next/image';
 
 type MatchedBuyOrder = {
     order_id: string; // This is the user-facing buyer order ID
@@ -35,6 +41,7 @@ type MatchedBuyOrder = {
     created_at: string;
     buyer_id: string;
     utr?: string;
+    screenshot_url?: string;
 };
 
 type SellOrder = {
@@ -47,25 +54,28 @@ type SellOrder = {
     matched_buy_orders?: MatchedBuyOrder[];
 };
 
-const statusConfig: { [key: string]: { style: string; text: string } } = {
-  completed: { style: "bg-green-100 text-green-800", text: "Completed" },
-  failed: { style: "bg-red-100 text-red-800", text: "Failed" },
-  cancelled: { style: "bg-red-100 text-red-800", text: "Cancelled" },
-  pending: { style: "bg-yellow-100 text-yellow-800", text: "Pending" },
-  partially_filled: { style: "bg-blue-100 text-blue-800", text: "Partially Filled" },
-  processing: { style: "bg-blue-100 text-blue-800", text: "Processing" },
-  pending_payment: { style: "bg-yellow-100 text-yellow-800", text: "Pending Payment" },
-  pending_confirmation: { style: "bg-blue-100 text-blue-800", text: "Confirming" },
-  in_applied: { style: "bg-orange-100 text-orange-800", text: "In Applied" },
+const statusConfig: { [key: string]: { style: string; text: string; icon: React.ElementType } } = {
+  // SellOrder statuses
+  pending: { style: 'bg-green-100 text-green-800', text: 'Active', icon: CheckCircle },
+  partially_filled: { style: 'bg-yellow-100 text-yellow-800', text: 'Partially Filled', icon: Hourglass },
+  processing: { style: 'bg-blue-100 text-blue-800', text: 'Processing', icon: Loader },
+  completed: { style: 'bg-green-500 text-white', text: 'Completed', icon: CheckCircle },
+  failed: { style: 'bg-red-100 text-red-800', text: 'Failed', icon: XCircle },
+
+  // MatchedBuyOrder statuses
+  pending_payment: { style: 'bg-yellow-100 text-yellow-800', text: 'Awaiting Payment', icon: Clock },
+  pending_confirmation: { style: 'bg-blue-100 text-blue-800', text: 'Confirmation', icon: Hourglass },
+  in_applied: { style: 'bg-orange-100 text-orange-800', text: 'In Review', icon: AlertTriangle },
+  cancelled: { style: 'bg-red-100 text-red-800', text: 'Cancelled', icon: XCircle },
 };
 
-
 const MatchedOrderCard = ({ order }: { order: MatchedBuyOrder }) => {
-  const currentStatus = statusConfig[order.status] || { style: "bg-gray-100 text-gray-800", text: order.status.replace(/_/g, ' ') };
+  const currentStatus = statusConfig[order.status] || { style: "bg-gray-100 text-gray-800", text: order.status.replace(/_/g, ' '), icon: AlertTriangle };
   const { toast } = useToast();
-  const copyToClipboard = (text: string | undefined) => {
+  
+  const copyToClipboard = (text: string | undefined, label: string) => {
     if(!text) return;
-    navigator.clipboard.writeText(text).then(() => toast({ title: 'Copied!' }));
+    navigator.clipboard.writeText(text).then(() => toast({ title: `${label} Copied!` }));
   };
 
   return (
@@ -73,16 +83,19 @@ const MatchedOrderCard = ({ order }: { order: MatchedBuyOrder }) => {
       <CardContent className="p-4 space-y-3">
         <div className="flex justify-between items-center">
           <span className="rounded px-2 py-0.5 text-xs font-bold bg-blue-100 text-blue-800">
-            Matched
+            Matched Buyer
           </span>
-          <span className={cn("font-semibold text-sm capitalize", currentStatus.style, "px-2 py-1 rounded-md")}>{currentStatus.text}</span>
+          <div className={cn("flex items-center gap-1.5 font-semibold text-sm capitalize", currentStatus.style, "px-2 py-1 rounded-md")}>
+            <currentStatus.icon className={cn("h-3.5 w-3.5", currentStatus.text === 'Processing' && 'animate-spin')} />
+            <span>{currentStatus.text}</span>
+          </div>
         </div>
         <div className="space-y-2 text-sm">
           <div className="flex justify-between items-center">
             <span className="text-muted-foreground">Amount</span>
             <div className="flex items-center gap-2">
               <span className="font-semibold text-primary">₹{order.amount.toFixed(2)}</span>
-              <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={() => copyToClipboard(order.amount.toFixed(2))} />
+              <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={() => copyToClipboard(order.amount.toFixed(2), 'Amount')} />
             </div>
           </div>
           {order.utr && (
@@ -90,7 +103,7 @@ const MatchedOrderCard = ({ order }: { order: MatchedBuyOrder }) => {
               <span className="text-muted-foreground shrink-0">UTR</span>
               <div className="flex items-center gap-2 text-right">
                 <span className="font-mono text-muted-foreground break-all">{order.utr}</span>
-                <Copy className="h-3 w-3 text-gray-400 cursor-pointer flex-shrink-0" onClick={() => copyToClipboard(order.utr)} />
+                <Copy className="h-3 w-3 text-gray-400 cursor-pointer flex-shrink-0" onClick={() => copyToClipboard(order.utr, 'UTR')} />
               </div>
             </div>
           )}
@@ -98,13 +111,35 @@ const MatchedOrderCard = ({ order }: { order: MatchedBuyOrder }) => {
             <span className="text-muted-foreground">Time</span>
             <span className="font-mono text-muted-foreground text-xs">{new Date(order.created_at).toLocaleString()}</span>
           </div>
-          {order.order_id && (
-            <div className="flex justify-between items-start gap-4">
-              <span className="text-muted-foreground shrink-0">Buyer Order ID</span>
-              <div className="flex items-center gap-2 text-right">
-                <span className="font-mono text-muted-foreground break-all">{order.order_id?.toUpperCase()}</span>
-                <Copy className="h-3 w-3 text-gray-400 cursor-pointer flex-shrink-0" onClick={() => copyToClipboard(order.order_id)} />
-              </div>
+          <div className="flex justify-between items-center">
+            <span className="text-muted-foreground shrink-0">Buyer Order ID</span>
+             <div className="flex items-center gap-2 text-right">
+                <span className="font-mono text-muted-foreground text-xs break-all">{order.order_id?.toUpperCase()}</span>
+                <Copy className="h-3 w-3 text-gray-400 cursor-pointer flex-shrink-0" onClick={() => copyToClipboard(order.order_id, 'Order ID')} />
+            </div>
+          </div>
+          {order.screenshot_url && (
+            <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Proof</span>
+                 <Dialog>
+                    <DialogTrigger asChild>
+                        <Button variant="link" className="p-0 h-auto text-primary">View Screenshot</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Payment Proof</DialogTitle>
+                        </DialogHeader>
+                        <div className="flex justify-center py-4">
+                            <Image
+                                src={order.screenshot_url}
+                                alt="Payment proof"
+                                width={400}
+                                height={800}
+                                className="max-h-[70vh] w-auto object-contain rounded-md"
+                            />
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </div>
           )}
         </div>
@@ -112,6 +147,7 @@ const MatchedOrderCard = ({ order }: { order: MatchedBuyOrder }) => {
     </Card>
   );
 };
+
 
 function SellOrderStatusContent() {
     const params = useParams();
@@ -160,14 +196,18 @@ function SellOrderStatusContent() {
         };
     }, [orderId, supabase]);
 
-    const matchedOrders = useMemo(() => {
-        if (!sellOrder || !sellOrder.matched_buy_orders) return [];
-        // Safely parse, even though it should be an array from Supabase
+    const { activeMatchedOrders, historicalMatchedOrders } = useMemo(() => {
+        if (!sellOrder || !sellOrder.matched_buy_orders) {
+            return { activeMatchedOrders: [], historicalMatchedOrders: [] };
+        }
         const orders = Array.isArray(sellOrder.matched_buy_orders)
-            ? sellOrder.matched_buy_orders
+            ? [...sellOrder.matched_buy_orders].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
             : [];
-        // Sort by most recent first
-        return orders.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        
+        const active = orders.filter(o => ['pending_payment', 'pending_confirmation', 'in_applied'].includes(o.status));
+        const historical = orders.filter(o => ['completed', 'failed', 'cancelled'].includes(o.status));
+
+        return { activeMatchedOrders: active, historicalMatchedOrders: historical };
     }, [sellOrder]);
     
     const handleCancelRemaining = useCallback(async () => {
@@ -261,7 +301,10 @@ function SellOrderStatusContent() {
                     <CardHeader>
                         <div className="flex justify-between items-start">
                             <CardTitle>Sell Order Progress</CardTitle>
-                             {currentStatus && <span className={cn("font-semibold text-sm capitalize", currentStatus.style, "px-2 py-1 rounded-md")}>{currentStatus.text}</span>}
+                             {currentStatus && <div className={cn("flex items-center gap-1.5 font-semibold text-sm capitalize", currentStatus.style, "px-2 py-1 rounded-md")}>
+                                <currentStatus.icon className={cn("h-3.5 w-3.5", sellOrder.status === 'processing' && 'animate-spin')} />
+                                <span>{currentStatus.text}</span>
+                             </div>}
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -279,27 +322,43 @@ function SellOrderStatusContent() {
                     </CardContent>
                 </Card>
                 
-                <Card>
+                 <Card>
                     <CardHeader>
-                        <CardTitle>Matched Buy Orders</CardTitle>
+                        <CardTitle>Matched Buyers</CardTitle>
+                        <CardDescription>Buyers who are currently paying for your order.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {matchedOrders && matchedOrders.length > 0 ? (
+                        {activeMatchedOrders && activeMatchedOrders.length > 0 ? (
                             <div className="space-y-3">
-                                {matchedOrders.map(buyOrder => (
+                                {activeMatchedOrders.map(buyOrder => (
                                     <MatchedOrderCard key={buyOrder.order_id} order={buyOrder} />
                                 ))}
                             </div>
                         ) : (
-                             <p className="text-center text-muted-foreground py-4">No buyers matched yet.</p>
+                             <p className="text-center text-muted-foreground py-4">No active buyers matched yet.</p>
                         )}
                     </CardContent>
                 </Card>
+
+                {historicalMatchedOrders && historicalMatchedOrders.length > 0 && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Transaction History</CardTitle>
+                            <CardDescription>Completed or failed matches for this sell order.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-3">
+                                {historicalMatchedOrders.map(buyOrder => (
+                                    <MatchedOrderCard key={buyOrder.order_id} order={buyOrder} />
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
             </main>
         </div>
     );
 }
-
 
 export default function SellOrderStatusPage() {
   return (
