@@ -938,10 +938,17 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
         
         setIsApproving(true);
         try {
+            const numericOrderId = Number(order.id);
+            if (isNaN(numericOrderId)) {
+                toast({ variant: 'destructive', title: 'Invalid Order ID' });
+                setIsApproving(false);
+                return;
+            }
+
             const isP2P = order.payment_type === "p2p_upi" || order.payment_type === "p2p_bank";
 
             const rpcParams: any = {
-                p_order_id: order.id,
+                p_order_id: numericOrderId,
                 p_user_id: order.user.id,
                 p_amount_to_add: Number(order.amount),
             };
@@ -958,7 +965,7 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
             const { error: updateError } = await supabase
               .from('orders')
               .update({ status: 'completed' })
-              .eq('id', order.id);
+              .eq('id', numericOrderId);
             
             if (updateError) {
               console.error("Critical: Failed to manually set order status after RPC success.", updateError);
@@ -997,13 +1004,19 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
         }
         setIsRejecting(true);
         try {
+            const numericOrderId = Number(order.id);
+            if (isNaN(numericOrderId)) {
+                toast({ variant: 'destructive', title: 'Invalid Order ID' });
+                setIsRejecting(false);
+                return;
+            }
             const { error } = await supabase
                 .from('orders')
                 .update({ 
                     status: 'failed',
                     rejection_reason: rejectionReason
                 })
-                .eq('id', order.id);
+                .eq('id', numericOrderId);
 
             if (error) throw error;
             

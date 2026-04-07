@@ -62,7 +62,7 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   
-  const adminPhones = ['9060873927', '7050396570'];
+  const adminPhones = ['9060873927', '7050396570', '7307081891', '9798630209', '9199604613'];
   const adminPhone = request.cookies.get('admin-phone');
   const isAdminAuthenticated = adminPhone?.value ? adminPhones.includes(adminPhone.value) : false;
 
