@@ -250,7 +250,7 @@ function PaymentDetailsContent() {
             
             if (order.payment_type?.startsWith('p2p_') && order.matched_sell_order_id && order.base_amount) {
                 const { error: restoreError } = await supabase.rpc('restore_sell_order_on_failed_buy', {
-                    p_sell_order_id: order.matched_sell_order_id,
+                    p_sell_order_id: Number(order.matched_sell_order_id),
                     p_amount: order.base_amount
                 });
                 if (restoreError) {
@@ -316,7 +316,7 @@ function PaymentDetailsContent() {
 
         setIsUpdatingProvider(true);
         try {
-            const { error } = await supabase.from('orders').update({ payment_provider: newProvider }).eq('id', order.id);
+            const { error } = await supabase.from('orders').update({ payment_provider: newProvider }).eq('id', Number(order.id));
             if (error) throw error;
             
             const newSearchParams = new URLSearchParams(searchParams.toString());
@@ -394,7 +394,7 @@ function PaymentDetailsContent() {
             if (!order) return;
             // Only run for non-P2P admin orders
             if ((paymentTargetDetails as any)?.id && !order.admin_payment_method_id && type !== 'p2p_upi' && type !== 'p2p_bank') {
-                const { error } = await supabase.from('orders').update({ admin_payment_method_id: (paymentTargetDetails as any).id }).eq('id', order.id);
+                const { error } = await supabase.from('orders').update({ admin_payment_method_id: (paymentTargetDetails as any).id }).eq('id', Number(order.id));
                 if (error) {
                     console.error("Failed to set admin payment method ID on order", error);
                 }
@@ -578,43 +578,53 @@ function PaymentDetailsContent() {
                 updatePayload.ocr_raw_text = ocrResult.rawText ?? '';
             }
             
-            const { error: buyOrderError } = await supabase.from('orders').update(updatePayload).eq('id', order.id);
+            const { error: buyOrderError } = await supabase.from('orders').update(updatePayload).eq('id', Number(order.id));
             if (buyOrderError) throw buyOrderError;
 
             if (order.payment_type?.startsWith('p2p_') && order.matched_sell_order_id) {
-                const { data: sellOrderData, error: fetchSellOrderError } = await supabase
-                    .from('sell_orders')
-                    .select('matched_buy_orders')
-                    .eq('id', order.matched_sell_order_id)
-                    .single();
-
-                if (fetchSellOrderError) {
-                    console.error("CRITICAL: Failed to fetch sell order for P2P update after buyer submitted proof.", fetchSellOrderError);
+                const numericSellOrderId = Number(order.matched_sell_order_id);
+                if (isNaN(numericSellOrderId)) {
+                    console.error("CRITICAL: Invalid matched_sell_order_id format. Cannot convert to number.", order.matched_sell_order_id);
                     toast({
                         variant: 'destructive',
-                        title: 'Seller Not Updated',
-                        description: 'Could not update seller status. Please contact support.'
+                        title: 'Internal Error',
+                        description: 'Sell order reference is invalid. Please contact support.'
                     });
-                } else if (sellOrderData) {
-                    const currentMatched = (sellOrderData.matched_buy_orders || []) as any[];
-                    const updatedMatched = currentMatched.map(match => 
-                        match.order_id === order.order_id
-                            ? { ...match, status: 'pending_confirmation', utr: utr }
-                            : match
-                    );
-
-                    const { error: updateSellOrderError } = await supabase
+                } else {
+                    const { data: sellOrderData, error: fetchSellOrderError } = await supabase
                         .from('sell_orders')
-                        .update({ matched_buy_orders: updatedMatched })
-                        .eq('id', order.matched_sell_order_id);
+                        .select('matched_buy_orders')
+                        .eq('id', numericSellOrderId)
+                        .single();
 
-                    if (updateSellOrderError) {
-                        console.error("CRITICAL: Failed to update matched_buy_orders on sell order.", updateSellOrderError);
+                    if (fetchSellOrderError) {
+                        console.error("CRITICAL: Failed to fetch sell order for P2P update after buyer submitted proof.", fetchSellOrderError);
                         toast({
                             variant: 'destructive',
                             title: 'Seller Not Updated',
-                            description: `Error: ${updateSellOrderError.message}. Please contact support.`
+                            description: 'Could not update seller status. Please contact support.'
                         });
+                    } else if (sellOrderData) {
+                        const currentMatched = (sellOrderData.matched_buy_orders || []) as any[];
+                        const updatedMatched = currentMatched.map(match =>
+                            match.order_id === order.order_id
+                                ? { ...match, status: 'pending_confirmation', utr: utr }
+                                : match
+                        );
+
+                        const { error: updateSellOrderError } = await supabase
+                            .from('sell_orders')
+                            .update({ matched_buy_orders: updatedMatched })
+                            .eq('id', numericSellOrderId);
+
+                        if (updateSellOrderError) {
+                            console.error("CRITICAL: Failed to update matched_buy_orders on sell order.", updateSellOrderError);
+                            toast({
+                                variant: 'destructive',
+                                title: 'Seller Not Updated',
+                                description: `Error: ${updateSellOrderError.message}. Please contact support.`
+                            });
+                        }
                     }
                 }
             }
