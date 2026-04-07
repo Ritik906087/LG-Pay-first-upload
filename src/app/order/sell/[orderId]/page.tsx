@@ -70,7 +70,13 @@ const statusConfig: { [key: string]: { style: string; text: string; icon: React.
 };
 
 const MatchedOrderCard = ({ order }: { order: MatchedBuyOrder }) => {
-  const currentStatus = statusConfig[order.status] || { style: "bg-gray-100 text-gray-800", text: order.status.replace(/_/g, ' '), icon: AlertTriangle };
+  const getStatusConfig = (status: MatchedBuyOrder['status']) => {
+      if (status === 'completed') {
+          return { style: 'bg-green-100 text-green-800', text: 'Completed', icon: CheckCircle };
+      }
+      return statusConfig[status] || { style: "bg-gray-100 text-gray-800", text: status.replace(/_/g, ' '), icon: AlertTriangle };
+  }
+  const currentStatus = getStatusConfig(order.status);
   const { toast } = useToast();
   
   const copyToClipboard = (text: string | undefined, label: string) => {
