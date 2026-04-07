@@ -61,11 +61,20 @@ function OrderStatusContent() {
         const fetchOrder = async () => {
             if (!orderId) return;
             setOrderLoading(true);
+            const numericOrderId = Number(orderId);
+            if (isNaN(numericOrderId)) {
+                toast({ variant: 'destructive', title: 'Invalid Order ID' });
+                router.push('/order');
+                setOrderLoading(false);
+                return;
+            }
+
             const { data, error } = await supabase
                 .from('orders')
                 .select('*')
-                .eq('id', orderId)
+                .eq('id', numericOrderId)
                 .single();
+
             if (error || !data) {
                 toast({ variant: 'destructive', title: 'Order not found.' });
                 setOrder(null);
@@ -75,12 +84,15 @@ function OrderStatusContent() {
             setOrderLoading(false);
         };
         fetchOrder();
+        
+        const numericOrderIdForChannel = Number(orderId);
+        if(isNaN(numericOrderIdForChannel)) return;
 
         const channel = supabase
             .channel(`order_${orderId}`)
             .on<Order>(
                 'postgres_changes',
-                { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
+                { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${numericOrderIdForChannel}` },
                 (payload) => {
                     setOrder(payload.new as Order);
                 }
@@ -90,7 +102,7 @@ function OrderStatusContent() {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [orderId, supabase, toast]);
+    }, [orderId, supabase, toast, router]);
     
     useEffect(() => {
         if (!order || !['pending_confirmation', 'in_applied'].includes(order.status)) {
@@ -112,7 +124,7 @@ function OrderStatusContent() {
                     .eq('id', order.id)
                     .single();
                 if (fullOrder) {
-                    setOrder(fullOrder);
+                    setOrder(fullOrder as Order);
                 }
             }
         };
@@ -128,10 +140,15 @@ function OrderStatusContent() {
     
         setIsUpdatingStatus(true);
         try {
+             const numericOrderId = Number(order.id);
+             if (isNaN(numericOrderId)) return;
+
              const { error } = await supabase.from('orders').update({
                 status: 'in_applied',
-            }).eq('id', order.id);
+            }).eq('id', numericOrderId);
+
             if (error) throw error;
+
             toast({
                 title: 'Order Under Review',
                 description: 'System is busy. Please wait for admin review.',
