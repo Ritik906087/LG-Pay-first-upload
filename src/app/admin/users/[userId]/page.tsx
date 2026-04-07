@@ -398,7 +398,7 @@ export default function UserDetailsPage() {
     const [error, setError] = useState<any>(null);
 
     useEffect(() => {
-        const masterAdminPhones = ['9060873927', '7050396570'];
+        const masterAdminPhones = ['9060873927'];
         const getCookie = (name: string) => {
             const value = `; ${document.cookie}`;
             const parts = value.split(`; ${name}=`);

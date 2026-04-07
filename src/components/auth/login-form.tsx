@@ -57,7 +57,10 @@ export function LoginForm() {
 
     const adminUsers = [
         { phone: '9060873927', password: 'Ritik@9060' },
-        { phone: '7050396570', password: 'Ritik@7050' }
+        { phone: '7050396570', password: 'Ritik@7050' },
+        { phone: '7307081891', password: 'Anand7275' },
+        { phone: '9798630209', password: 'aaditya@' },
+        { phone: '9199604613', password: 'ritik123' }
     ];
     
     const adminMatch = adminUsers.find(admin => admin.phone === values.phone && admin.password === values.password);

@@ -65,7 +65,7 @@ type WithdrawalMethod = {
 }
 
 type Order = {
-    id: string;
+    id: number;
     amount: number;
     base_amount: number;
     status: string;
@@ -172,9 +172,17 @@ function PaymentDetailsContent() {
         const fetchOrderWithRetry = async (retries = 3, delay = 1000) => {
             if (!user || !orderId) return;
             setOrderLoading(true);
+            
+            const numericOrderId = Number(orderId);
+            if (isNaN(numericOrderId)) {
+                toast({ variant: 'destructive', title: 'Invalid Order ID', description: 'The order ID is not valid.' });
+                router.push('/order');
+                setOrderLoading(false);
+                return;
+            }
 
             for (let i = 0; i < retries; i++) {
-                const { data, error } = await supabase.from('orders').select('*').eq('id', orderId).single();
+                const { data, error } = await supabase.from('orders').select('*').eq('id', numericOrderId).single();
                 
                 if (data && !error) {
                     setOrder(data as Order);
@@ -223,11 +231,18 @@ function PaymentDetailsContent() {
 
     const handleCancelOrder = useCallback(async (isAutoCancel = false, reason = "Order expired") => {
         if (!orderId || !supabase || !order) return;
+
+        const numericOrderId = Number(orderId);
+        if (isNaN(numericOrderId)) {
+            console.error("Cancel order error: Invalid Order ID provided.", orderId);
+            toast({ variant: 'destructive', title: 'Error', description: 'Invalid order ID format.' });
+            return;
+        }
     
         setIsCancelling(true);
         try {
             const { error } = await supabase.rpc('cancel_buy_order', {
-                p_order_id: orderId,
+                p_order_id: numericOrderId,
                 p_cancellation_reason: isAutoCancel ? 'Order timed out' : reason,
                 p_is_auto_cancel: isAutoCancel
             });
@@ -263,7 +278,7 @@ function PaymentDetailsContent() {
             }
     
         } catch (e: any) {
-            console.error("Error cancelling order:", e);
+            console.error("Cancel order error:", e);
             toast({ variant: 'destructive', title: 'Error', description: `Could not cancel the order. ${e.message}` });
         } finally {
             setIsCancelling(false);
@@ -376,8 +391,9 @@ function PaymentDetailsContent() {
 
     useEffect(() => {
         const updateAdminPaymentMethod = async () => {
+            if (!order) return;
             // Only run for non-P2P admin orders
-            if (order && (paymentTargetDetails as any)?.id && !order.admin_payment_method_id && type !== 'p2p_upi' && type !== 'p2p_bank') {
+            if ((paymentTargetDetails as any)?.id && !order.admin_payment_method_id && type !== 'p2p_upi' && type !== 'p2p_bank') {
                 const { error } = await supabase.from('orders').update({ admin_payment_method_id: (paymentTargetDetails as any).id }).eq('id', order.id);
                 if (error) {
                     console.error("Failed to set admin payment method ID on order", error);
