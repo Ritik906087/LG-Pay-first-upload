@@ -938,63 +938,49 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
         
         setIsApproving(true);
         try {
-            const numericOrderId = Number(order.id);
-            if (isNaN(numericOrderId)) {
-                toast({ variant: 'destructive', title: 'Invalid Order ID' });
-                setIsApproving(false);
-                return;
-            }
-    
             const isP2P = order.payment_type === "p2p_upi" || order.payment_type === "p2p_bank";
-    
+
             const rpcParams: any = {
-                p_order_id: numericOrderId,
+                p_order_id: Number(order.id),
                 p_user_id: order.user.id,
                 p_amount_to_add: Number(order.amount),
             };
-    
+
             if (isP2P && order.matched_sell_order_id) {
-                 const { data: sellOrderData, error: sellOrderError } = await supabase
+                // Correctly fetch the sell_order's primary key `id`
+                const { data: sellOrder, error: fetchError } = await supabase
                     .from('sell_orders')
                     .select('id')
                     .eq('order_id', order.matched_sell_order_id)
                     .single();
-    
-                if (sellOrderError || !sellOrderData) {
-                    console.error("Critical: Could not find matched sell_order to approve.", { sell_order_id_str: order.matched_sell_order_id, error: sellOrderError });
-                    throw new Error(`Could not find matched sell order: ${order.matched_sell_order_id}`);
+                
+                if (fetchError || !sellOrder) {
+                    console.error("CRITICAL: Could not find matched sell_order to approve.", { error: fetchError });
+                    toast({
+                        variant: 'destructive',
+                        title: 'Approval Failed',
+                        description: 'Could not find the matched sell order. Cannot process P2P transaction.',
+                    });
+                    setIsApproving(false);
+                    return;
                 }
-                rpcParams.p_matched_sell_order_id = sellOrderData.id;
+                rpcParams.p_matched_sell_order_id = sellOrder.id;
             }
             
             const { error: rpcError } = await supabase.rpc('approve_buy_order', rpcParams);
     
             if (rpcError) throw rpcError;
             
-            const { error: updateError } = await supabase
-              .from('orders')
-              .update({ status: 'completed' })
-              .eq('id', numericOrderId);
-            
-            if (updateError) {
-              console.error("Critical: Failed to manually set order status after RPC success.", updateError);
-              toast({
-                  variant: "destructive",
-                  title: "Approval Sync Error",
-                  description: "Wallet was credited, but status update failed. The UI might be delayed.",
-              });
-            } else {
-              toast({
-                  title: "Payment approved and wallet credited!",
-              });
-            }
+            toast({
+                title: "Payment approved and wallet credited!",
+            });
             
             setOpen(false);
             onProcessed(order.id);
     
         } catch (e: any) {
             console.error("Failed to approve payment:", e);
-            const description = e?.message || String(e) || 'An unknown error occurred. Please check the console.';
+            const description = e?.message || 'An unknown error occurred. Please check the console.';
             
             toast({
                 variant: 'destructive',
@@ -1012,33 +998,27 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
             return;
         }
         setIsRejecting(true);
-        try {
-            const numericOrderId = Number(order.id);
-            if (isNaN(numericOrderId)) {
-                toast({ variant: 'destructive', title: 'Invalid Order ID' });
-                setIsRejecting(false);
-                return;
-            }
+        try { 
             const { error } = await supabase
                 .from('orders')
                 .update({ 
                     status: 'failed',
                     rejection_reason: rejectionReason
                 })
-                .eq('id', numericOrderId);
+                .eq('id', order.id);
 
             if (error) throw error;
             
             if (order.payment_type?.startsWith('p2p_') && order.matched_sell_order_id && order.base_amount) {
-                const { data: sellOrderData, error: sellOrderError } = await supabase
+                const { data: sellOrderData, error: fetchSellOrderError } = await supabase
                     .from('sell_orders')
                     .select('id')
                     .eq('order_id', order.matched_sell_order_id)
                     .single();
 
-                if (sellOrderError || !sellOrderData) {
-                    console.error("CRITICAL: Could not find matched sell_order to restore on rejection.", { sell_order_id_str: order.matched_sell_order_id, error: sellOrderError });
-                    toast({ variant: 'destructive', title: 'Seller Order Restore Failed', description: `Could not find sell order ${order.matched_sell_order_id}. Please contact support.` });
+                if (fetchSellOrderError || !sellOrderData) {
+                    console.error("CRITICAL: Could not find matched sell order to restore on rejection.", { sellOrderId: order.matched_sell_order_id, error: fetchSellOrderError });
+                    toast({ variant: 'destructive', title: 'Seller Order Restore Failed', description: `Buy order rejected, but could not find sell order to restore. Please contact support.` });
                 } else {
                     const { error: restoreError } = await supabase.rpc('restore_sell_order_on_failed_buy', {
                         p_sell_order_id: sellOrderData.id,
@@ -2083,5 +2063,3 @@ export default function AdminDashboardPage() {
 
     return <AdminDashboard />;
 }
-
-    
