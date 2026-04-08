@@ -962,7 +962,7 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                 const { data: sellOrder, error: fetchError } = await supabase
                     .from("sell_orders")
                     .select("id")
-                    .eq("order_id", order.matched_sell_order_id)
+                    .eq("id", Number(order.matched_sell_order_id))
                     .single();
 
                 if (fetchError || !sellOrder) {
@@ -1013,7 +1013,11 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
             setOpen(false);
             onProcessed(order.id);
         } catch (e: any) {
-            console.error("Failed to approve payment:", e);
+            console.error("FULL APPROVE ERROR:", JSON.stringify(e, null, 2));
+            console.error("RAW ERROR:", e);
+            console.error("MESSAGE:", e?.message);
+            console.error("DETAILS:", e?.details);
+            console.error("HINT:", e?.hint);
             const description = e?.message || 'An unknown error occurred. Please check the console.';
             toast({
                 variant: 'destructive',
