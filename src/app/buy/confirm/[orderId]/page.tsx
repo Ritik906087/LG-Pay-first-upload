@@ -256,7 +256,7 @@ function PaymentDetailsContent() {
                     .single();
 
                 if (sellOrderError || !sellOrderData) {
-                    console.error("CRITICAL: Failed to find matched sell_order to restore on cancellation.", { sell_order_id_str: order.matched_sell_order_id, error: sellOrderError });
+                    console.error("CRITICAL: Could not find matched sell_order to restore on cancellation.", { sell_order_id_str: order.matched_sell_order_id, error: sellOrderError });
                     toast({ variant: 'destructive', title: 'Seller Order Not Restored', description: `Could not find sell order. Please contact support.` });
                 } else {
                     const { error: restoreError } = await supabase.rpc('restore_sell_order_on_failed_buy', {
@@ -1093,7 +1093,7 @@ function PaymentDetailsContent() {
                               className={cn("w-full flex items-center p-3 rounded-lg border hover:bg-opacity-90 transition-colors disabled:opacity-50", details?.bgColor || 'bg-gray-500', "text-white")}
                           >
                               {isUpdatingProvider ? (
-                                <Loader2 className="h-5 w-5 mr-4 animate-spin" />
+                                <Loader2 className="h-5 w-5 mr-4 animate-spin" /> 
                               ) : (
                                 details && (
                                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white p-1 mr-4">
@@ -1198,3 +1198,5 @@ export default function ConfirmPage() {
     </Suspense>
   )
 }
+
+    

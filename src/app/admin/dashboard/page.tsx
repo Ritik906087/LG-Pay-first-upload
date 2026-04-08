@@ -994,7 +994,7 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
     
         } catch (e: any) {
             console.error("Failed to approve payment:", e);
-            const description = e?.message || 'An unknown error occurred. Please check the console.';
+            const description = e?.message || String(e) || 'An unknown error occurred. Please check the console.';
             
             toast({
                 variant: 'destructive',
@@ -2083,3 +2083,5 @@ export default function AdminDashboardPage() {
 
     return <AdminDashboard />;
 }
+
+    

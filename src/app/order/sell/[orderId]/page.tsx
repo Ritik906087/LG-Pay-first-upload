@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useMemo, Suspense, useState, useCallback, useEffect } from 'react';
@@ -174,7 +175,13 @@ function SellOrderStatusContent() {
                 return;
             };
             setSellOrderLoading(true);
-            const { data, error } = await supabase.from('sell_orders').select('*').eq('id', orderId).single();
+            const numericOrderId = Number(orderId);
+            if (isNaN(numericOrderId)) {
+                toast({ variant: 'destructive', title: 'Invalid Order ID' });
+                setSellOrderLoading(false);
+                return;
+            }
+            const { data, error } = await supabase.from('sell_orders').select('*').eq('id', numericOrderId).single();
             
             if(error || !data) {
                 setSellOrder(null);
@@ -186,11 +193,14 @@ function SellOrderStatusContent() {
 
         fetchSellOrder();
 
+        const numericOrderIdForChannel = Number(orderId);
+        if (isNaN(numericOrderIdForChannel)) return;
+
         const channel = supabase
             .channel(`sell_order_${orderId}`)
             .on<SellOrder>(
                 'postgres_changes',
-                { event: '*', schema: 'public', table: 'sell_orders', filter: `id=eq.${orderId}` },
+                { event: '*', schema: 'public', table: 'sell_orders', filter: `id=eq.${numericOrderIdForChannel}` },
                 (payload) => {
                     setSellOrder(payload.new as SellOrder);
                 }
@@ -200,7 +210,7 @@ function SellOrderStatusContent() {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [orderId, supabase]);
+    }, [orderId, supabase, toast]);
 
     const { activeMatchedOrders, historicalMatchedOrders } = useMemo(() => {
         if (!sellOrder || !sellOrder.matched_buy_orders) {
@@ -225,8 +235,12 @@ function SellOrderStatusContent() {
         setIsCancelling(true);
     
         try {
+            const numericOrderId = Number(sellOrder.id);
+            if (isNaN(numericOrderId)) {
+                throw new Error("Invalid Sell Order ID for cancellation.");
+            }
             const { error } = await supabase.rpc('cancel_remaining_sell_order', {
-                p_order_id: sellOrder.id,
+                p_order_id: numericOrderId,
                 p_user_id: user.id
             });
 
@@ -377,3 +391,5 @@ export default function SellOrderStatusPage() {
     </Suspense>
   );
 }
+
+    

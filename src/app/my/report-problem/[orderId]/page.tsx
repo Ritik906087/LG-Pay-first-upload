@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useState, useMemo, Suspense, useCallback } from 'react';
+import React, { useState, useMemo, Suspense, useCallback, useEffect } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -91,8 +91,15 @@ function ReportProblemForm() {
             return;
         };
         setOrderLoading(true);
+        const numericOrderId = Number(orderId);
+        if (isNaN(numericOrderId)) {
+             toast({ variant: 'destructive', title: 'Invalid Order ID' });
+             setOrderLoading(false);
+             return;
+        }
+
         const tableName = orderType === 'buy' ? 'orders' : 'sell_orders';
-        const { data, error } = await supabase.from(tableName).select('*').eq('id', orderId).single();
+        const { data, error } = await supabase.from(tableName).select('*').eq('id', numericOrderId).single();
         if (error || !data) {
             toast({ variant: 'destructive', title: 'Could not fetch order details.' });
             setOrder(null);
@@ -339,3 +346,5 @@ export default function ReportProblemDetailPage() {
         </Suspense>
     );
 }
+
+    

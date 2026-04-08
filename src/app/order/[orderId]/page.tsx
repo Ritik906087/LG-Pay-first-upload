@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useMemo, Suspense, useCallback } from 'react';
@@ -114,14 +115,14 @@ function OrderStatusContent() {
              const { data: latestOrder } = await supabase
                 .from('orders')
                 .select('status')
-                .eq('id', order.id)
+                .eq('id', Number(order.id))
                 .single();
             
             if (latestOrder && latestOrder.status !== order.status) {
                 const { data: fullOrder } = await supabase
                     .from('orders')
                     .select('*')
-                    .eq('id', order.id)
+                    .eq('id', Number(order.id))
                     .single();
                 if (fullOrder) {
                     setOrder(fullOrder as Order);
@@ -352,3 +353,5 @@ export default function OrderStatusPage() {
         </Suspense>
     );
 }
+
+    
