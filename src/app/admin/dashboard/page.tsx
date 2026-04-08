@@ -932,57 +932,89 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
 
     const handleApprove = async () => {
         if (!order || !order.user || !order.user.id) {
-            toast({ variant: 'destructive', title: 'Error', description: 'User data is missing from order. Cannot approve.' });
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "User data is missing",
+            });
             return;
         }
-        
+
         setIsApproving(true);
+
         try {
-            const isP2P = order.payment_type === "p2p_upi" || order.payment_type === "p2p_bank";
-    
+            const isP2P =
+                order.payment_type === "p2p_upi" ||
+                order.payment_type === "p2p_bank";
+
             const rpcParams: any = {
                 p_order_id: Number(order.id),
                 p_user_id: order.user.id,
                 p_amount_to_add: Number(order.amount),
             };
-    
+
             if (isP2P && order.matched_sell_order_id) {
-                console.log(`[1] P2P Approval: Fetching sell_order using text order_id: '${order.matched_sell_order_id}'`);
-                
+                console.log(
+                    "[1] P2P Approval: Fetching sell_order using text order_id:",
+                    order.matched_sell_order_id
+                );
+
                 const { data: sellOrder, error: fetchError } = await supabase
                     .from("sell_orders")
                     .select("id")
                     .eq("order_id", order.matched_sell_order_id)
                     .single();
-    
+
                 if (fetchError || !sellOrder) {
-                    console.error("CRITICAL: Could not find matched sell_order to approve.", { sellOrderIdStr: order.matched_sell_order_id, error: fetchError });
-                    toast({ variant: 'destructive', title: 'Approval Failed', description: 'Critical: Could not find the matched sell order to approve.' });
+                    console.error(
+                        "CRITICAL: Could not find matched sell_order to approve.",
+                        fetchError
+                    );
+
+                    toast({
+                        variant: "destructive",
+                        title: "Approval Failed",
+                        description: "Could not find matched sell order",
+                    });
+
                     setIsApproving(false);
                     return;
                 }
-                
-                console.log(`[2] P2P Approval: Found integer sell_order.id: ${sellOrder.id}`);
-                rpcParams.p_matched_sell_order_id = sellOrder.id; // Pass the correct integer ID to the RPC
+
+                console.log(
+                    "[2] P2P Approval: Found integer sell_order_id:",
+                    sellOrder.id
+                );
+
+                rpcParams.p_matched_sell_order_id = Number(sellOrder.id);
+
+                if (!rpcParams.p_matched_sell_order_id) {
+                    throw new Error("Sell order ID missing");
+                }
+
+                console.log("SELL ORDER ID TYPE:", typeof sellOrder.id);
             }
-            
-            console.log('[3] Calling approve_buy_order with params:', rpcParams);
-            const { error: rpcError } = await supabase.rpc('approve_buy_order', rpcParams);
-    
+
+            console.log("[3] Calling approve_buy_order with params:", rpcParams);
+
+            const { error: rpcError } = await supabase.rpc(
+                "approve_buy_order",
+                rpcParams
+            );
+
             if (rpcError) throw rpcError;
-            
-            console.log('[4] RPC call successful.');
+
+            console.log("[4] RPC call successful.");
+
             toast({
                 title: "Payment approved and wallet credited!",
             });
-            
+
             setOpen(false);
             onProcessed(order.id);
-    
         } catch (e: any) {
             console.error("Failed to approve payment:", e);
             const description = e?.message || 'An unknown error occurred. Please check the console.';
-            
             toast({
                 variant: 'destructive',
                 title: 'Approval Failed',
