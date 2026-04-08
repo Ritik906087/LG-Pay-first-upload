@@ -960,10 +960,10 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
                 );
 
                 const { data: sellOrder, error: fetchError } = await supabase
-                    .from("sell_orders")
+                  .from("sell_orders")
                     .select("id")
-                    .eq("id", Number(order.matched_sell_order_id))
-                    .single();
+                      .eq("order_id", String(order.matched_sell_order_id))
+                        .single();
 
                 if (fetchError || !sellOrder) {
                     console.error(
