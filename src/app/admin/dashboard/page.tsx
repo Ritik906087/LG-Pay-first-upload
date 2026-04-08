@@ -947,25 +947,21 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
             };
 
             if (isP2P && order.matched_sell_order_id) {
-                // Correctly fetch the sell_order's primary key `id`
-                const { data: sellOrder, error: fetchError } = await supabase
-                    .from('sell_orders')
-                    .select('id')
-                    .eq('order_id', order.matched_sell_order_id)
-                    .single();
-                
-                if (fetchError || !sellOrder) {
-                    console.error("CRITICAL: Could not find matched sell_order to approve.", { error: fetchError });
-                    toast({
-                        variant: 'destructive',
-                        title: 'Approval Failed',
-                        description: 'Could not find the matched sell order. Cannot process P2P transaction.',
-                    });
-                    setIsApproving(false);
-                    return;
-                }
-                rpcParams.p_matched_sell_order_id = sellOrder.id;
-            }
+                  const { data: sellOrder, error: fetchError } = await supabase
+                      .from("sell_orders")
+                          .select("id")
+                              .eq("order_id", String(order.matched_sell_order_id))
+                                  .single();
+
+                                    if (fetchError || !sellOrder) {
+                                        console.error("CRITICAL: Could not find matched sell_order");
+                                            setIsApproving(false);
+                                                return;
+                                                  }
+
+                                                    rpcParams.p_matched_sell_order_id = Number(sellOrder.id);
+                                                    }
+            
             
             const { error: rpcError } = await supabase.rpc('approve_buy_order', rpcParams);
     
