@@ -273,37 +273,43 @@ export default function BuyPage() {
 
 const createOrder = async (provider: string, orderAmount: number) => {
     if (!user) return;
-    if (isCreatingOrder) return;
+      if (isCreatingOrder) return;
+
     setIsCreatingOrder(true);
-    
+
     try {
-        const { data: matchData, error: matchError } = await supabase.rpc('match_buy_order', {
-            p_buyer_id: user.id,
-            p_amount: orderAmount,
-            p_payment_provider: provider,
-        });
+        const { data: matchData, error: matchError } = await supabase.rpc(
+            "match_buy_order_v2",
+            {
+                p_buyer_id: user.id,
+                p_amount: orderAmount,
+            }
+        );
 
         if (matchError) {
-             throw matchError;
+            throw matchError;
         }
 
         const buyOrder = matchData?.buy_order;
-        const matchType = matchData?.type;
 
-        if (buyOrder && buyOrder.id) {
-            router.push(`/buy/confirm/${buyOrder.id}?type=${buyOrder.payment_type}&provider=${provider}`);
+        if (buyOrder?.id) {
+            router.push(`/buy/confirm/${buyOrder.id}`);
         } else {
-            throw new Error("Order creation failed: No order data returned from match.");
+            throw new Error(
+                "Order creation failed: No order data returned from match."
+            );
         }
-
     } catch (error: any) {
-        console.error('Error creating order: ', error);
-        toast({ variant: 'destructive', title: 'Could not create order.', description: error.message || 'Please try again.' });
+        console.error("Error creating order:", error);
+        toast({
+            variant: "destructive",
+            title: "Could not create order.",
+            description: error.message,
+        });
     } finally {
         setIsCreatingOrder(false);
     }
-  };
-
+};
 
   const handleBuyClick = (option: { amount: number }) => {
      if (!user) {
@@ -377,7 +383,7 @@ const createOrder = async (provider: string, orderAmount: number) => {
           return allOptions.filter(opt => opt.amount > 1000).sort((a,b) => b.amount - a.amount);
       }
   }, [allOptions, activeSubTab]);
-  
+      
   return (
     <div className="text-foreground pb-4 min-h-screen flex flex-col">
        <header className="flex items-center justify-between p-4 bg-white border-b">
