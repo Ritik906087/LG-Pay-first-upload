@@ -932,92 +932,49 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
 
     const handleApprove = async () => {
         if (!order || !order.user || !order.user.id) {
-            toast({
-                variant: "destructive",
-                title: "Error",
-                description: "User data is missing",
-            });
+            toast({ variant: "destructive", title: "Error", description: "User data is missing" });
             return;
         }
-
+    
         setIsApproving(true);
-
+        console.log(`[ADMIN APPROVE] Initiating approval for buy order ID: ${order.id}`);
+    
         try {
-            const isP2P =
-                order.payment_type === "p2p_upi" ||
-                order.payment_type === "p2p_bank";
-
-            const rpcParams: any = {
+            const rpcParams: {
+                p_order_id: number;
+                p_user_id: string;
+                p_amount_to_add: number;
+                p_matched_sell_order_id?: number;
+            } = {
                 p_order_id: Number(order.id),
                 p_user_id: order.user.id,
                 p_amount_to_add: Number(order.amount),
             };
-
-            if (isP2P && order.matched_sell_order_id) {
-                console.log(
-                    "[1] P2P Approval: Fetching sell_order using text order_id:",
-                    order.matched_sell_order_id
-                );
-
-                const { data: sellOrder, error: fetchError } = await supabase
-                  .from("sell_orders")
-                    .select("id")
-                      .eq("order_id", String(order.matched_sell_order_id))
-                        .single();
-
-                if (fetchError || !sellOrder) {
-                    console.error(
-                        "CRITICAL: Could not find matched sell_order to approve.",
-                        fetchError
-                    );
-
-                    toast({
-                        variant: "destructive",
-                        title: "Approval Failed",
-                        description: "Could not find matched sell order",
-                    });
-
-                    setIsApproving(false);
-                    return;
+    
+            if (order.payment_type?.startsWith('p2p_') && order.matched_sell_order_id) {
+                console.log(`[ADMIN APPROVE] P2P order detected. Matched sell order ID (text): ${order.matched_sell_order_id}`);
+                const sellOrderIdNum = Number(order.matched_sell_order_id);
+                if (isNaN(sellOrderIdNum)) {
+                    throw new Error("Invalid matched_sell_order_id format. Expected a number.");
                 }
-
-                console.log(
-                    "[2] P2P Approval: Found integer sell_order_id:",
-                    sellOrder.id
-                );
-
-                rpcParams.p_matched_sell_order_id = Number(sellOrder.id);
-
-                if (!rpcParams.p_matched_sell_order_id) {
-                    throw new Error("Sell order ID missing");
-                }
-
-                console.log("SELL ORDER ID TYPE:", typeof sellOrder.id);
+                rpcParams.p_matched_sell_order_id = sellOrderIdNum;
             }
-
-            console.log("[3] Calling approve_buy_order with params:", rpcParams);
-
-            const { error: rpcError } = await supabase.rpc(
-                "approve_buy_order",
-                rpcParams
-            );
-
-            if (rpcError) throw rpcError;
-
-            console.log("[4] RPC call successful.");
-
-            toast({
-                title: "Payment approved and wallet credited!",
-            });
-
+    
+            console.log('[ADMIN APPROVE] Calling approve_buy_order with params:', rpcParams);
+            const { error: rpcError } = await supabase.rpc("approve_buy_order", rpcParams);
+    
+            if (rpcError) {
+                console.error('[ADMIN APPROVE] RPC Error:', JSON.stringify(rpcError, null, 2));
+                throw rpcError;
+            }
+    
+            console.log(`[ADMIN APPROVE] Successfully approved buy order ID: ${order.id}`);
+            toast({ title: "Payment approved and wallet credited!" });
             setOpen(false);
             onProcessed(order.id);
+    
         } catch (e: any) {
-            console.error("FULL APPROVE ERROR:", JSON.stringify(e, null, 2));
-            console.error("RAW ERROR:", e);
-            console.error("MESSAGE:", e?.message);
-            console.error("DETAILS:", e?.details);
-            console.error("HINT:", e?.hint);
+            console.error("[ADMIN APPROVE] FULL APPROVE ERROR:", e);
             const description = e?.message || 'An unknown error occurred. Please check the console.';
             toast({
                 variant: 'destructive',
@@ -1035,52 +992,29 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
             return;
         }
         setIsRejecting(true);
-        try { 
-            const { error } = await supabase
-                .from('orders')
-                .update({ 
-                    status: 'failed',
-                    rejection_reason: rejectionReason
-                })
-                .eq('id', Number(order.id));
-
-            if (error) throw error;
-            
-            if (order.payment_type?.startsWith('p2p_') && order.matched_sell_order_id && order.base_amount) {
-                const { data: sellOrderData, error: fetchSellOrderError } = await supabase
-                    .from('sell_orders')
-                    .select('id')
-                    .eq("order_id", order.matched_sell_order_id)
-                    .single();
-
-                if (fetchSellOrderError || !sellOrderData) {
-                    console.error("CRITICAL: Could not find matched sell order to restore on rejection.", { sellOrderId: order.matched_sell_order_id, error: fetchSellOrderError });
-                    toast({ variant: 'destructive', title: 'Seller Order Restore Failed', description: `Buy order rejected, but could not find sell order to restore. Please contact support.` });
-                } else {
-                    const { error: restoreError } = await supabase.rpc('restore_sell_order_on_failed_buy', {
-                        p_sell_order_id: Number(sellOrderData.id),
-                        p_amount: order.base_amount
-                    });
-
-                    if (restoreError) {
-                        console.error("CRITICAL: Failed to restore seller order on rejection.", {
-                            message: restoreError.message,
-                            code: restoreError.code,
-                            details: restoreError.details,
-                            sellOrderId: sellOrderData.id,
-                            amountToRestore: order.base_amount
-                        });
-                        toast({ variant: 'destructive', title: 'Seller Order Restore Failed', description: `Error: ${restoreError.message}. Please contact support.` });
-                    }
-                }
+        console.log(`[ADMIN REJECT] Initiating rejection for buy order ID: ${order.id}`);
+    
+        try {
+            const rpcParams = {
+                p_order_id: Number(order.id),
+                p_rejection_reason: rejectionReason,
+            };
+    
+            console.log('[ADMIN REJECT] Calling reject_buy_order with params:', rpcParams);
+            const { error: rpcError } = await supabase.rpc('reject_buy_order', rpcParams);
+    
+            if (rpcError) {
+                console.error('[ADMIN REJECT] RPC Error:', JSON.stringify(rpcError, null, 2));
+                throw rpcError;
             }
-            
+    
+            console.log(`[ADMIN REJECT] Successfully rejected buy order ID: ${order.id}`);
             toast({ title: 'Payment Rejected', description: `Order from user ${order.user?.numeric_id} has been rejected.` });
             setOpen(false);
             onProcessed(order.id);
-
+    
         } catch (e: any) {
-            console.error("Failed to reject payment:", e);
+            console.error("[ADMIN REJECT] FAILED TO REJECT PAYMENT:", e);
             toast({ variant: 'destructive', title: 'Rejection Failed', description: e.message });
         } finally {
             setIsRejecting(false);

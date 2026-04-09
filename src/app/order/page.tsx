@@ -43,7 +43,7 @@ type SellOrder = {
   order_id: string;
   amount: number;
   remaining_amount: number;
-  status: 'pending' | 'partially_filled' | 'processing' | 'completed' | 'failed';
+  status: 'pending' | 'partially_filled' | 'processing' | 'completed' | 'failed' | 'cancel_requested';
   utr?: string;
   created_at: string;
   failure_reason?: string;
@@ -71,45 +71,47 @@ const BuyTransactionCard = React.memo(({ transaction }: { transaction: Order }) 
   const currentStatus = statusConfig[transaction.status] || { style: "bg-gray-100 text-gray-800", text: transaction.status.replace(/_/g, ' ') };
 
   return (
-    <Card className="mb-4 bg-white text-foreground shadow-sm">
-      <CardContent className="p-4 space-y-3">
-         <div className="flex justify-between items-center">
-            <span className="rounded px-2 py-0.5 text-xs font-bold bg-blue-100 text-blue-800">
-              Buy
-            </span>
-             <span className={cn("font-semibold text-sm capitalize", currentStatus.style, "px-2 py-1 rounded-md")}>{currentStatus.text}</span>
-        </div>
-        <div className="space-y-2 text-sm">
-           <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Amount</span>
-            <div className="flex items-center gap-2">
-                <span className="font-semibold text-primary">₹{transaction.amount.toFixed(2)}</span>
-                <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={() => copyToClipboard(transaction.amount.toFixed(2))} />
-            </div>
-          </div>
-           {transaction.utr && (
+    <Link href={`/order/${transaction.id}`} passHref>
+        <Card className="mb-4 bg-white text-foreground shadow-sm">
+        <CardContent className="p-4 space-y-3">
             <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">UTR</span>
+                <span className="rounded px-2 py-0.5 text-xs font-bold bg-blue-100 text-blue-800">
+                Buy
+                </span>
+                <span className={cn("font-semibold text-sm capitalize", currentStatus.style, "px-2 py-1 rounded-md")}>{currentStatus.text}</span>
+            </div>
+            <div className="space-y-2 text-sm">
+            <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Amount</span>
                 <div className="flex items-center gap-2">
-                    <span className="font-mono text-muted-foreground" style={{wordBreak: 'break-all'}}>{transaction.utr}</span>
-                    <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={() => copyToClipboard(transaction.utr!)} />
+                    <span className="font-semibold text-primary">₹{transaction.amount.toFixed(2)}</span>
+                    <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={(e) => { e.preventDefault(); e.stopPropagation(); copyToClipboard(transaction.amount.toFixed(2)); }} />
                 </div>
             </div>
-          )}
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Time</span>
-            <span className="font-mono text-muted-foreground text-xs">{new Date(transaction.created_at).toLocaleString()}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Order Number</span>
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-muted-foreground" style={{wordBreak: 'break-all'}}>{transaction.order_id?.toUpperCase()}</span>
-              <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={() => copyToClipboard(transaction.order_id)} />
+            {transaction.utr && (
+                <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">UTR</span>
+                    <div className="flex items-center gap-2">
+                        <span className="font-mono text-muted-foreground" style={{wordBreak: 'break-all'}}>{transaction.utr}</span>
+                        <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={(e) => { e.preventDefault(); e.stopPropagation(); copyToClipboard(transaction.utr!); }} />
+                    </div>
+                </div>
+            )}
+            <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Time</span>
+                <span className="font-mono text-muted-foreground text-xs">{new Date(transaction.created_at).toLocaleString()}</span>
             </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+            <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Order Number</span>
+                <div className="flex items-center gap-2">
+                <span className="font-mono text-muted-foreground" style={{wordBreak: 'break-all'}}>{transaction.order_id?.toUpperCase()}</span>
+                <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={(e) => { e.preventDefault(); e.stopPropagation(); copyToClipboard(transaction.order_id); }} />
+                </div>
+            </div>
+            </div>
+        </CardContent>
+        </Card>
+    </Link>
   );
 });
 BuyTransactionCard.displayName = 'BuyTransactionCard';
@@ -131,6 +133,7 @@ const SellTransactionCard = React.memo(({ transaction }: { transaction: SellOrde
       pending: { style: "bg-yellow-100 text-yellow-800", text: "Pending" },
       partially_filled: { style: "bg-blue-100 text-blue-800", text: "Partially Filled" },
       processing: { style: "bg-blue-100 text-blue-800", text: "Processing" },
+      cancel_requested: { style: "bg-gray-400 text-white", text: "Cancelling" },
     }
     const currentStatus = statusConfig[transaction.status] || { style: "bg-gray-100 text-gray-800", text: transaction.status };
     
@@ -149,7 +152,7 @@ const SellTransactionCard = React.memo(({ transaction }: { transaction: SellOrde
                     <span className="text-muted-foreground">Amount</span>
                     <div className="flex items-center gap-2">
                         <span className="font-bold text-lg">₹{transaction.amount.toFixed(2)}</span>
-                        <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={(e) => {e.preventDefault(); copyToClipboard(transaction.amount.toFixed(2))}} />
+                        <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={(e) => {e.preventDefault(); e.stopPropagation(); copyToClipboard(transaction.amount.toFixed(2))}} />
                     </div>
                 </div>
                 <div className="flex justify-between items-center">
@@ -167,7 +170,7 @@ const SellTransactionCard = React.memo(({ transaction }: { transaction: SellOrde
                     <span className="text-muted-foreground">Order Number</span>
                     <div className="flex items-center gap-2">
                     <span className="font-mono text-muted-foreground" style={{wordBreak: 'break-all'}}>{transaction.order_id?.toUpperCase()}</span>
-                    <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={(e) => {e.preventDefault(); copyToClipboard(transaction.order_id)}} />
+                    <Copy className="h-3 w-3 text-gray-400 cursor-pointer" onClick={(e) => {e.preventDefault(); e.stopPropagation(); copyToClipboard(transaction.order_id)}} />
                     </div>
                 </div>
                 </div>
@@ -324,8 +327,8 @@ export default function OrderHistoryPage() {
 
       if (statusFilter === 'all') return true;
       if (statusFilter === 'completed') return order.status === 'completed';
-      if (statusFilter === 'pending') return ['pending', 'partially_filled', 'processing'].includes(order.status);
-      if (statusFilter === 'failed') return order.status === 'failed';
+      if (statusFilter === 'pending') return ['pending', 'partially_filled', 'processing', 'cancel_requested'].includes(order.status);
+      if (statusFilter === 'failed') return order.status === 'failed' || order.status === 'cancelled';
       
       return true;
     });
