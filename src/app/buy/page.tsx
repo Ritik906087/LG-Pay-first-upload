@@ -279,92 +279,21 @@ const createOrder = async (provider: string, orderAmount: number) => {
     try {
         const { data: matchData, error: matchError } = await supabase.rpc('match_buy_order', {
             p_buyer_id: user.id,
-            p_amount: orderAmount
+            p_amount: orderAmount,
+            p_payment_provider: provider,
         });
 
         if (matchError) {
-             if (!matchError.message.includes('No available sellers')) {
-                throw matchError;
-             }
-        }
-        
-        const isP2PMatch = matchData && matchData.type === 'seller';
-        const bonusPercentage = activeTab === 'bank' ? 5 : activeTab === 'upi' ? 6 : (activeTab === 'usdt' ? 0 : 0);
-        const finalAmount = orderAmount + (orderAmount * (bonusPercentage / 100));
-
-        let paymentType: string;
-        let insertedOrder: any | null = null;
-        
-        if (isP2PMatch) {
-            paymentType = `p2p_${activeTab}`;
-            const p2pOrderId = matchData.order_id;
-            
-            const { data: existingOrder, error: fetchError } = await supabase
-              .from("orders")
-              .select("id")
-              .eq("order_id", p2pOrderId)
-              .maybeSingle();
-
-            if (fetchError) throw fetchError;
-
-            if (existingOrder) {
-                router.push(`/buy/confirm/${existingOrder.id}?type=${paymentType}&provider=${provider}`);
-                return;
-            }
-            
-            const insertPayload = {
-                order_id: p2pOrderId,
-                user_id: user.id,
-                amount: finalAmount,
-                base_amount: orderAmount,
-                bonus_percentage: bonusPercentage,
-                payment_provider: provider,
-                payment_type: paymentType,
-                status: 'pending_payment',
-                seller_id: matchData.seller_id || null,
-                seller_withdrawal_details: matchData.withdrawal_method || null,
-                matched_sell_order_id: matchData.sell_order_id || null,
-            };
-            
-            console.log("P2P insert payload", insertPayload);
-
-            const { data: newOrder, error: insertError } = await supabase
-                .from('orders')
-                .insert(insertPayload)
-                .select()
-                .single();
-            
-            if (insertError) throw insertError;
-            insertedOrder = newOrder;
-
-        } else {
-            // Admin Fallback Flow
-            paymentType = activeTab;
-            const insertPayload = {
-                order_id: `LGPAY${Date.now()}${Math.random().toString().slice(2, 8)}`,
-                user_id: user.id,
-                amount: finalAmount,
-                base_amount: orderAmount,
-                bonus_percentage: bonusPercentage,
-                payment_provider: provider,
-                payment_type: paymentType,
-                status: 'pending_payment',
-            };
-
-            const { data: newOrder, error: insertError } = await supabase
-                .from('orders')
-                .insert(insertPayload)
-                .select()
-                .single();
-
-            if (insertError) throw insertError;
-            insertedOrder = newOrder;
+             throw matchError;
         }
 
-        if (insertedOrder && insertedOrder.id) {
-            router.push(`/buy/confirm/${insertedOrder.id}?type=${paymentType}&provider=${provider}`);
+        const buyOrder = matchData?.buy_order;
+        const matchType = matchData?.type;
+
+        if (buyOrder && buyOrder.id) {
+            router.push(`/buy/confirm/${buyOrder.id}?type=${buyOrder.payment_type}&provider=${provider}`);
         } else {
-            throw new Error("Order creation failed: No ID returned after insert.");
+            throw new Error("Order creation failed: No order data returned from match.");
         }
 
     } catch (error: any) {
