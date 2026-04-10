@@ -42,16 +42,18 @@ import { ocrVerify, type OcrVerifyOutput } from '@/ai/flows/ocr-verify-flow';
 
 
 type AdminPaymentMethod = {
-      id: number;
-        type: 'bank' | 'upi' | 'usdt';
-          bank_name?: string;
-            account_holder_name?: string;
-              account_number?: string;
-                ifsc_code?: string;
-                  upi_holder_name?: string;
-                    upi_id?: string;
-                      usdt_wallet_address?: string;
-                      };
+    id: number;
+    type: 'bank' | 'upi' | 'usdt';
+    provider?: string;
+    is_active?: boolean;
+    bank_name?: string;
+    account_holder_name?: string;
+    account_number?: string;
+    ifsc_code?: string;
+    upi_holder_name?: string;
+    upi_id?: string;
+    usdt_wallet_address?: string;
+};
 
 type WithdrawalMethod = {
     type: 'upi' | 'bank';
@@ -131,9 +133,6 @@ function PaymentDetailsContent() {
     const [otherReason, setOtherReason] = useState('');
     const [isCancelling, setIsCancelling] = useState(false);
 
-    const [allPaymentMethods, setAllPaymentMethods] = useState<AdminPaymentMethod[]>([]);
-    const [allPaymentMethodsLoading, setAllPaymentMethodsLoading] = useState(true);
-
     const [order, setOrder] = useState<Order | null>(null);
     const [orderLoading, setOrderLoading] = useState(true);
     
@@ -143,6 +142,9 @@ function PaymentDetailsContent() {
     
     const [sellerProfile, setSellerProfile] = useState<UserProfile | null>(null);
     const [sellerLoading, setSellerLoading] = useState(true);
+
+    const [adminPaymentDetails, setAdminPaymentDetails] = useState<AdminPaymentMethod | null>(null);
+    const [detailsLoading, setDetailsLoading] = useState(true);
 
     const isUSDT = type === 'usdt';
 
@@ -155,22 +157,8 @@ function PaymentDetailsContent() {
     ];
 
     useEffect(() => {
-      const fetchMethods = async () => {
-        setAllPaymentMethodsLoading(true);
-        const { data, error } = await supabase.from('payment_methods').select('*');
-        if (error) {
-          toast({ variant: 'destructive', title: 'Could not load payment methods' });
-        } else {
-          setAllPaymentMethods(data as AdminPaymentMethod[]);
-        }
-        setAllPaymentMethodsLoading(false);
-      }
-      fetchMethods();
-    }, [supabase, toast]);
-
-    useEffect(() => {
         const fetchOrder = async () => {
-            if (!user || !orderId) {
+            if (!orderId) {
                 setOrderLoading(false);
                 return;
             }
@@ -194,7 +182,7 @@ function PaymentDetailsContent() {
         };
 
         fetchOrder();
-    }, [user, orderId, supabase, router, toast]);
+    }, [orderId, supabase, router, toast]);
 
     useEffect(() => {
         const fetchSeller = async () => {
@@ -237,13 +225,70 @@ function PaymentDetailsContent() {
         }
     }, [order, supabase, toast]);
 
+    useEffect(() => {
+        const fetchPaymentDetails = async () => {
+            if (!order) return;
+            const isP2P = order.payment_type === 'p2p_upi' || order.payment_type === 'p2p_bank';
+            if (isP2P) {
+                setDetailsLoading(false);
+                return;
+            }
+    
+            setDetailsLoading(true);
+            
+            // 1. First try exact match
+            let { data: paymentMethod, error: primaryError } = await supabase
+              .from("admin_payment_methods")
+              .select("*")
+              .eq("provider", order.payment_provider)
+              .eq("type", order.payment_type)
+              .eq("is_active", true)
+              .maybeSingle();
+    
+            if (primaryError) {
+              console.error("Error fetching primary payment method:", primaryError);
+            }
+    
+            // 2. If exact provider match is not found, fallback
+            if (!paymentMethod) {
+              console.log(`No exact match for provider "${order.payment_provider}" and type "${order.payment_type}". Falling back to type only.`);
+              const { data: fallbackMethod, error: fallbackError } = await supabase
+                .from("admin_payment_methods")
+                .select("*")
+                .eq("type", order.payment_type)
+                .eq("is_active", true)
+                .limit(1)
+                .single();
+    
+              if (fallbackError) {
+                  console.error("Error fetching fallback payment method:", fallbackError);
+              }
+              
+              paymentMethod = fallbackMethod;
+            }
+    
+            setAdminPaymentDetails(paymentMethod);
+            setDetailsLoading(false);
+        };
+    
+        if(!orderLoading) {
+            fetchPaymentDetails();
+        }
+    }, [order, orderLoading, supabase]);
+
     const handleCancelOrder = useCallback(async (reason: string, isAutoCancel: boolean) => {
         if (!order || !supabase) return;
     
         setIsCancelling(true);
         try {
+            const numericOrderId = Number(order.id);
+            if (isNaN(numericOrderId)) {
+                toast({ variant: 'destructive', title: 'Invalid Order ID' });
+                return;
+            }
+
             const { error } = await supabase.rpc("cancel_buy_order", {
-                p_order_id: order.id,
+                p_order_id: numericOrderId,
                 p_cancellation_reason: reason,
                 p_is_auto_cancel: isAutoCancel,
             });
@@ -297,7 +342,11 @@ function PaymentDetailsContent() {
 
         setIsUpdatingProvider(true);
         try {
-            const { error } = await supabase.from('orders').update({ payment_provider: newProvider }).eq('id', Number(order.id));
+            const numericOrderId = Number(order.id);
+            if (isNaN(numericOrderId)) {
+                throw new Error("Invalid Order ID");
+            }
+            const { error } = await supabase.from('orders').update({ payment_provider: newProvider }).eq('id', numericOrderId);
             if (error) throw error;
             
             const newSearchParams = new URLSearchParams(searchParams.toString());
@@ -316,7 +365,7 @@ function PaymentDetailsContent() {
     
     useEffect(() => {
         if (order && order.status !== 'pending_payment') {
-            router.push(`/order/${order.id}`);
+            router.push(`/order/${order.order_id}`);
             return;
         }
 
@@ -362,9 +411,8 @@ function PaymentDetailsContent() {
             return sellerMethod || null;
         }
         
-        if (!allPaymentMethods || allPaymentMethods.length === 0 || !type) return null;
-        return allPaymentMethods.find(m => m.id === order.admin_payment_method_id);
-    }, [order, orderLoading, type, allPaymentMethods, sellerProfile, sellerLoading]);
+        return adminPaymentDetails;
+    }, [order, orderLoading, adminPaymentDetails, sellerProfile, sellerLoading]);
 
 
     const details = useMemo(() => {
@@ -597,7 +645,7 @@ function PaymentDetailsContent() {
             }
 
             toast({ title: 'Payment Submitted!', description: 'Your proof is under review.' });
-            router.push(`/order/${order.id}`);
+            router.push(`/order/${order.order_id}`);
         } catch (error: any) {
             console.error("Error submitting payment proof: ", error);
             
@@ -611,7 +659,7 @@ function PaymentDetailsContent() {
         }
     };
 
-    const loading = allPaymentMethodsLoading || orderLoading || (order && (order.payment_type === 'p2p_upi' || order.payment_type === 'p2p_bank') && sellerLoading);
+    const loading = detailsLoading || orderLoading || (order && (order.payment_type === 'p2p_upi' || order.payment_type === 'p2p_bank') && sellerLoading);
     const currentProviderDetails = provider ? paymentMethodDetails[provider] : null;
     
     const usdtAmount = useMemo(() => {
