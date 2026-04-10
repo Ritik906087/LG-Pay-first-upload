@@ -256,7 +256,7 @@ function PaymentDetailsContent() {
     
         setIsCancelling(true);
         try {
-            const { error } = await supabase.rpc("restore_sell_on_failed_buy", {
+            const { error } = await supabase.rpc("cancel_buy_order", {
                 p_order_id: numericOrderId,
                 p_reason: reason,
             });
