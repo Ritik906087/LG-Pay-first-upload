@@ -246,32 +246,34 @@ function PaymentDetailsContent() {
 
     const handleCancelOrder = useCallback(async (reason: string) => {
         if (!orderId || !supabase) return;
-
-        const numericOrderId = Number(orderId);
-        if (isNaN(numericOrderId)) {
-            console.error("Cancel order error: Invalid Order ID provided.", orderId);
-            toast({ variant: 'destructive', title: 'Error', description: 'Invalid order ID format.' });
-            return;
-        }
     
         setIsCancelling(true);
         try {
-            const { error } = await supabase.rpc("cancel_buy_order", {
+            const numericOrderId = Number(orderId);
+            if (isNaN(numericOrderId)) {
+                console.error("Cancel order error: Invalid Order ID provided.", orderId);
+                toast({ variant: 'destructive', title: 'Error', description: 'Invalid order ID format.' });
+                return;
+            }
+            
+            const { error } = await supabase.rpc("restore_sell_on_failed_buy", {
                 p_order_id: numericOrderId,
                 p_reason: reason,
             });
 
             if (error) {
-                console.error("Cancel order error:", error);
-                throw error;
+                console.error("Cancel order RPC error:", error);
+                toast({
+                    variant: "destructive",
+                    title: "Cancel failed",
+                    description: error.message,
+                });
+                return;
             }
             
             toast({ title: 'Order Cancelled' });
             router.push('/order');
     
-        } catch (e: any) {
-            console.error("Cancel order error:", e);
-            toast({ variant: 'destructive', title: 'Error', description: `Could not cancel the order. ${e.message}` });
         } finally {
             setIsCancelling(false);
             setIsCancelDialogOpen(false);
