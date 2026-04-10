@@ -42,16 +42,16 @@ import { ocrVerify, type OcrVerifyOutput } from '@/ai/flows/ocr-verify-flow';
 
 
 type AdminPaymentMethod = {
-    id: string;
-    type: 'bank' | 'upi' | 'usdt';
-    bank_name?: string;
-    account_holder_name?: string;
-    account_number?: string;
-    ifsc_code?: string;
-    upi_holder_name?: string;
-    upi_id?: string;
-    usdt_wallet_address?: string;
-}
+      id: number;
+        type: 'bank' | 'upi' | 'usdt';
+          bank_name?: string;
+            account_holder_name?: string;
+              account_number?: string;
+                ifsc_code?: string;
+                  upi_holder_name?: string;
+                    upi_id?: string;
+                      usdt_wallet_address?: string;
+                      };
 
 type WithdrawalMethod = {
     type: 'upi' | 'bank';
@@ -65,20 +65,20 @@ type WithdrawalMethod = {
 }
 
 type Order = {
-    id: number;
-    amount: number;
-    base_amount: number;
-    status: string;
-    created_at: string;
-    order_id: string;
-    payment_type: 'bank' | 'upi' | 'usdt' | 'p2p_upi' | 'p2p_bank';
-    payment_provider: string;
-    admin_payment_method_id?: string;
-    seller_id?: string;
-    seller_withdrawal_details?: WithdrawalMethod;
-    matched_sell_order_id?: string;
-    matched_sell_order_path?: string;
-};
+      id: number;
+        amount: number;
+          base_amount: number;
+            status: string;
+              created_at: string;
+                order_id: string;
+                  payment_type: 'bank' | 'upi' | 'usdt' | 'p2p_upi' | 'p2p_bank';
+                    payment_provider: string;
+                      admin_payment_method_id?: number;
+                        seller_id?: string;
+                          seller_withdrawal_details?: WithdrawalMethod;
+                            matched_sell_order_id?: number;
+                              matched_sell_order_path?: string;
+                              };
 
 type UserProfile = {
     payment_methods?: { name: string; upiId: string; upiHolderName?: string }[];
@@ -205,25 +205,33 @@ function PaymentDetailsContent() {
 
     useEffect(() => {
         const fetchSeller = async () => {
-            if (!order || !order.seller_id || !(order.payment_type === 'p2p_upi' || order.payment_type === 'p2p_bank')) {
+            if (!order) {
                 setSellerLoading(false);
                 return;
             }
-            setSellerLoading(true);
-            const { data: sellerData, error } = await supabase
-                .from('users')
-                .select('payment_methods, display_name')
-                .eq('id', order.seller_id)
-                .single();
 
-            if (error) {
-                toast({ variant: 'destructive', title: 'Could not load seller details.' });
-                setSellerProfile(null);
+            const isP2P = order.payment_type === 'p2p_upi' || order.payment_type === 'p2p_bank';
+            
+            if (isP2P && order.seller_id) {
+                setSellerLoading(true);
+                const { data: sellerData, error } = await supabase
+                    .from('users')
+                    .select('payment_methods, display_name')
+                    .eq('id', order.seller_id)
+                    .single();
+
+                if (error) {
+                    toast({ variant: 'destructive', title: 'Could not load seller details.' });
+                    setSellerProfile(null);
+                } else {
+                    setSellerProfile(sellerData as UserProfile);
+                }
+                setSellerLoading(false);
             } else {
-                setSellerProfile(sellerData as UserProfile);
+                setSellerLoading(false);
             }
-            setSellerLoading(false);
         };
+        
         if (order) {
             fetchSeller();
         }
@@ -1198,5 +1206,3 @@ export default function ConfirmPage() {
     </Suspense>
   )
 }
-
-    
