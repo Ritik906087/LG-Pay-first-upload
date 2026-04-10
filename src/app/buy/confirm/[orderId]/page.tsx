@@ -169,38 +169,31 @@ function PaymentDetailsContent() {
     }, [supabase, toast]);
 
     useEffect(() => {
-        const fetchOrderWithRetry = async (retries = 3, delay = 1000) => {
-            if (!user || !orderId) return;
-            setOrderLoading(true);
-            
-            const numericOrderId = Number(orderId);
-            if (isNaN(numericOrderId)) {
-                toast({ variant: 'destructive', title: 'Invalid Order ID', description: 'The order ID is not valid.' });
-                router.push('/order');
+        const fetchOrder = async () => {
+            if (!user || !orderId) {
                 setOrderLoading(false);
                 return;
             }
+            setOrderLoading(true);
 
-            for (let i = 0; i < retries; i++) {
-                const { data, error } = await supabase.from('orders').select('*').eq('id', numericOrderId).single();
-                
-                if (data && !error) {
-                    setOrder(data as Order);
-                    setOrderLoading(false);
-                    return;
-                }
+            const { data, error } = await supabase
+                .from('orders')
+                .select('*')
+                .eq('order_id', orderId)
+                .single();
 
-                if (i < retries - 1) {
-                    await new Promise(res => setTimeout(res, delay));
-                } else {
-                    toast({ variant: 'destructive', title: 'Order not found', description: 'Could not load order details. Please try again.' });
-                    router.push('/order');
-                    setOrderLoading(false);
-                }
+            if (error || !data) {
+                console.error("Order fetch error:", error);
+                toast({ variant: 'destructive', title: 'Order not found', description: 'Could not load order details. Please try again.' });
+                router.push('/order');
+                setOrder(null);
+            } else {
+                setOrder(data as Order);
             }
+            setOrderLoading(false);
         };
 
-        fetchOrderWithRetry();
+        fetchOrder();
     }, [user, orderId, supabase, router, toast]);
 
     useEffect(() => {
@@ -245,19 +238,12 @@ function PaymentDetailsContent() {
     }, [order, supabase, toast]);
 
     const handleCancelOrder = useCallback(async (reason: string, isAutoCancel: boolean) => {
-        if (!orderId || !supabase) return;
+        if (!order || !supabase) return;
     
         setIsCancelling(true);
         try {
-            const numericOrderId = Number(orderId);
-            if (isNaN(numericOrderId)) {
-                console.error("Cancel order error: Invalid Order ID provided.", orderId);
-                toast({ variant: 'destructive', title: 'Error', description: 'Invalid order ID format.' });
-                return;
-            }
-            
             const { error } = await supabase.rpc("cancel_buy_order", {
-                p_order_id: numericOrderId,
+                p_order_id: order.id,
                 p_cancellation_reason: reason,
                 p_is_auto_cancel: isAutoCancel,
             });
@@ -279,7 +265,7 @@ function PaymentDetailsContent() {
             setIsCancelling(false);
             setIsCancelDialogOpen(false);
         }
-    }, [supabase, router, toast, orderId]);
+    }, [order, supabase, router, toast]);
     
     const handleConfirmCancellation = async () => {
         let finalReason = cancelReason;
@@ -330,7 +316,7 @@ function PaymentDetailsContent() {
     
     useEffect(() => {
         if (order && order.status !== 'pending_payment') {
-            router.push(`/order/${orderId}`);
+            router.push(`/order/${order.id}`);
             return;
         }
 
@@ -356,7 +342,7 @@ function PaymentDetailsContent() {
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [order, router, orderId, handleCancelOrder]);
+    }, [order, router, handleCancelOrder]);
 
 
     const paymentTargetDetails = useMemo(() => {
@@ -611,7 +597,7 @@ function PaymentDetailsContent() {
             }
 
             toast({ title: 'Payment Submitted!', description: 'Your proof is under review.' });
-            router.push(`/order/${orderId}`);
+            router.push(`/order/${order.id}`);
         } catch (error: any) {
             console.error("Error submitting payment proof: ", error);
             
