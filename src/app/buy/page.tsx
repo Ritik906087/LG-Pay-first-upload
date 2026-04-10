@@ -317,13 +317,16 @@ export default function BuyPage() {
             p_payment_provider: provider,
             p_payment_type: paymentType,
         })
-        .select('id, payment_type, seller_id, seller_withdrawal_details, matched_sell_order_id, admin_payment_method_id')
-        .single();
-
+        .select('order_id, final_payment_type');
+        
         if (error) throw error;
+        
+        const order = data?.[0];
+        const orderId = order?.order_id;
+        const finalPaymentType = order?.final_payment_type;
 
-        if (data?.id) {
-            const redirectUrl = `/buy/confirm/${data.id}?type=${data.payment_type}&provider=${provider}`;
+        if (orderId) {
+            const redirectUrl = `/buy/confirm/${orderId}?type=${finalPaymentType}&provider=${provider}`;
             router.push(redirectUrl);
         } else {
             throw new Error("Order creation failed: No order data returned from insert.");
