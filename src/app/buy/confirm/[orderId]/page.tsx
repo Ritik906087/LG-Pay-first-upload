@@ -135,7 +135,7 @@ function PaymentDetailsContent() {
 
     const [order, setOrder] = useState<Order | null>(null);
     const [orderLoading, setOrderLoading] = useState(true);
-    const [numericOrderId, setNumericOrderId] = useState<number | null>(null);
+    const hasFetchedRef = useRef(false);
     
     const [ocrResult, setOcrResult] = useState<OcrVerifyOutput | null>(null);
     const ocrTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -158,42 +158,45 @@ function PaymentDetailsContent() {
     ];
 
     useEffect(() => {
-        const fetchOrder = async () => {
-            if (!orderId) {
-                setOrderLoading(false);
-                return;
-            }
-            setOrderLoading(true);
-
-            const { data, error } = await supabase
-                .from('orders')
-                .select('*')
-                .eq('order_id', orderId)
-                .single();
-
-            if (error || !data) {
-                console.error("Order fetch error:", error);
-                toast({ variant: 'destructive', title: 'Order not found', description: 'Could not load order details. Please try again.' });
-                router.push('/order');
-                setOrder(null);
-            } else {
-                setOrder(data as Order);
-                setNumericOrderId(data.id);
-            }
+        if (!orderId || hasFetchedRef.current) {
+          if (!orderId) {
             setOrderLoading(false);
+          }
+          return;
+        }
+    
+        hasFetchedRef.current = true;
+        const fetchOrder = async () => {
+          setOrderLoading(true);
+    
+          const { data, error } = await supabase
+            .from("orders")
+            .select("*")
+            .eq("order_id", orderId)
+            .single();
+    
+          if (!error && data) {
+            setOrder(data as Order);
+          } else if (error) {
+            console.error("Order fetch error:", error);
+          }
+          
+          setOrderLoading(false);
         };
-
+    
         fetchOrder();
-    }, [orderId, supabase, router, toast]);
+      }, [orderId, supabase]);
 
     useEffect(() => {
-        if (!numericOrderId) return;
+        if (!order?.id) {
+            return;
+        }
 
         const channel = supabase
-            .channel(`order_${orderId}`)
+            .channel(`order_confirm_${order.order_id}`)
             .on<Order>(
                 'postgres_changes',
-                { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${numericOrderId}` },
+                { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${order.id}` },
                 (payload) => {
                     setOrder(payload.new as Order);
                 }
@@ -203,7 +206,7 @@ function PaymentDetailsContent() {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [numericOrderId, orderId, supabase]);
+    }, [order, supabase]);
 
     useEffect(() => {
         const fetchSeller = async () => {
@@ -386,7 +389,7 @@ function PaymentDetailsContent() {
     
     useEffect(() => {
         if (order && order.status !== 'pending_payment') {
-            router.push(`/order/${order.order_id}`);
+            router.push(`/order/${order.id}`);
             return;
         }
 
@@ -666,7 +669,7 @@ function PaymentDetailsContent() {
             }
 
             toast({ title: 'Payment Submitted!', description: 'Your proof is under review.' });
-            router.push(`/order/${order.order_id}`);
+            router.push(`/order/${order.id}`);
         } catch (error: any) {
             console.error("Error submitting payment proof: ", error);
             
@@ -690,7 +693,7 @@ function PaymentDetailsContent() {
         return 0;
     }, [order, type]);
 
-    if (loading) {
+    if (orderLoading) {
         return (
              <div className="flex flex-col min-h-screen">
                 <header className="flex items-center p-4 bg-white sticky top-0 z-10 border-b">
@@ -721,6 +724,26 @@ function PaymentDetailsContent() {
                     <Skeleton className="h-12 w-full"/>
                     <Skeleton className="h-12 w-full"/>
                  </footer>
+            </div>
+        )
+    }
+
+    if (!order) {
+        return (
+             <div className="flex flex-col min-h-screen">
+                <header className="flex items-center p-4 bg-white sticky top-0 z-10 border-b">
+                    <Button onClick={() => router.back()} variant="ghost" size="icon" className="h-8 w-8">
+                        <ChevronLeft className="h-6 w-6 text-muted-foreground" />
+                    </Button>
+                    <h1 className="text-xl font-bold mx-auto pr-8">Order Error</h1>
+                </header>
+                 <main className="flex-grow p-4">
+                    <Card>
+                        <CardContent className="p-8 text-center text-destructive">
+                           Order not found or an error occurred while loading it. Please go back and try again.
+                        </CardContent>
+                    </Card>
+                 </main>
             </div>
         )
     }
@@ -800,11 +823,11 @@ function PaymentDetailsContent() {
                     </Card>
                     
                     <Card>
-                        <CardContent className="p-4 space-y-2 text-xs text-muted-foreground">
+                      <CardContent className="p-4 space-y-2 text-xs text-muted-foreground">
                             <p>• Minimum deposit amount: 5 USDT. Deposits less than the minimum amount will not be credited to the account.</p>
                             <p>• Please do not deposit any non-currency assets to the above address, otherwise the assets will be irrecoverable.</p>
                             <p>• Please make sure that the operating environment is safe to prevent the information from being tampered with or leaked.</p>
-                        </CardContent>
+                      </CardContent>
                     </Card>
                     
                     <Card>
@@ -1164,8 +1187,7 @@ function PaymentDetailsContent() {
                             Verify
                         </AlertDialogAction>
                     </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+                </AlertDialog>
     
             <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
                 <DialogContent>
