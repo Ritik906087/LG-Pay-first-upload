@@ -256,12 +256,15 @@ function PaymentDetailsContent() {
     
         setIsCancelling(true);
         try {
-            const { error } = await supabase.rpc("cancel_buy_order_safe", {
+            const { error } = await supabase.rpc("restore_sell_on_failed_buy", {
                 p_order_id: numericOrderId,
                 p_reason: reason,
             });
 
-            if (error) throw error;
+            if (error) {
+                console.error("Cancel order error:", error);
+                throw error;
+            }
             
             toast({ title: 'Order Cancelled' });
             router.push('/order');
