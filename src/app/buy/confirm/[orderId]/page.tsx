@@ -210,26 +210,52 @@ function PaymentDetailsContent() {
                 return;
             }
 
-            const isP2P = order.payment_type === 'p2p_upi' || order.payment_type === 'p2p_bank';
-            
-            if (isP2P && order.seller_id) {
-                setSellerLoading(true);
-                const { data: sellerData, error } = await supabase
-                    .from('users')
-                    .select('payment_methods, display_name')
-                    .eq('id', order.seller_id)
-                    .single();
+            const isP2P =
+              order.payment_type === 'p2p_upi' ||
+                order.payment_type === 'p2p_bank';
 
-                if (error) {
-                    toast({ variant: 'destructive', title: 'Could not load seller details.' });
-                    setSellerProfile(null);
-                } else {
-                    setSellerProfile(sellerData as UserProfile);
-                }
-                setSellerLoading(false);
-            } else {
-                setSellerLoading(false);
-            }
+                const isAdmin =
+                  order.payment_type === 'upi' ||
+                    order.payment_type === 'bank' ||
+                      order.payment_type === 'usdt';
+
+                      if (isP2P && order.seller_id) {
+                        setSellerLoading(true);
+
+                          const { data: sellerData, error } = await supabase
+                              .from('users')
+                                  .select('payment_methods, display_name')
+                                      .eq('id', order.seller_id)
+                                          .single();
+
+                                            if (error) {
+                                                toast({
+                                                      variant: 'destructive',
+                                                            title: 'Could not load seller details',
+                                                                });
+                                                                    setSellerProfile(null);
+                                                                      } else {
+                                                                          setSellerProfile(sellerData as UserProfile);
+                                                                            }
+
+                                                                              setSellerLoading(false);
+                                                                              } else if (isAdmin && order.admin_payment_method_id) {
+                                                                                setSellerLoading(true);
+
+                                                                                  const { data: adminMethod, error } = await supabase
+                                                                                      .from('payment_methods')
+                                                                                          .select('*')
+                                                                                              .eq('id', Number(order.admin_payment_method_id))
+                                                                                                  .single();
+
+                                                                                                    if (!error && adminMethod) {
+                                                                                                        setAllPaymentMethods([adminMethod as AdminPaymentMethod]);
+                                                                                                          }
+
+                                                                                                            setSellerLoading(false);
+                                                                                                            } else {
+                                                                                                              setSellerLoading(false);
+                                                                                                              }
         };
         
         if (order) {

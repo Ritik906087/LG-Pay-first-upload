@@ -271,33 +271,35 @@ export default function BuyPage() {
     };
   }, []); 
 
-const createOrder = async (provider: string, orderAmount: number) => {
+  const createOrder = async (provider: string, orderAmount: number) => {
     if (!user) return;
-      if (isCreatingOrder) return;
+    if (isCreatingOrder) return;
 
     setIsCreatingOrder(true);
+    const bonusPercentage = activeTab === 'bank' ? 5 : activeTab === 'upi' ? 6 : 0;
+    const totalAmount = orderAmount + (orderAmount * (bonusPercentage / 100));
 
     try {
-        const { data: matchData, error: matchError } = await supabase.rpc(
-            "match_buy_order_v2",
-            {
-                p_buyer_id: user.id,
-                p_amount: orderAmount,
-            }
-        );
+        const { data, error } = await supabase
+            .from('orders')
+            .insert({
+                user_id: user.id,
+                amount: totalAmount,
+                base_amount: orderAmount,
+                bonus_percentage: bonusPercentage,
+                payment_type: activeTab,
+                payment_provider: provider,
+                status: 'pending_payment'
+            })
+            .select('id') // Only need the id for redirect
+            .single();
 
-        if (matchError) {
-            throw matchError;
-        }
+        if (error) throw error;
 
-        const buyOrder = matchData?.buy_order;
-
-        if (buyOrder?.id) {
-            router.push(`/buy/confirm/${buyOrder.id}`);
+        if (data?.id) {
+            router.push(`/buy/confirm/${data.id}?type=${activeTab}&provider=${provider}`);
         } else {
-            throw new Error(
-                "Order creation failed: No order data returned from match."
-            );
+            throw new Error("Order creation failed: No order data returned from insert.");
         }
     } catch (error: any) {
         console.error("Error creating order:", error);
@@ -309,7 +311,7 @@ const createOrder = async (provider: string, orderAmount: number) => {
     } finally {
         setIsCreatingOrder(false);
     }
-};
+  };
 
   const handleBuyClick = (option: { amount: number }) => {
      if (!user) {
