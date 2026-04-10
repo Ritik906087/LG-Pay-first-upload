@@ -301,39 +301,28 @@ export default function BuyPage() {
 
   const createOrder = async (provider: string, orderAmount: number) => {
     if (!user) return;
-    if (isCreatingOrder || methodsLoading) return;
-
-    const availableMethods = adminPaymentMethods.filter(m => m.type === activeTab);
-    if (availableMethods.length === 0) {
-        toast({ variant: 'destructive', title: 'No payment methods available', description: `Admin has not configured any ${activeTab.toUpperCase()} payment methods.`});
-        return;
-    }
-    const selectedMethod = availableMethods[Math.floor(Math.random() * availableMethods.length)];
-
+    if (isCreatingOrder) return;
+    
     setIsCreatingOrder(true);
     const bonusPercentage = activeTab === 'bank' ? 5 : activeTab === 'upi' ? 6 : 0;
-    const totalAmount = orderAmount + (orderAmount * (bonusPercentage / 100));
+    const rpcPaymentType = activeTab === 'upi' ? 'p2p_upi' : activeTab === 'bank' ? 'p2p_bank' : activeTab;
 
     try {
-        const { data, error } = await supabase
-            .from('orders')
-            .insert({
-                user_id: user.id,
-                amount: totalAmount,
-                base_amount: orderAmount,
-                bonus_percentage: bonusPercentage,
-                payment_type: activeTab,
-                payment_provider: provider,
-                status: 'pending_payment',
-                admin_payment_method_id: selectedMethod.id,
-            })
-            .select('id')
-            .single();
+        const { data, error } = await supabase.rpc('create_buy_order', {
+            p_user_id: user.id,
+            p_amount: orderAmount,
+            p_payment_provider: provider,
+            p_payment_type: rpcPaymentType,
+            p_bonus_percentage: bonusPercentage,
+        })
+        .select('id, payment_type, seller_id, seller_withdrawal_details, matched_sell_order_id, admin_payment_method_id')
+        .single();
 
         if (error) throw error;
 
         if (data?.id) {
-            router.push(`/buy/confirm/${data.id}?type=${activeTab}&provider=${provider}`);
+            const redirectUrl = `/buy/confirm/${data.id}?type=${data.payment_type}&provider=${provider}`;
+            router.push(redirectUrl);
         } else {
             throw new Error("Order creation failed: No order data returned from insert.");
         }
