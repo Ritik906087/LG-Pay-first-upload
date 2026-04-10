@@ -693,6 +693,35 @@ function PaymentDetailsContent() {
         return 0;
     }, [order, type]);
 
+    const handleOrderExpiry = useCallback(async () => {
+        if (!order || order.status !== 'pending_payment') return;
+        await handleCancelOrder('Order timed out', true);
+    }, [order, handleCancelOrder]);
+    
+    useEffect(() => {
+        if (!order || order.status !== 'pending_payment' || !order.created_at) {
+            return;
+        }
+
+        const createdAt = new Date(order.created_at);
+        const expiryTime = new Date(createdAt.getTime() + 10 * 60 * 1000); // 10 minutes
+
+        const interval = setInterval(() => {
+            const now = new Date();
+            const secondsLeft = Math.floor((expiryTime.getTime() - now.getTime()) / 1000);
+
+            if (secondsLeft <= 0) {
+                setTimeLeft(0);
+                clearInterval(interval);
+                handleOrderExpiry();
+            } else {
+                setTimeLeft(secondsLeft);
+            }
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [order, handleOrderExpiry]);
+
     if (loading) {
         return (
              <div className="flex flex-col min-h-screen">
