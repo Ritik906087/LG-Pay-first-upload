@@ -135,6 +135,7 @@ function PaymentDetailsContent() {
 
     const [order, setOrder] = useState<Order | null>(null);
     const [orderLoading, setOrderLoading] = useState(true);
+    const [numericOrderId, setNumericOrderId] = useState<number | null>(null);
     
     const [ocrResult, setOcrResult] = useState<OcrVerifyOutput | null>(null);
     const ocrTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -157,20 +158,6 @@ function PaymentDetailsContent() {
     ];
 
     useEffect(() => {
-        let channel: any;
-
-        const setupSubscription = (numericId: number) => {
-            channel = supabase
-                .channel(`order_${orderId}`)
-                .on<Order>(
-                    'postgres_changes',
-                    { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${numericId}` },
-                    (payload) => {
-                        setOrder(payload.new as Order);
-                    }
-                )
-                .subscribe();
-        };
         const fetchOrder = async () => {
             if (!orderId) {
                 setOrderLoading(false);
@@ -191,19 +178,32 @@ function PaymentDetailsContent() {
                 setOrder(null);
             } else {
                 setOrder(data as Order);
-                setupSubscription(data.id);
+                setNumericOrderId(data.id);
             }
             setOrderLoading(false);
         };
 
         fetchOrder();
+    }, [orderId, supabase, router, toast]);
+
+    useEffect(() => {
+        if (!numericOrderId) return;
+
+        const channel = supabase
+            .channel(`order_${orderId}`)
+            .on<Order>(
+                'postgres_changes',
+                { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${numericOrderId}` },
+                (payload) => {
+                    setOrder(payload.new as Order);
+                }
+            )
+            .subscribe();
 
         return () => {
-            if (channel) {
-                supabase.removeChannel(channel);
-            }
+            supabase.removeChannel(channel);
         };
-    }, [orderId, supabase, router, toast]);
+    }, [numericOrderId, orderId, supabase]);
 
     useEffect(() => {
         const fetchSeller = async () => {
