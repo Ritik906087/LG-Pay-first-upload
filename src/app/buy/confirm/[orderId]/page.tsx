@@ -244,7 +244,7 @@ function PaymentDetailsContent() {
         }
     }, [order, supabase, toast]);
 
-    const handleCancelOrder = useCallback(async (reason: string) => {
+    const handleCancelOrder = useCallback(async (reason: string, isAutoCancel: boolean) => {
         if (!orderId || !supabase) return;
     
         setIsCancelling(true);
@@ -256,9 +256,10 @@ function PaymentDetailsContent() {
                 return;
             }
             
-            const { error } = await supabase.rpc("restore_sell_on_failed_buy", {
+            const { error } = await supabase.rpc("cancel_buy_order", {
                 p_order_id: numericOrderId,
-                p_reason: reason,
+                p_cancellation_reason: reason,
+                p_is_auto_cancel: isAutoCancel,
             });
 
             if (error) {
@@ -293,7 +294,7 @@ function PaymentDetailsContent() {
             toast({ variant: 'destructive', title: 'Please select a reason.' });
             return;
         }
-        await handleCancelOrder(finalReason);
+        await handleCancelOrder(finalReason, false);
     };
 
     const handlePaymentMethodChange = async (newProvider: string) => {
@@ -348,7 +349,7 @@ function PaymentDetailsContent() {
             if (secondsLeft <= 0) {
                 setTimeLeft(0);
                 clearInterval(interval);
-                handleCancelOrder('Order timed out');
+                handleCancelOrder('Order timed out', true);
             } else {
                 setTimeLeft(secondsLeft);
             }
