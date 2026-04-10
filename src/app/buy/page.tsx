@@ -299,21 +299,23 @@ export default function BuyPage() {
     };
   }, []); 
 
-  const createOrder = async (provider: string, orderAmount: number) => {
+  const createOrder = async (provider: string, amount: number) => {
     if (!user) return;
     if (isCreatingOrder) return;
     
     setIsCreatingOrder(true);
+    const paymentType = activeTab === 'upi' ? 'p2p_upi' : activeTab === 'bank' ? 'p2p_bank' : activeTab;
     const bonusPercentage = activeTab === 'bank' ? 5 : activeTab === 'upi' ? 6 : 0;
-    const rpcPaymentType = activeTab === 'upi' ? 'p2p_upi' : activeTab === 'bank' ? 'p2p_bank' : activeTab;
+    const finalAmount = amount + (amount * (bonusPercentage / 100));
 
     try {
         const { data, error } = await supabase.rpc('create_buy_order', {
             p_user_id: user.id,
-            p_amount: orderAmount,
-            p_payment_provider: provider,
-            p_payment_type: rpcPaymentType,
+            p_amount: finalAmount,
+            p_base_amount: amount,
             p_bonus_percentage: bonusPercentage,
+            p_payment_provider: provider,
+            p_payment_type: paymentType,
         })
         .select('id, payment_type, seller_id, seller_withdrawal_details, matched_sell_order_id, admin_payment_method_id')
         .single();
