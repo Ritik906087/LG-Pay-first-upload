@@ -214,48 +214,29 @@ function PaymentDetailsContent() {
               order.payment_type === 'p2p_upi' ||
                 order.payment_type === 'p2p_bank';
 
-                const isAdmin =
-                  order.payment_type === 'upi' ||
-                    order.payment_type === 'bank' ||
-                      order.payment_type === 'usdt';
+            if (isP2P && order.seller_id) {
+              setSellerLoading(true);
 
-                      if (isP2P && order.seller_id) {
-                        setSellerLoading(true);
+                const { data: sellerData, error } = await supabase
+                    .from('users')
+                        .select('payment_methods, display_name')
+                            .eq('id', order.seller_id)
+                                .single();
 
-                          const { data: sellerData, error } = await supabase
-                              .from('users')
-                                  .select('payment_methods, display_name')
-                                      .eq('id', order.seller_id)
-                                          .single();
+                                  if (error) {
+                                      toast({
+                                            variant: 'destructive',
+                                                  title: 'Could not load seller details',
+                                                      });
+                                                          setSellerProfile(null);
+                                                            } else {
+                                                                setSellerProfile(sellerData as UserProfile);
+                                                                  }
 
-                                            if (error) {
-                                                toast({
-                                                      variant: 'destructive',
-                                                            title: 'Could not load seller details',
-                                                                });
-                                                                    setSellerProfile(null);
-                                                                      } else {
-                                                                          setSellerProfile(sellerData as UserProfile);
-                                                                            }
-
-                                                                              setSellerLoading(false);
-                                                                              } else if (isAdmin && order.admin_payment_method_id) {
-                                                                                setSellerLoading(true);
-
-                                                                                  const { data: adminMethod, error } = await supabase
-                                                                                      .from('payment_methods')
-                                                                                          .select('*')
-                                                                                              .eq('id', Number(order.admin_payment_method_id))
-                                                                                                  .single();
-
-                                                                                                    if (!error && adminMethod) {
-                                                                                                        setAllPaymentMethods([adminMethod as AdminPaymentMethod]);
-                                                                                                          }
-
-                                                                                                            setSellerLoading(false);
-                                                                                                            } else {
-                                                                                                              setSellerLoading(false);
-                                                                                                              }
+                                                                    setSellerLoading(false);
+            } else {
+              setSellerLoading(false);
+            }
         };
         
         if (order) {
@@ -263,8 +244,8 @@ function PaymentDetailsContent() {
         }
     }, [order, supabase, toast]);
 
-    const handleCancelOrder = useCallback(async (isAutoCancel = false, reason = "Order expired") => {
-        if (!orderId || !supabase || !order) return;
+    const handleCancelOrder = useCallback(async (reason: string) => {
+        if (!orderId || !supabase) return;
 
         const numericOrderId = Number(orderId);
         if (isNaN(numericOrderId)) {
@@ -275,42 +256,15 @@ function PaymentDetailsContent() {
     
         setIsCancelling(true);
         try {
-            const { error } = await supabase.rpc('cancel_buy_order', {
+            const { error } = await supabase.rpc("cancel_buy_order_safe", {
                 p_order_id: numericOrderId,
-                p_cancellation_reason: isAutoCancel ? 'Order timed out' : reason,
-                p_is_auto_cancel: isAutoCancel
+                p_reason: reason,
             });
+
             if (error) throw error;
             
-            if (order.payment_type?.startsWith('p2p_') && order.matched_sell_order_id && order.base_amount) {
-                const { data: sellOrderData, error: sellOrderError } = await supabase
-                    .from('sell_orders')
-                    .select('id')
-                    .eq('order_id', order.matched_sell_order_id)
-                    .single();
-
-                if (sellOrderError || !sellOrderData) {
-                    console.error("CRITICAL: Could not find matched sell_order to restore on cancellation.", { sell_order_id_str: order.matched_sell_order_id, error: sellOrderError });
-                    toast({ variant: 'destructive', title: 'Seller Order Not Restored', description: `Could not find sell order. Please contact support.` });
-                } else {
-                    const { error: restoreError } = await supabase.rpc('restore_sell_order_on_failed_buy', {
-                        p_sell_order_id: sellOrderData.id,
-                        p_amount: order.base_amount
-                    });
-                    if (restoreError) {
-                         console.error("CRITICAL: Failed to restore seller order on cancellation.", { message: restoreError.message, sellOrderId: sellOrderData.id });
-                         toast({ variant: 'destructive', title: 'Seller Order Not Restored', description: `Error: ${restoreError.message}. Please contact support.` });
-                    }
-                }
-            }
-            
-            if (!isAutoCancel) {
-                toast({ title: 'Order Cancelled' });
-                router.push('/order');
-            } else {
-                toast({ title: 'Order Timeout', variant: 'destructive' });
-                router.push('/order');
-            }
+            toast({ title: 'Order Cancelled' });
+            router.push('/order');
     
         } catch (e: any) {
             console.error("Cancel order error:", e);
@@ -319,7 +273,7 @@ function PaymentDetailsContent() {
             setIsCancelling(false);
             setIsCancelDialogOpen(false);
         }
-    }, [supabase, router, toast, orderId, order]);
+    }, [supabase, router, toast, orderId]);
     
     const handleConfirmCancellation = async () => {
         let finalReason = cancelReason;
@@ -334,7 +288,7 @@ function PaymentDetailsContent() {
             toast({ variant: 'destructive', title: 'Please select a reason.' });
             return;
         }
-        await handleCancelOrder(false, finalReason);
+        await handleCancelOrder(finalReason);
     };
 
     const handlePaymentMethodChange = async (newProvider: string) => {
@@ -389,7 +343,7 @@ function PaymentDetailsContent() {
             if (secondsLeft <= 0) {
                 setTimeLeft(0);
                 clearInterval(interval);
-                handleCancelOrder(true, 'Order timed out');
+                handleCancelOrder('Order timed out');
             } else {
                 setTimeLeft(secondsLeft);
             }
@@ -406,46 +360,25 @@ function PaymentDetailsContent() {
         const isP2P = order.payment_type === 'p2p_upi' || order.payment_type === 'p2p_bank';
     
         if (isP2P) {
-            // P2P flow: use seller details
-            if (sellerLoading) return null; // Wait for seller profile to be fetched
+            if (sellerLoading) return null; 
             if (!sellerProfile || !order.seller_withdrawal_details) return null;
     
-            // Find the specific payment method from the seller's profile
             const sellerMethod = sellerProfile.payment_methods?.find(
                 (pm) => pm.name === order.seller_withdrawal_details?.name
             );
             
-            // Return the found method. It should have upiId, upiHolderName, etc.
             return sellerMethod || null;
         }
         
-        // Admin Fallback flow
         if (!allPaymentMethods || allPaymentMethods.length === 0 || !type) return null;
-        return allPaymentMethods.find(m => m.type === type);
+        return allPaymentMethods.find(m => m.id === order.admin_payment_method_id);
     }, [order, orderLoading, type, allPaymentMethods, sellerProfile, sellerLoading]);
-
-    useEffect(() => {
-        const updateAdminPaymentMethod = async () => {
-            if (!order) return;
-            // Only run for non-P2P admin orders
-            if ((paymentTargetDetails as any)?.id && !order.admin_payment_method_id && type !== 'p2p_upi' && type !== 'p2p_bank') {
-                const { error } = await supabase.from('orders').update({ admin_payment_method_id: (paymentTargetDetails as any).id }).eq('id', Number(order.id));
-                if (error) {
-                    console.error("Failed to set admin payment method ID on order", error);
-                }
-            }
-        };
-        if(order && paymentTargetDetails){
-             updateAdminPaymentMethod();
-        }
-    }, [order, paymentTargetDetails, type, supabase]);
 
 
     const details = useMemo(() => {
         if (!paymentTargetDetails) return null;
         const isP2P = type === 'p2p_upi' || type === 'p2p_bank';
 
-        // Normalize P2P seller details (camelCase) to match admin details (snake_case)
         const normalizedDetails: any = isP2P ? {
             type: (paymentTargetDetails as any).type,
             bank_name: (paymentTargetDetails as any).bankName,
@@ -620,7 +553,7 @@ function PaymentDetailsContent() {
                 const { data: sellOrderData, error: fetchSellOrderError } = await supabase
                     .from('sell_orders')
                     .select('id, matched_buy_orders')
-                    .eq('order_id', order.matched_sell_order_id)
+                    .eq('id', order.matched_sell_order_id)
                     .single();
 
                 if (fetchSellOrderError || !sellOrderData) {
