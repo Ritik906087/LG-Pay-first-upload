@@ -157,6 +157,20 @@ function PaymentDetailsContent() {
     ];
 
     useEffect(() => {
+        let channel: any;
+
+        const setupSubscription = (numericId: number) => {
+            channel = supabase
+                .channel(`order_${orderId}`)
+                .on<Order>(
+                    'postgres_changes',
+                    { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${numericId}` },
+                    (payload) => {
+                        setOrder(payload.new as Order);
+                    }
+                )
+                .subscribe();
+        };
         const fetchOrder = async () => {
             if (!orderId) {
                 setOrderLoading(false);
@@ -177,11 +191,18 @@ function PaymentDetailsContent() {
                 setOrder(null);
             } else {
                 setOrder(data as Order);
+                setupSubscription(data.id);
             }
             setOrderLoading(false);
         };
 
         fetchOrder();
+
+        return () => {
+            if (channel) {
+                supabase.removeChannel(channel);
+            }
+        };
     }, [orderId, supabase, router, toast]);
 
     useEffect(() => {
