@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -41,6 +40,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 export const dynamic = 'force-dynamic';
+
+type AdminPaymentMethod = {
+  id: number;
+  type: 'bank' | 'upi' | 'usdt';
+  bank_name?: string;
+  account_holder_name?: string;
+  account_number?: string;
+  ifsc_code?: string;
+  upi_holder_name?: string;
+  upi_id?: string;
+  usdt_wallet_address?: string;
+};
 
 const paymentMethodDetails: { [key: string]: { logo: string; bgColor: string } } = {
   PhonePe: { logo: "https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/download%20(4).png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvZG93bmxvYWQgKDQpLnBuZyIsImlhdCI6MTc3NTE0ODYyMSwiZXhwIjoxODA2Njg0NjIxfQ.b_cMHhiCw52krGt2edtt1k5C1Keo8uGJwYIWpe6vZVo", bgColor: "bg-violet-600" },
@@ -226,6 +237,23 @@ export default function BuyPage() {
   const [verifiedBuyUpiMethods, setVerifiedBuyUpiMethods] = useState<{name: string, upiId: string}[]>([]);
   const [inProgressBuyOrders, setInProgressBuyOrders] = useState<any[]>([]);
 
+  const [adminPaymentMethods, setAdminPaymentMethods] = useState<AdminPaymentMethod[]>([]);
+  const [methodsLoading, setMethodsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchMethods = async () => {
+      setMethodsLoading(true);
+      const { data, error } = await supabase.from('payment_methods').select('*');
+      if (error) {
+        toast({ variant: 'destructive', title: 'Could not load payment options.' });
+      } else {
+        setAdminPaymentMethods(data as AdminPaymentMethod[]);
+      }
+      setMethodsLoading(false);
+    };
+    fetchMethods();
+  }, [supabase, toast]);
+
   useEffect(() => {
     const fetchInProgressOrders = async () => {
         if(!user) return;
@@ -273,7 +301,14 @@ export default function BuyPage() {
 
   const createOrder = async (provider: string, orderAmount: number) => {
     if (!user) return;
-    if (isCreatingOrder) return;
+    if (isCreatingOrder || methodsLoading) return;
+
+    const availableMethods = adminPaymentMethods.filter(m => m.type === activeTab);
+    if (availableMethods.length === 0) {
+        toast({ variant: 'destructive', title: 'No payment methods available', description: `Admin has not configured any ${activeTab.toUpperCase()} payment methods.`});
+        return;
+    }
+    const selectedMethod = availableMethods[Math.floor(Math.random() * availableMethods.length)];
 
     setIsCreatingOrder(true);
     const bonusPercentage = activeTab === 'bank' ? 5 : activeTab === 'upi' ? 6 : 0;
@@ -289,9 +324,10 @@ export default function BuyPage() {
                 bonus_percentage: bonusPercentage,
                 payment_type: activeTab,
                 payment_provider: provider,
-                status: 'pending_payment'
+                status: 'pending_payment',
+                admin_payment_method_id: selectedMethod.id,
             })
-            .select('id') // Only need the id for redirect
+            .select('id')
             .single();
 
         if (error) throw error;
