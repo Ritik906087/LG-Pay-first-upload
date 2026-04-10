@@ -262,7 +262,7 @@ function PaymentDetailsContent() {
             
             // 1. First try exact match
             let { data: paymentMethod, error: primaryError } = await supabase
-              .from("admin_payment_methods")
+              .from("payment_methods")
               .select("*")
               .eq("provider", order.payment_provider)
               .eq("type", order.payment_type)
@@ -277,7 +277,7 @@ function PaymentDetailsContent() {
             if (!paymentMethod) {
               console.log(`No exact match for provider "${order.payment_provider}" and type "${order.payment_type}". Falling back to type only.`);
               const { data: fallbackMethod, error: fallbackError } = await supabase
-                .from("admin_payment_methods")
+                .from("payment_methods")
                 .select("*")
                 .eq("type", order.payment_type)
                 .eq("is_active", true)
@@ -693,7 +693,7 @@ function PaymentDetailsContent() {
         return 0;
     }, [order, type]);
 
-    if (orderLoading) {
+    if (loading) {
         return (
              <div className="flex flex-col min-h-screen">
                 <header className="flex items-center p-4 bg-white sticky top-0 z-10 border-b">
