@@ -149,11 +149,15 @@ export function RegisterForm() {
     } catch (error: any) {
       console.error("Registration failed:", error);
       let description = "An unexpected error occurred. Please try again.";
-      if (error.message.includes('User already registered') || error.message.includes('already exists')) {
-          description = "An account with this phone number already exists. Please log in instead.";
-      } else {
-        description = error.message;
+      
+      if (error?.message) {
+        if (error.message.includes('User already registered') || error.message.includes('already exists')) {
+            description = "An account with this phone number already exists. Please log in instead.";
+        } else {
+          description = error.message;
+        }
       }
+      
       toast({
           variant: "destructive",
           title: "Registration Failed",
