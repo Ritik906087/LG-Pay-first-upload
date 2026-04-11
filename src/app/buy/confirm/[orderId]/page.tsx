@@ -45,7 +45,6 @@ type AdminPaymentMethod = {
     id: number;
     type: 'bank' | 'upi' | 'usdt';
     provider?: string;
-    is_active?: boolean;
     bank_name?: string;
     account_holder_name?: string;
     account_number?: string;
@@ -250,41 +249,52 @@ function PaymentDetailsContent() {
         }
     }, [order, supabase, toast]);
 
-    const handleCancelOrder = useCallback(async (reason: string, isAutoCancel: boolean) => {
-        if (!order || !supabase) return;
-    
-        setIsCancelling(true);
-        try {
-            const numericOrderId = Number(order.id);
-            if (isNaN(numericOrderId)) {
-                toast({ variant: 'destructive', title: 'Invalid Order ID' });
-                return;
-            }
+    const handleCancelOrder = useCallback(
+          async (reason: string, isAutoCancel = false) => {
+              if (!order || !supabase) return;
 
-            const { error } = await supabase.rpc("cancel_buy_order", {
-                p_order_id: numericOrderId,
-                p_cancellation_reason: reason,
-                p_is_auto_cancel: isAutoCancel,
-            });
+                  setIsCancelling(true);
 
-            if (error) {
-                console.error("Cancel order RPC error:", error);
-                toast({
-                    variant: "destructive",
-                    title: "Cancel failed",
-                    description: error.message,
-                });
-                return;
-            }
-            
-            toast({ title: 'Order Cancelled' });
-            router.push('/order');
+                      try {
+                            const numericOrderId = Number(order.id);
+
+                                  if (isNaN(numericOrderId)) {
+                                          toast({
+                                                    variant: "destructive",
+                                                              title: "Invalid Order ID",
+                                                                      });
+                                                                              return;
+                                                                                    }
+
+                                                                                          const { error } = await supabase.rpc("cancel_buy_order", {
+                                                                                                  p_order_id: numericOrderId,
+                                                                                                          p_cancellation_reason: reason,
+                                                                                                                  p_is_auto_cancel: isAutoCancel,
+                                                                                                                        });
+
+                                                                                                                              if (error) {
+                                                                                                                                      console.error("Cancel order RPC error:", error);
+                                                                                                                                              toast({
+                                                                                                                                                        variant: "destructive",
+                                                                                                                                                                  title: "Cancel failed",
+                                                                                                                                                                            description: error.message,
+                                                                                                                                                                                    });
+                                                                                                                                                                                            return;
+                                                                                                                                                                                                  }
+
+                                                                                                                                                                                                        toast({
+                                                                                                                                                                                                                title: "Order Cancelled",
+                                                                                                                                                                                                                      });
+
+                                                                                                                                                                                                                            router.push("/order");
+                                                                                                                                                                                                                                } finally {
+                                                                                                                                                                                                                                      setIsCancelling(false);
+                                                                                                                                                                                                                                            setIsCancelDialogOpen(false);
+                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                  },
+                                                                                                                                                                                                                                                    [order, supabase, router, toast]
+                                                                                                                                                                                                                                                    );
     
-        } finally {
-            setIsCancelling(false);
-            setIsCancelDialogOpen(false);
-        }
-    }, [order, supabase, router, toast]);
     
     const handleConfirmCancellation = async () => {
         let finalReason = cancelReason;
@@ -354,11 +364,11 @@ function PaymentDetailsContent() {
 
             const { data: paymentMethod, error } = await supabase
               .from("payment_methods")
-              .select("*")
-              .eq("type", order.payment_type)
-              .eq("is_active", true)
-              .limit(1)
-              .maybeSingle();
+                .select("*")
+                  .eq("type", order.payment_type)
+                      .order("created_at", { ascending: false })
+                        .limit(1)
+                          .maybeSingle();
 
             if (error) {
               console.error("Error fetching payment method:", error);
