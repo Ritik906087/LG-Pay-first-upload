@@ -348,36 +348,43 @@ function PaymentDetailsContent() {
     
             setDetailsLoading(true);
             
-            let { data: paymentMethod, error: primaryError } = await supabase
+            let paymentMethodData = null;
+
+            // Try exact provider match first, case-insensitive
+            const { data: primaryData, error: primaryError } = await supabase
               .from("payment_methods")
               .select("*")
-              .eq("provider", order.payment_provider)
+              .eq("provider", order.payment_provider?.toLowerCase())
               .eq("type", order.payment_type)
               .eq("is_active", true)
+              .limit(1)
               .maybeSingle();
-    
+
             if (primaryError) {
-              console.error("Error fetching primary payment method:", primaryError);
+                console.error("Error fetching primary payment method:", primaryError);
+            }
+
+            paymentMethodData = primaryData;
+
+            // If no exact match, fallback to type only
+            if (!paymentMethodData) {
+                console.log(`No exact match for provider "${order.payment_provider}" and type "${order.payment_type}". Falling back to type only.`);
+                const { data: fallbackData, error: fallbackError } = await supabase
+                    .from("payment_methods")
+                    .select("*")
+                    .eq("type", order.payment_type)
+                    .eq("is_active", true)
+                    .limit(1)
+                    .maybeSingle();
+                
+                if (fallbackError) {
+                    console.error("Error fetching fallback payment method:", fallbackError);
+                }
+                
+                paymentMethodData = fallbackData;
             }
     
-            if (!paymentMethod) {
-              console.log(`No exact match for provider "${order.payment_provider}" and type "${order.payment_type}". Falling back to type only.`);
-              const { data: fallbackMethod, error: fallbackError } = await supabase
-                .from("payment_methods")
-                .select("*")
-                .eq("type", order.payment_type)
-                .eq("is_active", true)
-                .limit(1)
-                .maybeSingle();
-    
-              if (fallbackError) {
-                  console.error("Error fetching fallback payment method:", fallbackError);
-              }
-              
-              paymentMethod = fallbackMethod;
-            }
-    
-            setAdminPaymentDetails(paymentMethod);
+            setAdminPaymentDetails(paymentMethodData);
             setDetailsLoading(false);
         };
     
