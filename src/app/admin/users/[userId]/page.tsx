@@ -84,12 +84,13 @@ type SellOrder = {
 };
 
 
-const BalanceActionDialog = ({ userId, currentBalance }: { userId: string, currentBalance: number }) => {
+const BalanceActionDialog = ({ userId, currentBalance, onUpdate }: { userId: string, currentBalance: number, onUpdate: () => void }) => {
     const [amount, setAmount] = useState('');
     const [action, setAction] = useState<'add' | 'deduct'>('add');
     const [open, setOpen] = useState(false);
     const supabase = createClient();
     const { toast } = useToast();
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleUpdateBalance = async () => {
         const value = parseFloat(amount);
@@ -98,22 +99,30 @@ const BalanceActionDialog = ({ userId, currentBalance }: { userId: string, curre
             return;
         }
 
+        setIsLoading(true);
         const newBalance = action === 'add' ? Number(currentBalance) + value : Number(currentBalance) - value;
 
         if (newBalance < 0) {
-            toast({ variant: 'destructive', title: 'Insufficient Balance' });
+            toast({ variant: 'destructive', title: 'Resulting balance cannot be negative.' });
+            setIsLoading(false);
             return;
         }
 
-        const { error } = await supabase.from('users').update({ balance: newBalance }).eq('id', userId);
+        const { error } = await supabase.rpc('admin_update_user_balance', {
+            target_user_id: userId,
+            new_balance: newBalance
+        });
+        
         if (error) {
             console.error("Balance update error: ", error)
-            toast({ variant: 'destructive', title: 'Update Failed' });
+            toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
         } else {
             toast({ title: 'Balance Updated' });
             setOpen(false);
             setAmount('');
+            onUpdate();
         }
+        setIsLoading(false);
     };
 
 
@@ -138,15 +147,18 @@ const BalanceActionDialog = ({ userId, currentBalance }: { userId: string, curre
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                    <Button onClick={handleUpdateBalance}>Confirm</Button>
+                    <Button variant="outline" onClick={() => setOpen(false)} disabled={isLoading}>Cancel</Button>
+                    <Button onClick={handleUpdateBalance} disabled={isLoading}>
+                         {isLoading && <Loader size="xs" className="mr-2" />}
+                        Confirm
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
     )
 }
 
-const HoldBalanceActionDialog = ({ userId }: { userId: string }) => {
+const HoldBalanceActionDialog = ({ userId, onUpdate }: { userId: string, onUpdate: () => void }) => {
     const [amount, setAmount] = useState('');
     const [action, setAction] = useState<'add' | 'remove'>('add');
     const [open, setOpen] = useState(false);
@@ -156,13 +168,19 @@ const HoldBalanceActionDialog = ({ userId }: { userId: string }) => {
     const [currentBalance, setCurrentBalance] = useState(0);
     const [currentHoldBalance, setCurrentHoldBalance] = useState(0);
 
-    const fetchBalances = async () => {
+    const fetchBalances = useCallback(async () => {
         const { data, error } = await supabase.from('users').select('balance, hold_balance').eq('id', userId).single();
         if (data) {
             setCurrentBalance(data.balance || 0);
             setCurrentHoldBalance(data.hold_balance || 0);
         }
-    }
+    }, [supabase, userId]);
+
+    useEffect(() => {
+        if (open) {
+            fetchBalances();
+        }
+    }, [open, fetchBalances]);
 
     const handleUpdateHoldBalance = async () => {
         const value = parseFloat(amount);
@@ -174,18 +192,8 @@ const HoldBalanceActionDialog = ({ userId }: { userId: string }) => {
         setIsLoading(true);
 
         try {
-            const { data: userData, error: fetchError } = await supabase
-                .from('users')
-                .select('balance, hold_balance')
-                .eq('id', userId)
-                .single();
-
-            if (fetchError || !userData) {
-                throw new Error(fetchError?.message || "Could not find user to update.");
-            }
-            
-            let newBalance = userData.balance;
-            let newHoldBalance = userData.hold_balance;
+            let newBalance = currentBalance;
+            let newHoldBalance = currentHoldBalance;
 
             if (action === 'add') {
                 if (newBalance < value) {
@@ -205,13 +213,11 @@ const HoldBalanceActionDialog = ({ userId }: { userId: string }) => {
                 newHoldBalance -= value;
             }
 
-            const { error: updateError } = await supabase
-                .from('users')
-                .update({
-                    balance: newBalance,
-                    hold_balance: newHoldBalance
-                })
-                .eq('id', userId);
+            const { error: updateError } = await supabase.rpc('admin_update_user_hold_balance', {
+                target_user_id: userId,
+                new_balance: newBalance,
+                new_hold_balance: newHoldBalance
+            });
             
             if (updateError) {
                 throw updateError;
@@ -220,6 +226,7 @@ const HoldBalanceActionDialog = ({ userId }: { userId: string }) => {
             toast({ title: 'Hold Balance Updated' });
             setOpen(false);
             setAmount('');
+            onUpdate();
         } catch (error: any) {
             console.error("Hold balance update error: ", error);
             toast({ variant: 'destructive', title: 'Update Failed', description: error.message });
@@ -229,7 +236,7 @@ const HoldBalanceActionDialog = ({ userId }: { userId: string }) => {
     };
 
     return (
-         <Dialog open={open} onOpenChange={(isOpen) => {setOpen(isOpen); if(isOpen) fetchBalances();}}>
+         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
                 <Button>Manage Hold</Button>
             </DialogTrigger>
@@ -554,7 +561,7 @@ export default function UserDetailsPage() {
                     </CardContent>
                     <CardFooter>
                          {isMasterAdmin ? (
-                            <BalanceActionDialog userId={userId} currentBalance={Number(user.balance) || 0} />
+                            <BalanceActionDialog userId={userId} currentBalance={Number(user.balance) || 0} onUpdate={fetchData} />
                          ) : (
                             <Button disabled>Manage Balance (Master only)</Button>
                          )}
@@ -572,7 +579,7 @@ export default function UserDetailsPage() {
                     </CardContent>
                     <CardFooter>
                          {isMasterAdmin ? (
-                            <HoldBalanceActionDialog userId={userId} />
+                            <HoldBalanceActionDialog userId={userId} onUpdate={fetchData} />
                          ) : (
                             <Button disabled>Manage Hold (Master only)</Button>
                          )}
@@ -803,6 +810,8 @@ export default function UserDetailsPage() {
         </main>
     )
 }
+
+    
 
     
 
