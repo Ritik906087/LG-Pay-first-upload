@@ -250,50 +250,49 @@ function PaymentDetailsContent() {
     }, [order, supabase, toast]);
 
     const handleCancelOrder = useCallback(
-          async (reason: string, isAutoCancel = false) => {
-              if (!order || !supabase) return;
-
-                  setIsCancelling(true);
-
-                      try {
-                            const numericOrderId = Number(order.id);
-
-                                  if (isNaN(numericOrderId)) {
-                                          toast({
-                                                    variant: "destructive",
-                                                              title: "Invalid Order ID",
-                                                                      });
-                                                                              return;
-                                                                                    }
-
-                                                                                          const { error } = await supabase.rpc("cancel_buy_order", {
-                                                                                                  p_order_id: numericOrderId,
-                                                                                                          p_cancellation_reason: reason,
-                                                                                                                  p_is_auto_cancel: isAutoCancel,
-                                                                                                                        });
-
-                                                                                                                              if (error) {
-                                                                                                                                      console.error("Cancel order RPC error:", error);
-                                                                                                                                              toast({
-                                                                                                                                                        variant: "destructive",
-                                                                                                                                                                  title: "Cancel failed",
-                                                                                                                                                                            description: error.message,
-                                                                                                                                                                                    });
-                                                                                                                                                                                            return;
-                                                                                                                                                                                                  }
-
-                                                                                                                                                                                                        toast({
-                                                                                                                                                                                                                title: "Order Cancelled",
-                                                                                                                                                                                                                      });
-
-                                                                                                                                                                                                                            router.push("/order");
-                                                                                                                                                                                                                                } finally {
-                                                                                                                                                                                                                                      setIsCancelling(false);
-                                                                                                                                                                                                                                            setIsCancelDialogOpen(false);
-                                                                                                                                                                                                                                                }
-                                                                                                                                                                                                                                                  },
-                                                                                                                                                                                                                                                    [order, supabase, router, toast]
-                                                                                                                                                                                                                                                    );
+      async (reason: string, isAutoCancel = false) => {
+          if (!order || !supabase) return;
+    
+          setIsCancelling(true);
+    
+          try {
+              const numericOrderId = Number(order.id);
+    
+              if (isNaN(numericOrderId)) {
+                  toast({
+                      variant: "destructive",
+                      title: "Invalid Order ID",
+                  });
+                  return;
+              }
+    
+              const { error } = await supabase.rpc("reject_buy_order", {
+                   p_order_id: numericOrderId,
+                   p_rejection_reason: reason,
+              });
+    
+              if (error) {
+                  console.error("Cancel order RPC error:", error);
+                  toast({
+                      variant: "destructive",
+                      title: "Cancel failed",
+                      description: error.message,
+                  });
+                  return;
+              }
+    
+              toast({
+                  title: "Order Cancelled",
+              });
+    
+              router.push("/order");
+          } finally {
+              setIsCancelling(false);
+              setIsCancelDialogOpen(false);
+          }
+      },
+      [order, supabase, router, toast]
+    );
     
     
     const handleConfirmCancellation = async () => {
@@ -356,22 +355,54 @@ function PaymentDetailsContent() {
 
             const isP2P = order.payment_type === 'p2p_upi' || order.payment_type === 'p2p_bank';
             if (isP2P) {
-                setDetailsLoading(false);
+                setDetailsLoading(false); // P2P logic is handled elsewhere
                 return;
             }
     
             setDetailsLoading(true);
+            let paymentMethod: AdminPaymentMethod | null = null;
+            let fetchError: any = null;
 
-            const { data: paymentMethod, error } = await supabase
-              .from("payment_methods")
-                .select("*")
-                  .eq("type", order.payment_type)
-                      .order("created_at", { ascending: false })
-                        .limit(1)
-                          .maybeSingle();
+            // Priority 1: Fetch using the specific ID from the order
+            if (order.admin_payment_method_id) {
+                const { data, error } = await supabase
+                    .from("payment_methods")
+                    .select("*")
+                    .eq("id", order.admin_payment_method_id)
+                    .maybeSingle();
 
-            if (error) {
-              console.error("Error fetching payment method:", error);
+                if (data) {
+                    paymentMethod = data;
+                }
+                if(error) {
+                    console.error("Error fetching payment method by ID:", error);
+                    fetchError = error;
+                }
+            }
+
+            // Priority 2: Fallback to fetching by type if no ID or fetch by ID failed
+            if (!paymentMethod) {
+                console.warn(`[Payment] No admin_payment_method_id on order or fetch failed. Falling back to type-based fetch for type: ${order.payment_type}`);
+                const { data, error } = await supabase
+                    .from("payment_methods")
+                    .select("*")
+                    .eq("type", order.payment_type)
+                    .order("created_at", { ascending: false })
+                    .limit(1)
+                    .maybeSingle();
+
+                if (data) {
+                    paymentMethod = data;
+                }
+                if (error) {
+                    console.error("Error fetching fallback payment method by type:", error);
+                    // If primary fetch also had an error, we keep it, otherwise assign this one.
+                    if(!fetchError) fetchError = error;
+                }
+            }
+
+            if (!paymentMethod) {
+                 console.error("[Payment] CRITICAL: Could not resolve any admin payment method for the order.", { orderId: order.order_id, paymentType: order.payment_type });
             }
 
             setAdminPaymentDetails(paymentMethod);
