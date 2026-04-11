@@ -135,7 +135,7 @@ function PaymentDetailsContent() {
 
     const [order, setOrder] = useState<Order | null>(null);
     const [orderLoading, setOrderLoading] = useState(true);
-    const hasFetchedRef = useRef(false); // Fix: Declare hasFetchedRef with const
+    const hasFetchedRef = useRef(false);
 
     const [ocrResult, setOcrResult] = useState<OcrVerifyOutput | null>(null);
     const ocrTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -339,7 +339,11 @@ function PaymentDetailsContent() {
 
     useEffect(() => {
         const fetchPaymentDetails = async () => {
-            if (!order) return;
+            if (!order) {
+              setDetailsLoading(false);
+              return;
+            };
+
             const isP2P = order.payment_type === 'p2p_upi' || order.payment_type === 'p2p_bank';
             if (isP2P) {
                 setDetailsLoading(false);
@@ -347,21 +351,20 @@ function PaymentDetailsContent() {
             }
     
             setDetailsLoading(true);
-            
-            // Fallback-safe fetch logic
-            const { data, error } = await supabase
-                .from("payment_methods")
-                .select("*")
-                .eq("type", order.payment_type)
-                .eq("is_active", true)
-                .limit(1)
-                .maybeSingle();
+
+            const { data: paymentMethod, error } = await supabase
+              .from("payment_methods")
+              .select("*")
+              .eq("type", order.payment_type)
+              .eq("is_active", true)
+              .limit(1)
+              .maybeSingle();
 
             if (error) {
-                console.error("Error fetching payment method:", error);
+              console.error("Error fetching payment method:", error);
             }
-    
-            setAdminPaymentDetails(data);
+
+            setAdminPaymentDetails(paymentMethod);
             setDetailsLoading(false);
         };
     
@@ -1230,5 +1233,3 @@ export default function ConfirmPage() {
     </Suspense>
   )
 }
-
-    
