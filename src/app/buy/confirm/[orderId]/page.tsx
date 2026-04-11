@@ -157,8 +157,8 @@ function PaymentDetailsContent() {
     ];
 
     useEffect(() => {
-        if (!orderId || hasFetchedRef.current) {
-          if (!orderId) {
+        if (!orderId || !user || hasFetchedRef.current) {
+          if (!orderId || !user) {
             setOrderLoading(false);
           }
           return;
@@ -185,7 +185,7 @@ function PaymentDetailsContent() {
         };
     
         fetchOrder();
-    }, [orderId, supabase]);
+    }, [orderId, supabase, user]);
 
     useEffect(() => {
         if (!order?.id) {
@@ -361,44 +361,30 @@ function PaymentDetailsContent() {
     
             setDetailsLoading(true);
             let paymentMethod: AdminPaymentMethod | null = null;
-            let fetchError: any = null;
 
             // Priority 1: Fetch using the specific ID from the order
-               if (order.admin_payment_method_uuid) {
-                const { data, error } = await supabase
-                    .from("admin_payment_methods")
+            if (order.admin_payment_method_id) {
+                const { data: specificMethod, error: specificError } = await supabase
+                    .from("payment_methods")
                     .select("*")
-                    .eq("id", order.admin_payment_method_uuid)
+                    .eq("id", order.admin_payment_method_id)
                     .maybeSingle();
 
-                if (data) {
-                    paymentMethod = data;
-                }
-                if(error) {
-                    console.error("Error fetching payment method by ID:", error);
-                    fetchError = error;
-                }
+                if (specificError) console.error("Error fetching specific payment method:", specificError);
+                if (specificMethod) paymentMethod = specificMethod;
             }
 
             // Priority 2: Fallback to fetching by type if no ID or fetch by ID failed
             if (!paymentMethod) {
-                console.warn("[Payment] No admin_payment_method_uuid on order")
                 const { data, error } = await supabase
-                    .from("admin_payment_methods")
+                    .from("payment_methods")
                     .select("*")
                     .eq("type", order.payment_type)
-                    .order("created_at", { ascending: false })
                     .limit(1)
                     .maybeSingle();
-
-                if (data) {
-                    paymentMethod = data;
-                }
-                if (error) {
-                    console.error("Error fetching fallback payment method by type:", error);
-                    // If primary fetch also had an error, we keep it, otherwise assign this one.
-                    if(!fetchError) fetchError = error;
-                }
+                
+                if (error) console.error("Error fetching fallback payment method:", error);
+                if (data) paymentMethod = data;
             }
 
             if (!paymentMethod) {
