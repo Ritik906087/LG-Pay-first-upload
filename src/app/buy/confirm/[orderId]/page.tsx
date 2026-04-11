@@ -364,11 +364,11 @@ function PaymentDetailsContent() {
             let fetchError: any = null;
 
             // Priority 1: Fetch using the specific ID from the order
-            if (order.admin_payment_method_id) {
+               if (order.admin_payment_method_uuid) {
                 const { data, error } = await supabase
-                    .from("payment_methods")
+                    .from("admin_payment_methods")
                     .select("*")
-                    .eq("id", order.admin_payment_method_id)
+                    .eq("id", order.admin_payment_method_uuid)
                     .maybeSingle();
 
                 if (data) {
@@ -382,9 +382,9 @@ function PaymentDetailsContent() {
 
             // Priority 2: Fallback to fetching by type if no ID or fetch by ID failed
             if (!paymentMethod) {
-                console.warn(`[Payment] No admin_payment_method_id on order or fetch failed. Falling back to type-based fetch for type: ${order.payment_type}`);
+                console.warn("[Payment] No admin_payment_method_uuid on order")
                 const { data, error } = await supabase
-                    .from("payment_methods")
+                    .from("admin_payment_methods")
                     .select("*")
                     .eq("type", order.payment_type)
                     .order("created_at", { ascending: false })
