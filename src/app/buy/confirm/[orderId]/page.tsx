@@ -177,8 +177,10 @@ function PaymentDetailsContent() {
     
           if (!error && data) {
             setOrder(data as Order);
-          } else if (error) {
+          } else {
             console.error("Order fetch error:", error);
+            // Do not toast here as it might be a race condition. The UI will show a proper message.
+            setOrder(null);
           }
           
           setOrderLoading(false);
@@ -282,7 +284,7 @@ function PaymentDetailsContent() {
                 .eq("type", order.payment_type)
                 .eq("is_active", true)
                 .limit(1)
-                .single();
+                .maybeSingle();
     
               if (fallbackError) {
                   console.error("Error fetching fallback payment method:", fallbackError);
@@ -295,7 +297,7 @@ function PaymentDetailsContent() {
             setDetailsLoading(false);
         };
     
-        if(!orderLoading) {
+        if(!orderLoading && order) {
             fetchPaymentDetails();
         }
     }, [order, orderLoading, supabase]);
@@ -387,37 +389,6 @@ function PaymentDetailsContent() {
         }
     };
     
-    useEffect(() => {
-        if (order && order.status !== 'pending_payment') {
-            router.push(`/order/${order.id}`);
-            return;
-        }
-
-        if (!order || !order.created_at) {
-            setTimeLeft(0);
-            return;
-        }
-
-        const createdAt = new Date(order.created_at);
-        const expiryTime = new Date(createdAt.getTime() + 10 * 60 * 1000); // 10 minutes
-
-        const interval = setInterval(() => {
-            const now = new Date();
-            const secondsLeft = Math.floor((expiryTime.getTime() - now.getTime()) / 1000);
-
-            if (secondsLeft <= 0) {
-                setTimeLeft(0);
-                clearInterval(interval);
-                handleCancelOrder('Order timed out', true);
-            } else {
-                setTimeLeft(secondsLeft);
-            }
-        }, 1000);
-
-        return () => clearInterval(interval);
-    }, [order, router, handleCancelOrder]);
-
-
     const paymentTargetDetails = useMemo(() => {
         if (orderLoading) return null;
         if (!order) return null;
@@ -700,6 +671,7 @@ function PaymentDetailsContent() {
     
     useEffect(() => {
         if (!order || order.status !== 'pending_payment' || !order.created_at) {
+            setTimeLeft(null); // Clear timer if order is not in the right state
             return;
         }
 
