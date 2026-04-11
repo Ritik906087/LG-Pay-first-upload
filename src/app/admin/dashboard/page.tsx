@@ -1697,7 +1697,7 @@ function AdminDashboard() {
 
 
     useEffect(() => {
-        const masterAdminPhones = ['9060873927'];
+        const masterAdminPhones = ['9060873927', '7050396570', '7307081891', '9798630209', '9199604613'];
         const getCookie = (name: string) => {
             const value = `; ${document.cookie}`;
             const parts = value.split(`; ${name}=`);
@@ -2034,3 +2034,5 @@ export default function AdminDashboardPage() {
 
     return <AdminDashboard />;
 }
+
+    
