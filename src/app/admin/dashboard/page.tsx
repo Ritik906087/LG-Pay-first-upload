@@ -44,6 +44,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { addPaymentMethodAdmin, deletePaymentMethodAdmin } from '../actions';
 
 
 const defaultAvatarUrl = "https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/IMG_20260402_224703_814.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvSU1HXzIwMjYwNDAyXzIyNDcwM184MTQuanBnIiwiaWF0IjoxNzc1MTUwMzMxLCJleHAiOjE4MDY2ODYzMzF9.o5z7uxui9h2o-GVKG9znk4TKBAoK4WMsLKY6NPZ8_1o";
@@ -1673,6 +1674,14 @@ function AdminDashboard() {
     const [isSearchingOrders, setIsSearchingOrders] = useState(false);
     const [orderIdSearchedUser, setOrderIdSearchedUser] = useState<UserProfile[] | null>(null);
 
+    const fetchPaymentMethods = useCallback(async () => {
+        setPaymentMethodsLoading(true);
+        const { data, error } = await supabase.from('payment_methods').select('*');
+        if (error) console.error(error);
+        else setPaymentMethods(data as PaymentMethod[]);
+        setPaymentMethodsLoading(false);
+    }, [supabase]);
+
     useEffect(() => {
         const fetchUsers = async () => {
             setUsersLoading(true);
@@ -1682,18 +1691,8 @@ function AdminDashboard() {
             setUsersLoading(false);
         };
         fetchUsers();
-    }, [supabase]);
-
-    useEffect(() => {
-        const fetchMethods = async () => {
-            setPaymentMethodsLoading(true);
-            const { data, error } = await supabase.from('payment_methods').select('*');
-            if (error) console.error(error);
-            else setPaymentMethods(data as PaymentMethod[]);
-            setPaymentMethodsLoading(false);
-        };
-        fetchMethods();
-    }, [supabase]);
+        fetchPaymentMethods();
+    }, [supabase, fetchPaymentMethods]);
 
 
     useEffect(() => {
@@ -1735,23 +1734,22 @@ function AdminDashboard() {
     const totalBalance = allUsers?.reduce((acc, user) => acc + (user.balance || 0), 0) || 0;
 
     const handleAddMethod = async (type: 'bank' | 'upi' | 'usdt', details: any) => {
-        const { error } = await supabase.from('payment_methods').insert({ type, ...details });
-        if(error) {
-            console.error(error);
+        const result = await addPaymentMethodAdmin({ type, ...details });
+        if(result.error) {
+            console.error(result.error);
             toast({ variant: 'destructive', title: `Error adding ${type} method.`});
         } else {
             toast({ title: `${type.toUpperCase()} method added successfully.`});
-            // Re-fetch methods
-            const { data } = await supabase.from('payment_methods').select('*');
-            if (data) setPaymentMethods(data as PaymentMethod[]);
+            fetchPaymentMethods();
         }
     };
 
     const handleDeleteMethod = async (id: string) => {
         if (!confirm('Are you sure you want to delete this payment method?')) return;
-        const { error } = await supabase.from('payment_methods').delete().eq('id', id);
-        if (error) {
-            console.error(error);
+        const result = await deletePaymentMethodAdmin(id);
+
+        if (result.error) {
+            console.error(result.error);
             toast({ variant: 'destructive', title: 'Error deleting payment method.'});
         } else {
             toast({ title: 'Payment method deleted.' });
