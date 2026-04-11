@@ -77,37 +77,16 @@ export function RegisterForm() {
     try {
       const email = `${values.phone}@lgpay.app`;
       
-      let inviterUid: string | null = null;
-
-      // Step 1: Validate invitation code if provided
-      if (values.invitationCode) {
-        const { data: inviterData, error: inviterError } = await supabase
-          .from('users')
-          .select('id')
-          .eq('numeric_id', values.invitationCode)
-          .single();
-        
-        if (inviterError || !inviterData) {
-          if(inviterError && inviterError.code !== 'PGRST116') {
-               console.error("Inviter check failed:", inviterError);
-          }
-          toast({
-              variant: 'destructive',
-              title: 'Invalid Invitation Code',
-              description: 'The invitation code you entered is not valid. Please check and try again.'
-          });
-          setIsLoading(false);
-          form.setError("invitationCode", { message: "Invalid invitation code." });
-          return; // Stop registration
-        }
-        
-        inviterUid = inviterData.id;
-      }
-
-      // Step 2: Sign up the user in Supabase Auth
+      // Step 1: Sign up the user. Pass the phone number in the metadata
+      // so the database trigger can create the user profile correctly.
       const { data: { user }, error: signUpError } = await supabase.auth.signUp({
         email: email,
         password: values.password,
+        options: {
+            data: {
+                phone: values.phone // Pass phone to be used in the trigger
+            }
+        }
       });
       
       if (signUpError) {
@@ -118,24 +97,35 @@ export function RegisterForm() {
         throw new Error("User registration failed, please try again.");
       }
       
-      // Step 3: Create the user profile in the 'users' table
-      const numericId = Math.floor(10000000 + Math.random() * 90000000).toString();
-      const { error: profileError } = await supabase
-        .from('users')
-        .insert({
-          id: user.id,
-          numeric_id: numericId,
-          phone_number: values.phone,
-          balance: 0.00,
-          hold_balance: 0.00,
-          display_name: `User${values.phone.slice(-4)}`,
-          photo_url: defaultAvatarUrl,
-          inviter_uid: inviterUid,
-          email: user.email, 
-        });
+      // Step 2: Handle invitation code if provided.
+      // The user profile is already created by the trigger, so we just need to update it.
+      if (values.invitationCode) {
+        const { data: inviterData, error: inviterError } = await supabase
+          .from('users')
+          .select('id')
+          .eq('numeric_id', values.invitationCode)
+          .single();
+        
+        if (inviterError || !inviterData) {
+            // Non-critical error. The user is registered, but the invite code was bad.
+            // We can show a less severe toast here.
+            toast({
+              variant: 'destructive',
+              title: 'Invalid Invitation Code',
+              description: 'Your account was created, but the invitation code was not valid.'
+          });
+        } else {
+            // If inviter is found, update the new user's record with the inviter's ID.
+            const { error: updateError } = await supabase
+              .from('users')
+              .update({ inviter_uid: inviterData.id })
+              .eq('id', user.id);
 
-      if (profileError) {
-        throw profileError;
+            if (updateError) {
+              // Also not critical, but good to log for debugging.
+              console.error("Failed to set inviter UID:", updateError);
+            }
+        }
       }
       
       toast({
@@ -143,6 +133,7 @@ export function RegisterForm() {
         description: translations.registrationSuccessMessage,
       });
 
+      // Sign out the user immediately after registration so they have to log in.
       await supabase.auth.signOut();
       router.push("/login");
 
