@@ -186,7 +186,7 @@ function PaymentDetailsContent() {
         };
     
         fetchOrder();
-      }, [orderId, supabase]);
+    }, [orderId, supabase]);
 
     useEffect(() => {
         if (!order?.id) {
@@ -249,57 +249,6 @@ function PaymentDetailsContent() {
             fetchSeller();
         }
     }, [order, supabase, toast]);
-
-    useEffect(() => {
-        const fetchPaymentDetails = async () => {
-            if (!order) return;
-            const isP2P = order.payment_type === 'p2p_upi' || order.payment_type === 'p2p_bank';
-            if (isP2P) {
-                setDetailsLoading(false);
-                return;
-            }
-    
-            setDetailsLoading(true);
-            
-            // 1. First try exact match
-            let { data: paymentMethod, error: primaryError } = await supabase
-              .from("payment_methods")
-              .select("*")
-              .eq("provider", order.payment_provider)
-              .eq("type", order.payment_type)
-              .eq("is_active", true)
-              .maybeSingle();
-    
-            if (primaryError) {
-              console.error("Error fetching primary payment method:", primaryError);
-            }
-    
-            // 2. If exact provider match is not found, fallback
-            if (!paymentMethod) {
-              console.log(`No exact match for provider "${order.payment_provider}" and type "${order.payment_type}". Falling back to type only.`);
-              const { data: fallbackMethod, error: fallbackError } = await supabase
-                .from("payment_methods")
-                .select("*")
-                .eq("type", order.payment_type)
-                .eq("is_active", true)
-                .limit(1)
-                .maybeSingle();
-    
-              if (fallbackError) {
-                  console.error("Error fetching fallback payment method:", fallbackError);
-              }
-              
-              paymentMethod = fallbackMethod;
-            }
-    
-            setAdminPaymentDetails(paymentMethod);
-            setDetailsLoading(false);
-        };
-    
-        if(!orderLoading && order) {
-            fetchPaymentDetails();
-        }
-    }, [order, orderLoading, supabase]);
 
     const handleCancelOrder = useCallback(async (reason: string, isAutoCancel: boolean) => {
         if (!order || !supabase) return;
@@ -387,6 +336,55 @@ function PaymentDetailsContent() {
             setIsUpdatingProvider(false);
         }
     };
+
+    useEffect(() => {
+        const fetchPaymentDetails = async () => {
+            if (!order) return;
+            const isP2P = order.payment_type === 'p2p_upi' || order.payment_type === 'p2p_bank';
+            if (isP2P) {
+                setDetailsLoading(false);
+                return;
+            }
+    
+            setDetailsLoading(true);
+            
+            let { data: paymentMethod, error: primaryError } = await supabase
+              .from("payment_methods")
+              .select("*")
+              .eq("provider", order.payment_provider)
+              .eq("type", order.payment_type)
+              .eq("is_active", true)
+              .maybeSingle();
+    
+            if (primaryError) {
+              console.error("Error fetching primary payment method:", primaryError);
+            }
+    
+            if (!paymentMethod) {
+              console.log(`No exact match for provider "${order.payment_provider}" and type "${order.payment_type}". Falling back to type only.`);
+              const { data: fallbackMethod, error: fallbackError } = await supabase
+                .from("payment_methods")
+                .select("*")
+                .eq("type", order.payment_type)
+                .eq("is_active", true)
+                .limit(1)
+                .maybeSingle();
+    
+              if (fallbackError) {
+                  console.error("Error fetching fallback payment method:", fallbackError);
+              }
+              
+              paymentMethod = fallbackMethod;
+            }
+    
+            setAdminPaymentDetails(paymentMethod);
+            setDetailsLoading(false);
+        };
+    
+        if(!orderLoading && order) {
+            fetchPaymentDetails();
+        }
+    }, [order, orderLoading, supabase]);
     
     const paymentTargetDetails = useMemo(() => {
         if (orderLoading) return null;
@@ -1187,7 +1185,8 @@ function PaymentDetailsContent() {
                             Verify
                         </AlertDialogAction>
                     </AlertDialogFooter>
-                </AlertDialog>
+                </AlertDialogContent>
+            </AlertDialog>
     
             <Dialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
                 <DialogContent>
@@ -1235,7 +1234,6 @@ function PaymentDetailsContent() {
         </div>
     );
 }
-
 
 export default function ConfirmPage() {
   return (
