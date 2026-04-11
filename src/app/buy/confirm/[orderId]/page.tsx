@@ -179,7 +179,6 @@ function PaymentDetailsContent() {
             setOrder(data as Order);
           } else {
             console.error("Order fetch error:", error);
-            // Do not toast here as it might be a race condition. The UI will show a proper message.
             setOrder(null);
           }
           
