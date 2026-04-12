@@ -534,138 +534,98 @@ function PaymentDetailsContent() {
         }
     };
     
-    const handleConfirm = async () => {
-        if (isUSDT) {
-            if (!utr || utr.length < 50) {
-                toast({ variant: 'destructive', title: 'Invalid Transaction Hash', description: 'Please provide a valid TxID.' });
-                return;
-            }
-        } else {
-            if (!utr || utr.length !== 12 || !/^\d+$/.test(utr)) {
-                toast({ variant: 'destructive', title: 'Invalid UTR', description: 'Please provide a valid 12-digit UTR.' });
-                return;
-            }
-        }
-        
-        if (!screenshotFile) {
-            toast({ variant: 'destructive', title: 'Missing Screenshot', description: 'Please upload your payment proof screenshot.' });
+const handleConfirm = async () => {
+    // Validations
+    if (isUSDT) {
+        if (!utr || utr.length < 50) {
+            toast({ variant: 'destructive', title: 'Invalid Transaction Hash', description: 'Please provide a valid TxID.' });
             return;
         }
-        
-        if (!order || !user || !supabase) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Could not initialize. Please try again.' });
+    } else {
+        if (!utr || utr.length !== 12 || !/^\d+$/.test(utr)) {
+            toast({ variant: 'destructive', title: 'Invalid UTR', description: 'Please provide a valid 12-digit UTR.' });
             return;
         }
-    
-        setIsConfirming(true);
-    
-        try {
-            const fileExt = screenshotFile.name.split('.').pop();
-            const fileName = `${user.id}-${uuidv4()}.${fileExt}`;
-            const filePath = `payment-proofs/${fileName}`;
-    
-            console.log("Uploading screenshot path", filePath);
-            console.log("Current user", user?.id);
+    }
+    if (!screenshotFile) {
+        toast({ variant: 'destructive', title: 'Missing Screenshot', description: 'Please upload your payment proof screenshot.' });
+        return;
+    }
+    if (!order || !user || !supabase) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not initialize. Please try again.' });
+        return;
+    }
 
-            const { error: uploadError } = await supabase.storage
-                .from('reports')
-                .upload(filePath, screenshotFile);
-    
-            if (uploadError) {
-                throw uploadError;
-            }
-    
-            const { data: { publicUrl } } = supabase.storage.from('reports').getPublicUrl(filePath);
+    setIsConfirming(true);
 
-            const updatePayload: any = {
-                utr,
-                status: 'pending_confirmation',
-                submitted_at: new Date().toISOString(),
-                screenshot_url: publicUrl,
-            };
+    try {
+        // 1. Upload screenshot
+        const fileExt = screenshotFile.name.split('.').pop();
+        const fileName = `${user.id}-${uuidv4()}.${fileExt}`;
+        const filePath = `payment-proofs/${fileName}`;
 
-            if (ocrResult) {
-                updatePayload.ocr_amount_match = ocrResult.amountMatch ?? false;
-                updatePayload.ocr_utr_match = ocrResult.utrMatch ?? false;
-                updatePayload.ocr_upi_match = ocrResult.upiMatch ?? false;
-                updatePayload.ocr_name_match = ocrResult.nameMatch ?? false;
-                updatePayload.ocr_date_match = ocrResult.dateMatch ?? false;
-                updatePayload.ocr_status_match = ocrResult.statusMatch ?? false;
-                updatePayload.ocr_raw_text = ocrResult.rawText ?? '';
-            }
-            
-            const { error: buyOrderError } = await supabase.from('orders').update(updatePayload).eq('id', Number(order.id));
-            if (buyOrderError) throw buyOrderError;
+        const { error: uploadError } = await supabase.storage
+            .from('reports') // This should be a bucket with correct policies
+            .upload(filePath, screenshotFile);
 
-            if (order.payment_type?.startsWith('p2p_') && order.matched_sell_order_id) {
-                const { data: sellOrderData, error: fetchSellOrderError } = await supabase
-                    .from('sell_orders')
-                    .select('id, matched_buy_orders')
-                    .eq('id', order.matched_sell_order_id)
-                    .single();
-
-                if (fetchSellOrderError || !sellOrderData) {
-                    console.error("CRITICAL: Failed to fetch sell order for P2P update after buyer submitted proof.", { error: fetchSellOrderError });
-                    toast({
-                        variant: 'destructive',
-                        title: 'Seller Not Updated',
-                        description: 'Could not update seller status. Please contact support.'
-                    });
-                } else {
-                    const currentMatched = (sellOrderData.matched_buy_orders || []) as any[];
-                    const updatedMatched = currentMatched.map(match =>
-                        match.order_id === order.order_id
-                            ? { ...match, status: 'pending_confirmation', utr: utr }
-                            : match
-                    );
-
-                    const { error: updateSellOrderError } = await supabase
-                        .from('sell_orders')
-                        .update({ matched_buy_orders: updatedMatched })
-                        .eq('id', sellOrderData.id);
-
-                    if (updateSellOrderError) {
-                        console.error("CRITICAL: Failed to update matched_buy_orders on sell order.", updateSellOrderError);
-                        toast({
-                            variant: 'destructive',
-                            title: 'Seller Not Updated',
-                            description: `Error: ${updateSellOrderError.message}. Please contact support.`
-                        });
-                    }
-                }
-            }
-    
-            if (order && userProfile && details) {
-                try {
-                    const receiverDetailsForTg = Object.fromEntries(
-                        Object.entries(details).map(([key, value]) => [key, String(value)])
-                    );
-                    await sendOrderConfirmationToTelegram({
-                        orderId: order.order_id,
-                        userNumericId: userProfile.numeric_id,
-                        amount: order.base_amount,
-                        utr: utr,
-                        receiverDetails: receiverDetailsForTg,
-                    });
-                } catch (tgError) {
-                    console.error("Failed to send Telegram notification:", tgError);
-                }
-            }
-
-            toast({ title: 'Payment Submitted!', description: 'Your proof is under review.' });
-            router.push(`/order/${order.id}`);
-        } catch (error: any) {
-            console.error("Error submitting payment proof: ", error);
-            
-            let description = error.message || 'Failed to save order details.';
-            if (error.message && (error.message.toLowerCase().includes('security rule') || error.message.toLowerCase().includes('rls') || error.message.toLowerCase().includes('policy'))) {
-                description = "Upload permission issue. Please contact support.";
-            }
-
-            toast({ variant: 'destructive', title: 'Submission Failed', description: description });
-            setIsConfirming(false);
+        if (uploadError) {
+            throw new Error(`Failed to upload screenshot: ${uploadError.message}`);
         }
-    };
+
+        const { data: { publicUrl } } = supabase.storage.from('reports').getPublicUrl(filePath);
+        
+        // 2. Prepare payload for RPC
+        const ocrPayload = {
+            amountMatch: ocrResult?.amountMatch ?? null,
+            utrMatch: ocrResult?.utrMatch ?? null,
+            upiMatch: ocrResult?.upiMatch ?? null,
+            nameMatch: ocrResult?.nameMatch ?? null,
+            dateMatch: ocrResult?.dateMatch ?? null,
+            statusMatch: ocrResult?.statusMatch ?? null,
+            rawText: ocrResult?.rawText ?? null,
+        };
+
+        const rpcParams = {
+            p_order_id: Number(order.id),
+            p_utr: utr,
+            p_screenshot_url: publicUrl,
+            p_ocr_results: ocrPayload
+        };
+
+        // 3. Call the secure RPC function
+        const { error: rpcError } = await supabase.rpc('submit_payment_proof', rpcParams);
+        
+        if (rpcError) {
+            throw new Error(`Failed to confirm payment: ${rpcError.message}`);
+        }
+
+        // 4. Handle success (Telegram notification and navigation)
+        if (userProfile && details) {
+            try {
+                const receiverDetailsForTg = Object.fromEntries(
+                    Object.entries(details).map(([key, value]) => [key, String(value)])
+                );
+                await sendOrderConfirmationToTelegram({
+                    orderId: order.order_id,
+                    userNumericId: userProfile.numeric_id,
+                    amount: order.base_amount,
+                    utr: utr,
+                    receiverDetails: receiverDetailsForTg,
+                });
+            } catch (tgError) {
+                console.error("Failed to send Telegram notification:", tgError);
+            }
+        }
+
+        toast({ title: 'Payment Submitted!', description: 'Your proof is under review.' });
+        router.push(`/order/${order.id}`);
+
+    } catch (error: any) {
+        console.error("Error submitting payment proof: ", error);
+        toast({ variant: 'destructive', title: 'Submission Failed', description: error.message });
+        setIsConfirming(false); // Only set to false on error
+    }
+};
 
     const loading = detailsLoading || orderLoading || userLoading || (order && (order.payment_type === 'p2p_upi' || order.payment_type === 'p2p_bank') && sellerLoading);
     const currentProviderDetails = provider ? paymentMethodDetails[provider] : null;
