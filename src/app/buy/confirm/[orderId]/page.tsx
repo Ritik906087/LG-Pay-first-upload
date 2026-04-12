@@ -110,7 +110,7 @@ function PaymentDetailsContent() {
     const searchParams = useSearchParams();
     const pathname = usePathname();
     const { toast } = useToast();
-    const { user, profile: userProfile } = useSupabaseUser();
+    const { user, profile: userProfile, loading: userLoading } = useSupabaseUser();
     const supabase = createClient();
 
     const orderId = params.orderId as string;
@@ -157,6 +157,8 @@ function PaymentDetailsContent() {
     ];
 
     useEffect(() => {
+        if (userLoading) return;
+
         if (!orderId || !user || hasFetchedRef.current) {
           if (!orderId || !user) {
             setOrderLoading(false);
@@ -185,7 +187,7 @@ function PaymentDetailsContent() {
         };
     
         fetchOrder();
-    }, [orderId, supabase, user]);
+    }, [orderId, supabase, user, userLoading]);
 
     useEffect(() => {
         if (!order?.id) {
@@ -665,7 +667,7 @@ function PaymentDetailsContent() {
         }
     };
 
-    const loading = detailsLoading || orderLoading || (order && (order.payment_type === 'p2p_upi' || order.payment_type === 'p2p_bank') && sellerLoading);
+    const loading = detailsLoading || orderLoading || userLoading || (order && (order.payment_type === 'p2p_upi' || order.payment_type === 'p2p_bank') && sellerLoading);
     const currentProviderDetails = provider ? paymentMethodDetails[provider] : null;
     
     const usdtAmount = useMemo(() => {
