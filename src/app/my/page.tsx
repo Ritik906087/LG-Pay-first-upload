@@ -39,6 +39,7 @@ import {
   FileClock,
   MessageSquareText,
   PlaySquare,
+  ArrowUpFromLine,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -83,7 +84,7 @@ export default function MyPage() {
     { icon: Wallet, label: translations.collection, href: "/my/collection" },
     { icon: Lock, label: translations.paymentPassword, href: "/my/change-password" },
     { icon: ScrollText, label: translations.transaction, href: "/my/transactions" },
-    { icon: Settings, label: translations.settings, href: "/my/settings" },
+    { icon: ArrowUpFromLine, label: "My Sell Orders", href: "/order?tab=sell" },
   ]
 
   const listItems = [

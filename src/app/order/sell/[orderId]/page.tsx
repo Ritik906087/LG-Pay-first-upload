@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useMemo, Suspense, useState, useCallback, useEffect } from 'react';
@@ -70,7 +69,13 @@ const statusConfig: { [key: string]: { style: string; text: string; icon: React.
   cancelled: { style: 'bg-red-100 text-red-800', text: 'Cancelled', icon: XCircle },
 };
 
-const MatchedOrderCard = ({ order }: { order: MatchedBuyOrder }) => {
+const MatchedOrderCard = ({ order, sellOrderId }: { order: MatchedBuyOrder, sellOrderId: string }) => {
+  const { user } = useSupabaseUser();
+  const supabase = createClient();
+  const { toast } = useToast();
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
+
   const getStatusConfig = (status: MatchedBuyOrder['status']) => {
       if (status === 'completed') {
           return { style: 'bg-green-100 text-green-800', text: 'Completed', icon: CheckCircle };
@@ -78,12 +83,28 @@ const MatchedOrderCard = ({ order }: { order: MatchedBuyOrder }) => {
       return statusConfig[status] || { style: "bg-gray-100 text-gray-800", text: status.replace(/_/g, ' '), icon: AlertTriangle };
   }
   const currentStatus = getStatusConfig(order.status);
-  const { toast } = useToast();
   
   const copyToClipboard = (text: string | undefined, label: string) => {
     if(!text) return;
     navigator.clipboard.writeText(text).then(() => toast({ title: `${label} Copied!` }));
   };
+
+  const handleConfirm = async () => {
+      if (!user) return;
+      setIsConfirming(true);
+      const { error } = await supabase.rpc('seller_confirm_payment', { p_order_id: Number(sellOrderId), p_seller_id: user.id });
+      if (error) {
+          toast({ variant: 'destructive', title: 'Confirmation Failed', description: error.message });
+      } else {
+          toast({ title: 'Payment Confirmed!', description: 'Balance has been transferred to the buyer.' });
+      }
+      setIsConfirming(false);
+  }
+
+  // TODO: Implement Reject functionality with a modal for reason
+  const handleReject = async () => {
+      alert("Reject functionality to be implemented.");
+  }
 
   return (
     <Card className="bg-white shadow-sm">
@@ -150,6 +171,17 @@ const MatchedOrderCard = ({ order }: { order: MatchedBuyOrder }) => {
             </div>
           )}
         </div>
+
+        {order.status === 'pending_confirmation' && (
+            <div className="flex gap-2 pt-2 border-t">
+                <Button onClick={handleReject} variant="destructive" className="w-full" disabled={isRejecting || isConfirming}>
+                    {isRejecting ? <Loader size="xs"/> : 'Reject'}
+                </Button>
+                <Button onClick={handleConfirm} className="w-full btn-gradient" disabled={isConfirming || isRejecting}>
+                    {isConfirming ? <Loader size="xs" /> : 'Confirm Payment'}
+                </Button>
+            </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -351,7 +383,7 @@ function SellOrderStatusContent() {
                         {activeMatchedOrders && activeMatchedOrders.length > 0 ? (
                             <div className="space-y-3">
                                 {activeMatchedOrders.map(buyOrder => (
-                                    <MatchedOrderCard key={buyOrder.order_id} order={buyOrder} />
+                                    <MatchedOrderCard key={buyOrder.order_id} order={buyOrder} sellOrderId={sellOrder.id} />
                                 ))}
                             </div>
                         ) : (
@@ -369,7 +401,7 @@ function SellOrderStatusContent() {
                         <CardContent>
                             <div className="space-y-3">
                                 {historicalMatchedOrders.map(buyOrder => (
-                                    <MatchedOrderCard key={buyOrder.order_id} order={buyOrder} />
+                                    <MatchedOrderCard key={buyOrder.order_id} order={buyOrder} sellOrderId={sellOrder.id}/>
                                 ))}
                             </div>
                         </CardContent>
@@ -391,5 +423,3 @@ export default function SellOrderStatusPage() {
     </Suspense>
   );
 }
-
-    

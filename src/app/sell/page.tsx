@@ -24,11 +24,10 @@ import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Loader } from '@/components/ui/loader';
 
-// Simplified for UPI-only sell flow
 type WithdrawalMethod = {
     type: 'upi';
     name: string;
-    upiId: string; // The user profile stores it as upiId (camelCase)
+    upiId: string;
     upiHolderName?: string;
 }
 
@@ -47,9 +46,10 @@ export default function SellPage() {
   const supabase = createClient();
 
   const [amount, setAmount] = useState('');
-  const [selectedMethod, setSelectedMethod] = useState<WithdrawalMethod | null>(null);
+  const [minLimit, setMinLimit] = useState('100');
+  const [selectedMethods, setSelectedMethods] = useState<WithdrawalMethod[]>([]);
   const [isAmountValid, setIsAmountValid] = useState(true);
-  const [isSelling, setIsSelling] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
 
   const upiMethods: WithdrawalMethod[] = useMemo(() => {
     if (!userProfile?.payment_methods) return [];
@@ -58,7 +58,6 @@ export default function SellPage() {
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    // Allow only numbers
     if (/^\d*$/.test(value)) {
       setAmount(value);
       const numValue = parseInt(value, 10);
@@ -70,77 +69,69 @@ export default function SellPage() {
     }
   };
 
-  const handleSell = async () => {
+  const handleCreateOrder = async () => {
     const sellAmount = parseInt(amount, 10);
     
     if (!isAmountValid || !sellAmount || !amount) {
         toast({ variant: 'destructive', title: 'Invalid Amount', description: 'Please enter a valid amount of at least ₹100, in multiples of 100.' });
         return;
     }
-    
-    if (!selectedMethod) {
-        toast({ variant: 'destructive', title: 'No method selected', description: 'Please select a withdrawal method.' });
+    if (selectedMethods.length === 0) {
+        toast({ variant: 'destructive', title: 'No Method Selected', description: 'Please select at least one UPI account to receive payments.' });
         return;
     }
-    
-    if (!selectedMethod.upiId) {
-      toast({ variant: 'destructive', title: 'Invalid UPI Method', description: 'The selected UPI method does not have a valid UPI ID.' });
-      return;
-    }
-
     if (!userProfile || !user) {
         toast({ variant: 'destructive', title: 'User not loaded', description: 'Please wait a moment and try again.' });
         return;
     }
-
     if (userProfile.balance < sellAmount) {
-        toast({ variant: 'destructive', title: 'Insufficient Balance', description: 'You do not have enough balance to make this transaction.' });
+        toast({ variant: 'destructive', title: 'Insufficient Balance', description: 'You do not have enough balance to create this sell order.' });
+        return;
+    }
+    
+    const minLimitNum = parseInt(minLimit, 10);
+    if(isNaN(minLimitNum) || minLimitNum < 100 || minLimitNum > sellAmount) {
+        toast({ variant: 'destructive', title: 'Invalid Minimum Limit', description: `Minimum limit must be between ₹100 and ₹${sellAmount}.` });
         return;
     }
 
-    setIsSelling(true);
+    setIsCreating(true);
 
     try {
-        // Prepare the payload for the RPC call
-        const p_withdrawal_method = {
-            type: 'upi',
-            name: selectedMethod.name,
-            upi_id: selectedMethod.upiId,
-            upi_holder_name: selectedMethod.upiHolderName,
-        };
-
-        const rpc_payload = {
+        const { data, error } = await supabase.rpc('create_sell_order', {
             p_user_id: user.id,
             p_amount: sellAmount,
-            p_withdrawal_method: p_withdrawal_method,
-        };
-        
-        console.log('Attempting to create sell order with payload:', rpc_payload);
-
-        const { error } = await supabase.rpc('create_sell_order_v2', rpc_payload);
+            p_payment_methods: selectedMethods,
+            p_min_limit: minLimitNum,
+            p_max_limit: sellAmount
+        });
 
         if (error) throw error;
-
-        toast({
-            title: 'Sell Order Placed!',
-            description: `Your request to sell ${sellAmount} LGB is being processed.`,
-        });
-        router.push('/order');
-
+        
+        toast({ title: 'Sell Order Created!', description: 'Your order is now active for buyers.' });
+        router.push('/order?tab=sell');
     } catch (error: any) {
-        console.error('Sell transaction failed:', error);
-        const errorMessage = error.message || (typeof error === 'object' ? JSON.stringify(error) : 'An unexpected error occurred.');
+        console.error('Sell order creation failed:', error);
         toast({
             variant: "destructive",
-            title: "Sell Failed",
-            description: `Details: ${errorMessage}. If the problem persists, please contact support.`,
-            duration: 9000
+            title: "Failed to Create Order",
+            description: error.message || 'An unexpected error occurred.',
         });
     } finally {
-        setIsSelling(false);
+        setIsCreating(false);
     }
   };
 
+  const handleMethodSelection = (method: WithdrawalMethod) => {
+      setSelectedMethods(prev => {
+          const isSelected = prev.some(m => m.upiId === method.upiId);
+          if (isSelected) {
+              return prev.filter(m => m.upiId !== method.upiId);
+          } else {
+              return [...prev, method];
+          }
+      });
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-secondary">
@@ -150,78 +141,74 @@ export default function SellPage() {
             <ChevronLeft className="h-6 w-6 text-muted-foreground" />
           </Link>
         </Button>
-        <h1 className="text-xl font-bold">Sell LG</h1>
-        <div className="w-8"></div>
+        <h1 className="text-xl font-bold">Create Sell Order</h1>
+        <Button asChild variant="link" className="h-8 w-auto">
+            <Link href="/order?tab=sell">My Orders</Link>
+        </Button>
       </header>
 
       <main className="flex-grow space-y-4 p-4 pb-20">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Info className="h-5 w-5 text-primary" />
-              Withdrawal Rules
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm text-muted-foreground">
-            <p>1. Minimum withdrawal amount is ₹100.</p>
-            <p>2. Withdrawal amount must be a multiple of 100 (e.g., 100, 500, 1200).</p>
-            <p>3. Funds will be transferred to your selected account within 30 minutes.</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Sell Amount</CardTitle>
+            <CardTitle className="text-base">Total Sell Amount</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg font-bold">
-                ₹
-              </span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-lg font-bold">₹</span>
               <Input
                 placeholder="0.00"
-                className={cn(
-                  'h-14 pl-8 text-2xl font-bold tracking-wider',
-                  !isAmountValid && amount !== '' && 'border-destructive ring-2 ring-destructive/50'
-                )}
+                className={cn('h-14 pl-8 text-2xl font-bold tracking-wider', !isAmountValid && amount !== '' && 'border-destructive ring-2 ring-destructive/50')}
                 value={amount}
                 onChange={handleAmountChange}
-                type="text" 
-                inputMode="numeric"
+                type="text" inputMode="numeric"
               />
                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
                 <p>Balance: {profileLoading ? '...' : (userProfile?.balance || 0).toFixed(2)}</p>
                </div>
             </div>
             {!isAmountValid && amount !== '' && (
-              <p className="mt-2 text-xs text-destructive">
-                Amount must be a multiple of 100.
-              </p>
+              <p className="mt-2 text-xs text-destructive">Amount must be at least ₹100 and a multiple of 100.</p>
             )}
           </CardContent>
         </Card>
 
         <Card>
             <CardHeader>
-                <CardTitle className="text-base">Withdrawal Method</CardTitle>
+                <CardTitle className="text-base">Transaction Limits</CardTitle>
+            </CardHeader>
+            <CardContent>
+                 <div className="space-y-2">
+                    <Label htmlFor="min-limit">Minimum Buy Amount</Label>
+                    <Input id="min-limit" placeholder="e.g., 100" value={minLimit} onChange={(e) => /^\d*$/.test(e.target.value) && setMinLimit(e.target.value)} type="text" inputMode="numeric" />
+                    <p className="text-xs text-muted-foreground">The smallest amount a buyer can purchase from this order.</p>
+                 </div>
+            </CardContent>
+        </Card>
+
+        <Card>
+            <CardHeader>
+                <CardTitle className="text-base">Receiving Accounts</CardTitle>
+                 <p className="text-sm text-muted-foreground">Select which UPI accounts buyers can pay to.</p>
             </CardHeader>
             <CardContent>
                 {profileLoading ? (
                     <Skeleton className="h-24 w-full" />
                 ) : upiMethods.length > 0 ? (
-                    <RadioGroup 
-                        onValueChange={(value) => setSelectedMethod(JSON.parse(value))}
-                        className="space-y-3"
-                    >
-                        {upiMethods.map((method, index) => {
+                    <div className="space-y-3">
+                        {upiMethods.map((method) => {
                             const upiDetails = paymentMethodDetails[method.name];
-                            const id = method.upiId || `method-id-${index}`;
+                            const id = method.upiId;
+                            const isSelected = selectedMethods.some(m => m.upiId === method.upiId);
                             
                             if (!upiDetails) return null;
 
                             return (
-                                <Label key={id} htmlFor={id} className={cn("flex items-center gap-4 rounded-xl p-3 border-2 border-transparent has-[:checked]:border-primary", upiDetails.bgColor)}>
-                                    <RadioGroupItem value={JSON.stringify(method)} id={id} className="border-white text-white ring-offset-0" />
+                                <Label key={id} htmlFor={id} className={cn(
+                                    "flex items-center gap-4 rounded-xl p-3 border-2 transition-all",
+                                    isSelected ? 'border-primary' : 'border-transparent',
+                                    upiDetails.bgColor
+                                )}>
+                                    <Input type="checkbox" id={id} className="h-5 w-5 rounded-md border-white text-primary focus:ring-primary" checked={isSelected} onChange={() => handleMethodSelection(method)}/>
                                     
                                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white p-1">
                                         <Image src={upiDetails.logo} alt={`${method.name} logo`} width={32} height={32} className="object-contain" />
@@ -234,7 +221,7 @@ export default function SellPage() {
                                 </Label>
                             );
                         })}
-                    </RadioGroup>
+                    </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center h-24 text-center text-muted-foreground">
                         <Wallet className="h-8 w-8 opacity-50 mb-2" />
@@ -251,10 +238,10 @@ export default function SellPage() {
        <CardFooter className="p-4 bg-white border-t sticky bottom-0">
         <Button 
             className="w-full h-12 btn-gradient font-bold text-base"
-            onClick={handleSell}
-            disabled={isSelling || !isAmountValid || !amount || !selectedMethod}
+            onClick={handleCreateOrder}
+            disabled={isCreating || !isAmountValid || !amount || selectedMethods.length === 0}
         >
-          {isSelling ? <Loader size="sm" className="mr-2" /> : 'Sell Now'}
+          {isCreating ? <Loader size="sm" className="mr-2" /> : 'Create Sell Order'}
         </Button>
       </CardFooter>
     </div>

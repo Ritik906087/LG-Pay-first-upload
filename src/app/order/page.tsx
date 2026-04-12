@@ -1,10 +1,9 @@
 
-
 'use client';
 
 export const dynamic = "force-dynamic";
 
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -27,6 +26,7 @@ import { Loader } from '@/components/ui/loader';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { startOfDay, startOfWeek, startOfMonth, isAfter } from 'date-fns';
+import { useSearchParams } from 'next/navigation';
 
 type Order = {
   id: string;
@@ -220,7 +220,10 @@ const TransactionList = ({ orders, loading, type }: { orders: any[], loading: bo
 export default function OrderHistoryPage() {
   const { user } = useSupabaseUser();
   const supabase = createClient();
-  const [activeTab, setActiveTab] = useState('buy');
+  const searchParams = useSearchParams();
+  const defaultTab = searchParams.get('tab') || 'buy';
+
+  const [activeTab, setActiveTab] = useState(defaultTab);
   const [statusFilter, setStatusFilter] = useState('all');
   const [timeFilter, setTimeFilter] = useState('all_time');
   

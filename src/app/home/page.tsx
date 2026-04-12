@@ -1,5 +1,4 @@
 
-
 'use client';
 import {
   Card,
@@ -144,8 +143,10 @@ const InProgressOrderCard = ({ order, onExpire }: { order: any, onExpire: (order
     if (isBuy) {
         if (order.status === 'pending_payment') {
             buttonText = "Complete Payment";
-            buttonLink = `/buy/confirm/${order.id}?type=${order.payment_type}&provider=${order.payment_provider}`;
-            expiryTimestamp = new Date(new Date(order.created_at).getTime() + 10 * 60 * 1000);
+            buttonLink = `/buy/confirm/${order.id}`;
+            if (order.expires_at) {
+                expiryTimestamp = new Date(order.expires_at);
+            }
         } else if (order.status === 'pending_confirmation') {
             buttonText = "View Order";
             buttonLink = `/order/${order.id}`;
@@ -255,23 +256,18 @@ export default function HomePage() {
   const handleOrderExpire = useCallback(async (orderId: string, type: 'buy' | 'sell', status: string) => {
     if (!user) return;
 
-    if (type === 'buy') {
-      const { data: currentOrder, error: fetchError } = await supabase.from('orders').select('status').eq('id', orderId).single();
-      
-      if (fetchError || !currentOrder || currentOrder.status !== status) return;
-
-      if (status === 'pending_payment') {
-        await supabase.from('orders').update({
-          status: 'failed',
-          cancellation_reason: 'Order timed out.',
-        }).eq('id', orderId);
-        toast({ variant: 'destructive', title: 'Order Timeout' });
-      } else if (status === 'pending_confirmation') {
-        await supabase.from('orders').update({
+    if (type === 'buy' && status === 'pending_payment') {
+        const { error } = await supabase.rpc('cancel_buy_order', { p_order_id: Number(orderId), p_actor_id: user.id });
+        if(error) {
+             toast({ variant: 'destructive', title: 'Failed to cancel expired order.' });
+        } else {
+             toast({ title: 'Order Expired', description: 'Your buy order has been automatically cancelled.' });
+        }
+    } else if (type === 'buy' && status === 'pending_confirmation') {
+      await supabase.from('orders').update({
           status: 'in_applied',
-        }).eq('id', orderId);
-        toast({ title: 'Order is now In Applied', description: 'Please wait for admin review.' });
-      }
+      }).eq('id', Number(orderId));
+      toast({ title: 'Order is now In Applied', description: 'Please wait for admin review.' });
     }
   }, [user, supabase, toast]);
 
