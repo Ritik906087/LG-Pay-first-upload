@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useMemo } from 'react';
@@ -128,7 +129,13 @@ export default function SellPage() {
 
     } catch (error: any) {
         console.error('Sell transaction failed:', error);
-        toast({ variant: 'destructive', title: 'Sell Failed', description: error.message || 'An unexpected error occurred. If the problem persists, please contact support.' });
+        const errorMessage = error.message || (typeof error === 'object' ? JSON.stringify(error) : 'An unexpected error occurred.');
+        toast({
+            variant: "destructive",
+            title: "Sell Failed",
+            description: `Details: ${errorMessage}. If the problem persists, please contact support.`,
+            duration: 9000
+        });
     } finally {
         setIsSelling(false);
     }
