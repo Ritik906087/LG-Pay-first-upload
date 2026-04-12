@@ -117,7 +117,7 @@ export default function SellPage() {
         
         console.log('Attempting to create sell order with payload:', rpc_payload);
 
-        const { error } = await supabase.rpc('create_sell_order', rpc_payload);
+        const { error } = await supabase.rpc('create_sell_order_v2', rpc_payload);
 
         if (error) throw error;
 
