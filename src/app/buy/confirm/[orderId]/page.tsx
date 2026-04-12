@@ -564,15 +564,22 @@ const handleConfirm = async () => {
         const fileName = `${user.id}-${uuidv4()}.${fileExt}`;
         const filePath = `payment-proofs/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
-            .from('reports') // This should be a bucket with correct policies
+        const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('reports')
             .upload(filePath, screenshotFile);
 
         if (uploadError) {
-            throw new Error(`Failed to upload screenshot: ${uploadError.message}`);
+            throw new Error(`Screenshot Upload Failed: ${uploadError.message}`);
+        }
+        if (!uploadData?.path) {
+            throw new Error("File uploaded but path was not returned. Cannot continue.");
         }
 
-        const { data: { publicUrl } } = supabase.storage.from('reports').getPublicUrl(filePath);
+        const { data: urlData } = supabase.storage.from('reports').getPublicUrl(uploadData.path);
+        const publicUrl = urlData.publicUrl;
+        if (!publicUrl) {
+            throw new Error("Could not get public URL for uploaded file.");
+        }
         
         // 2. Prepare payload for RPC
         const ocrPayload = {
@@ -621,9 +628,15 @@ const handleConfirm = async () => {
         router.push(`/order/${order.id}`);
 
     } catch (error: any) {
-        console.error("Error submitting payment proof: ", error);
-        toast({ variant: 'destructive', title: 'Submission Failed', description: error.message });
-        setIsConfirming(false); // Only set to false on error
+        console.error("FULL PAYMENT SUBMISSION ERROR: ", error);
+        const errorMessage = error.message || (typeof error === 'object' ? JSON.stringify(error) : 'An unknown error occurred.');
+        toast({
+            variant: 'destructive',
+            title: 'Submission Failed',
+            description: `Details: ${errorMessage}. Please try again or contact support.`,
+            duration: 9000,
+        });
+        setIsConfirming(false);
     }
 };
 
