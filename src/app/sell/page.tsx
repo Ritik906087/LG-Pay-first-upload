@@ -23,6 +23,16 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Loader } from '@/components/ui/loader';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useLanguage } from '@/context/language-context';
 
 type WithdrawalMethod = {
     type: 'upi';
@@ -44,12 +54,14 @@ export default function SellPage() {
   const { toast } = useToast();
   const { user, profile: userProfile, loading: profileLoading } = useSupabaseUser();
   const supabase = createClient();
+  const { translations } = useLanguage();
 
   const [amount, setAmount] = useState('');
   const [minLimit, setMinLimit] = useState('100');
   const [selectedMethods, setSelectedMethods] = useState<WithdrawalMethod[]>([]);
   const [isAmountValid, setIsAmountValid] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [showSellBlockAlert, setShowSellBlockAlert] = useState(false);
 
   const upiMethods: WithdrawalMethod[] = useMemo(() => {
     if (!userProfile?.payment_methods) return [];
@@ -72,6 +84,28 @@ export default function SellPage() {
   const handleCreateOrder = async () => {
     const sellAmount = parseInt(amount, 10);
     
+    if (!userProfile || !user) {
+        toast({ variant: 'destructive', title: 'User not loaded', description: 'Please wait a moment and try again.' });
+        return;
+    }
+
+    // Check for at least one completed buy order
+    const { count, error: countError } = await supabase
+        .from('orders')
+        .select('id', { count: 'exact' })
+        .eq('user_id', user.id)
+        .eq('status', 'completed');
+
+    if (countError) {
+        toast({ variant: 'destructive', title: 'Error checking order history.' });
+        return;
+    }
+
+    if (count === 0) {
+        setShowSellBlockAlert(true);
+        return;
+    }
+
     if (!isAmountValid || !sellAmount || !amount) {
         toast({ variant: 'destructive', title: 'Invalid Amount', description: 'Please enter a valid amount of at least ₹100, in multiples of 100.' });
         return;
@@ -80,10 +114,7 @@ export default function SellPage() {
         toast({ variant: 'destructive', title: 'No Method Selected', description: 'Please select at least one UPI account to receive payments.' });
         return;
     }
-    if (!userProfile || !user) {
-        toast({ variant: 'destructive', title: 'User not loaded', description: 'Please wait a moment and try again.' });
-        return;
-    }
+    
     if (userProfile.balance < sellAmount) {
         toast({ variant: 'destructive', title: 'Insufficient Balance', description: 'You do not have enough balance to create this sell order.' });
         return;
@@ -101,7 +132,7 @@ export default function SellPage() {
         const { data, error } = await supabase.rpc('create_sell_order', {
             p_user_id: user.id,
             p_amount: sellAmount,
-            p_payment_methods: selectedMethods,
+            p_withdrawal_method: selectedMethods,
             p_min_limit: minLimitNum,
             p_max_limit: sellAmount
         });
@@ -134,6 +165,7 @@ export default function SellPage() {
   }
 
   return (
+    <>
     <div className="flex min-h-screen flex-col bg-secondary">
       <header className="sticky top-0 z-10 flex items-center justify-between border-b bg-white p-4">
         <Button asChild variant="ghost" size="icon" className="h-8 w-8">
@@ -245,5 +277,20 @@ export default function SellPage() {
         </Button>
       </CardFooter>
     </div>
+    <AlertDialog open={showSellBlockAlert} onOpenChange={setShowSellBlockAlert}>
+        <AlertDialogContent>
+            <AlertDialogHeader>
+                <AlertDialogTitle>{translations.sellOrderBlocked}</AlertDialogTitle>
+                <AlertDialogDescription>
+                    {translations.sellOrderBlockedDescription}
+                </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+                 <Button variant="outline" onClick={() => setShowSellBlockAlert(false)}>Cancel</Button>
+                <AlertDialogAction onClick={() => router.push('/buy')}>{translations.buyNow}</AlertDialogAction>
+            </AlertDialogFooter>
+        </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

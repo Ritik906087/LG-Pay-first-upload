@@ -21,7 +21,8 @@
     "enterConfirmPassword": "Please enter the confirmation password",
     "invitationCode": "Invitation Code",
     "invitationCodeOptional": "Invitation Code (Optional)",
-    "invitationCodeRequired": "Invitation code is required.",
+    "invitationCodeRequired": "A valid invitation code is required.",
+    "invalidInvitationCode": "This invitation code is not valid.",
     "enterInvitationCode": "Please enter the invitation code",
     "iAgreeTo": "I have read and agree to the",
     "userAgreement": "User Agreement",
@@ -92,7 +93,12 @@
     "passwordUpdateFailedTitle": "Update Failed",
     "oldPasswordIncorrect": "The old password you entered is incorrect.",
     "updatePassword": "Update Password",
-    "updatingPassword": "Updating..."
+    "updatingPassword": "Updating...",
+    "registrationRequired": "Registration Required",
+    "numberNotRegistered": "This mobile number is not registered. Please create an account first.",
+    "sellOrderBlocked": "First Buy Order Required",
+    "sellOrderBlockedDescription": "To ensure account security, you must complete at least one buy order before you can create a sell order.",
+    "buyNow": "Buy Now"
   },
   "hi": {
     "accountLogin": "अकाउंट लॉगिन",
@@ -115,7 +121,8 @@
     "enterConfirmPassword": "कृपया पुष्टि पासवर्ड दर्ज करें",
     "invitationCode": "आमंत्रण कोड",
     "invitationCodeOptional": "आमंत्रण कोड (वैकल्पिक)",
-    "invitationCodeRequired": "आमंत्रण कोड आवश्यक है।",
+    "invitationCodeRequired": "एक वैध आमंत्रण कोड आवश्यक है।",
+    "invalidInvitationCode": "यह आमंत्रण कोड मान्य नहीं है।",
     "enterInvitationCode": "कृपया आमंत्रण कोड दर्ज करें",
     "iAgreeTo": "मैंने पढ़ लिया है और इससे सहमत हूं",
     "userAgreement": "उपयोगकर्ता समझौता",
@@ -186,7 +193,12 @@
     "passwordUpdateFailedTitle": "अपडेट विफल",
     "oldPasswordIncorrect": "आपके द्वारा दर्ज किया गया पुराना पासवर्ड गलत है।",
     "updatePassword": "पासवर्ड अपडेट करें",
-    "updatingPassword": "अपडेट हो रहा है..."
+    "updatingPassword": "अपडेट हो रहा है...",
+    "registrationRequired": "पंजीकरण आवश्यक है",
+    "numberNotRegistered": "यह मोबाइल नंबर पंजीकृत नहीं है। कृपया पहले एक खाता बनाएं।",
+    "sellOrderBlocked": "पहले खरीदें ऑर्डर आवश्यक",
+    "sellOrderBlockedDescription": "खाते की सुरक्षा सुनिश्चित करने के लिए, बेचने का ऑर्डर बनाने से पहले आपको कम से कम एक खरीदने का ऑर्डर पूरा करना होगा।",
+    "buyNow": "अभी खरीदें"
   },
   "ur": {
     "accountLogin": "اکاؤنٹ لاگ ان",
@@ -209,7 +221,8 @@
     "enterConfirmPassword": "براہ کرم تصدیقی پاس ورڈ درج کریں",
     "invitationCode": "دعوت نامہ کوڈ",
     "invitationCodeOptional": "دعوت نامہ کوڈ (اختیاری)",
-    "invitationCodeRequired": "دعوت نامہ کوڈ درکار ہے۔",
+    "invitationCodeRequired": "ایک درست دعوت نامہ کوڈ درکار ہے۔",
+    "invalidInvitationCode": "یہ دعوت نامہ کوڈ درست نہیں ہے۔",
     "enterInvitationCode": "براہ کرم دعوت نامہ کوڈ درج کریں",
     "iAgreeTo": "میں نے پڑھا ہے اور اس سے اتفاق کرتا ہوں",
     "userAgreement": "صارف کا معاہدہ",
@@ -280,6 +293,11 @@
     "passwordUpdateFailedTitle": "اپ ڈیٹ ناکام",
     "oldPasswordIncorrect": "آپ کا درج کردہ پرانا پاس ورڈ غلط ہے۔",
     "updatePassword": "پاس ورڈ اپ ڈیٹ کریں",
-    "updatingPassword": "اپ ڈیٹ ہو رہا ہے..."
+    "updatingPassword": "اپ ڈیٹ ہو رہا ہے...",
+    "registrationRequired": "اندراج درکار ہے",
+    "numberNotRegistered": "یہ موبائل نمبر رجسٹرڈ نہیں ہے۔ براہ کرم پہلے ایک اکاؤنٹ بنائیں۔",
+    "sellOrderBlocked": "پہلے خرید آرڈر ضروری",
+    "sellOrderBlockedDescription": "اکاؤنٹ کی حفاظت کو یقینی بنانے کے لیے، آپ کو فروخت کا آرڈر بنانے سے پہلے کم از کم ایک خرید کا آرڈر مکمل کرنا ہوگا۔",
+    "buyNow": "ابھی خریدیں"
   }
 }

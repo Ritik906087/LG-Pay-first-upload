@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -24,7 +25,6 @@ export function ForgotPasswordForm() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { translations } = useLanguage();
-  const supabase = createClient();
   
   const formSchema = z.object({
     phone: z
@@ -44,22 +44,12 @@ export function ForgotPasswordForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     
-    const email = `${values.phone}@lgpay.app`;
-
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
-
-    if (error) {
-        toast({
-            variant: 'destructive',
-            title: "Error Sending Reset Link",
-            description: "Could not send password reset link. Please ensure the phone number is correct and try again."
-        });
-    } else {
-        toast({
-            title: "Password Reset Link Sent",
-            description: "If an account exists for this number, a password reset link will be sent to the associated email.",
-        });
-    }
+    // Fake alert as requested
+    toast({
+        variant: 'destructive',
+        title: translations.registrationRequired,
+        description: translations.numberNotRegistered
+    });
 
     setIsLoading(false);
   }
