@@ -173,7 +173,7 @@ function PaymentDetailsContent() {
           const { data, error } = await supabase
             .from("orders")
             .select("*")
-            .eq("order_id", orderId)
+            .eq("id", orderId)
             .single();
     
           if (!error && data) {
