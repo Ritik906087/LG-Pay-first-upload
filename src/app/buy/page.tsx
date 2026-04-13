@@ -302,41 +302,33 @@ export default function BuyPage() {
   const createOrder = async (provider: string, amount: number) => {
     if (!user) return;
     if (isCreatingOrder) return;
-    
-    setIsCreatingOrder(true);
-    const paymentType = activeTab === 'upi' ? 'p2p_upi' : activeTab === 'bank' ? 'p2p_bank' : activeTab;
-    const bonusPercentage = activeTab === 'bank' ? 5 : activeTab === 'upi' ? 6 : 0;
-    const finalAmount = amount + (amount * (bonusPercentage / 100));
 
+    setIsCreatingOrder(true);
     try {
         const { data, error } = await supabase.rpc('create_buy_order', {
             p_user_id: user.id,
-            p_amount: finalAmount,
-            p_base_amount: amount,
-            p_bonus_percentage: bonusPercentage,
+            p_amount: amount,
             p_payment_provider: provider,
-            p_payment_type: paymentType,
-        })
-        .select('order_id, final_payment_type');
-        
+        });
+
         if (error) throw error;
         
-        const order = data?.[0];
-        const orderId = order?.order_id;
-        const finalPaymentType = order?.final_payment_type;
+        const orderData = data?.[0];
+        const newOrderId = orderData?.order_id;
+        const finalPaymentType = orderData?.final_payment_type;
 
-        if (orderId) {
-            const redirectUrl = `/buy/confirm/${orderId}?type=${finalPaymentType}&provider=${provider}`;
+        if (newOrderId) {
+            const redirectUrl = `/buy/confirm/${newOrderId}?type=${finalPaymentType}&provider=${provider}`;
             router.push(redirectUrl);
         } else {
-            throw new Error("Order creation failed: No order data returned from insert.");
+            throw new Error("Order creation failed: No order data returned from the server.");
         }
     } catch (error: any) {
         console.error("Error creating order:", error);
         toast({
             variant: "destructive",
             title: "Could not create order.",
-            description: error.message,
+            description: error.message || 'Please try again later.',
         });
     } finally {
         setIsCreatingOrder(false);
