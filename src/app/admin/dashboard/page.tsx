@@ -560,7 +560,7 @@ function WithdrawalsTabContent() {
         setLoading(true);
         setError(null);
         try {
-            const { data, error } = await supabase.from('sell_orders').select('*, users ( numeric_id, phone_number )').eq('status', 'pending').order('created_at', { ascending: false });
+            const { data, error } = await supabase.from('sell_orders').select('*, users!user_id( numeric_id, phone_number )').eq('status', 'pending').order('created_at', { ascending: false });
             if (error) throw error;
             setAllOrders(data as SellOrder[]);
         } catch (error) {
@@ -2032,5 +2032,7 @@ export default function AdminDashboardPage() {
 
     return <AdminDashboard />;
 }
+
+    
 
     
