@@ -1745,12 +1745,17 @@ function AdminDashboard() {
     };
 
     const handleDeleteMethod = async (id: string) => {
-        if (!confirm('Are you sure you want to delete this payment method?')) return;
+        if (!confirm('Are you sure you want to delete this payment method? Note: Methods linked to existing orders cannot be deleted.')) return;
         const result = await deletePaymentMethodAdmin(id);
 
         if (result.error) {
             console.error(result.error);
-            toast({ variant: 'destructive', title: 'Error deleting payment method.'});
+            toast({
+                variant: 'destructive',
+                title: 'Deletion Failed',
+                description: result.error.message || 'An unknown error occurred.',
+                duration: 5000,
+            });
         } else {
             toast({ title: 'Payment method deleted.' });
             setPaymentMethods(prev => prev.filter(m => m.id !== id));
