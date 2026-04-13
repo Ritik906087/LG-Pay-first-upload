@@ -1,3 +1,4 @@
+
 'use server';
 
 import { supabaseAdmin } from '@/lib/supabase-admin';
@@ -24,7 +25,7 @@ export async function addPaymentMethodAdmin(payload: PaymentMethodPayload) {
     return { success: true };
 }
 
-export async function deletePaymentMethodAdmin(id: string) {
+export async function deletePaymentMethodAdmin(id: number) {
     // First, check if any order is referencing this payment method.
     const { data: referencingOrders, error: checkError } = await supabaseAdmin
         .from('orders')

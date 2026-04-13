@@ -47,7 +47,7 @@ import {
 import { addPaymentMethodAdmin, deletePaymentMethodAdmin } from '../actions';
 
 
-const defaultAvatarUrl = "https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/IMG_20260402_224703_814.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvSU1HXzIwMjYwNDAyXzIyNDcwM184MTQuanBnIiwiaWF0IjoxNzc1MTUwMzMxLCJleHAiOjE4MDY2ODYzMzF9.o5z7uxui92o-GVKG9znk4TKBAoK4WMsLKY6NPZ8_1o";
+const defaultAvatarUrl = "https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/IMG_20260402_224703_814.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvSU1HXzIwMjYwNDAyXzIyNDcwM184MTQuanBnIiwiaWF0IjoxNzc1MTUwMzMxLCJleHAiOjE4MDY2ODYzMzF9.o5z7uxui9h2o-GVKG9znk4TKBAoK4WMsLKY6NPZ8_1o";
 
 type UserProfile = {
     id: string;
@@ -62,7 +62,7 @@ type UserProfile = {
 };
 
 type PaymentMethod = {
-    id: string;
+    id: number;
     type: 'bank' | 'upi' | 'usdt';
     bank_name?: string;
     account_holder_name?: string;
@@ -468,7 +468,7 @@ function UsdtDetailsForm({ onAdd }: { onAdd: (details: Omit<PaymentMethod, 'id' 
     );
 }
 
-function PaymentMethodsList({ methods, loading, onDelete, canDelete }: { methods: PaymentMethod[], loading: boolean, onDelete: (id: string) => void, canDelete: boolean }) {
+function PaymentMethodsList({ methods, loading, onDelete, canDelete }: { methods: PaymentMethod[], loading: boolean, onDelete: (id: number) => void, canDelete: boolean }) {
     if (loading) {
         return <Skeleton className="h-32 w-full mt-8"/>
     }
@@ -1746,7 +1746,7 @@ function AdminDashboard() {
         }
     };
 
-    const handleDeleteMethod = async (id: string) => {
+    const handleDeleteMethod = async (id: number) => {
         if (!confirm('Are you sure you want to delete this payment method? Note: Methods linked to existing orders cannot be deleted.')) return;
         const result = await deletePaymentMethodAdmin(id);
 
@@ -2043,4 +2043,3 @@ export default function AdminDashboardPage() {
     
 
     
-
