@@ -170,10 +170,17 @@ function PaymentDetailsContent() {
         const fetchOrder = async () => {
           setOrderLoading(true);
     
+          const numericOrderId = Number(orderId);
+          if (isNaN(numericOrderId)) {
+              toast({ variant: 'destructive', title: 'Invalid Order ID' });
+              setOrderLoading(false);
+              return;
+          }
+
           const { data, error } = await supabase
             .from("orders")
             .select("*")
-            .eq("id", orderId)
+            .eq("id", numericOrderId)
             .single();
     
           if (!error && data) {
@@ -187,7 +194,7 @@ function PaymentDetailsContent() {
         };
     
         fetchOrder();
-    }, [orderId, supabase, user, userLoading]);
+    }, [orderId, supabase, user, userLoading, toast]);
 
     useEffect(() => {
         if (!order?.id) {
