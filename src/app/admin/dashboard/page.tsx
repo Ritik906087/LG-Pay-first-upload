@@ -47,7 +47,7 @@ import {
 import { addPaymentMethodAdmin, deletePaymentMethodAdmin } from '../actions';
 
 
-const defaultAvatarUrl = "https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/IMG_20260402_224703_814.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvSU1HXzIwMjYwNDAyXzIyNDcwM184MTQuanBnIiwiaWF0IjoxNzc1MTUwMzMxLCJleHAiOjE4MDY2ODYzMzF9.o5z7uxui9h2o-GVKG9znk4TKBAoK4WMsLKY6NPZ8_1o";
+const defaultAvatarUrl = "https://gfpzygqegzakluihhkkr.supabase.co/storage/v1/object/sign/Lg%20pay/IMG_20260402_224703_814.jpg?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9jMWRjNDIxNy1iODI0LTQ4ZjEtODQ3ZS04OWU1NWI3YzdhMjEiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJMZyBwYXkvSU1HXzIwMjYwNDAyXzIyNDcwM184MTQuanBnIiwiaWF0IjoxNzc1MTUwMzMxLCJleHAiOjE4MDY2ODYzMzF9.o5z7uxui92o-GVKG9znk4TKBAoK4WMsLKY6NPZ8_1o";
 
 type UserProfile = {
     id: string;
@@ -477,9 +477,11 @@ function PaymentMethodsList({ methods, loading, onDelete, canDelete }: { methods
         return null;
     }
 
-    const bankAccounts = methods.filter(m => m.type === 'bank');
-    const upiAccounts = methods.filter(m => m.type === 'upi');
-    const usdtAccounts = methods.filter(m => m.type === 'usdt');
+    const uniqueMethods = Array.from(new Map(methods.map(item => [item.id, item])).values());
+
+    const bankAccounts = uniqueMethods.filter(m => m.type === 'bank');
+    const upiAccounts = uniqueMethods.filter(m => m.type === 'upi');
+    const usdtAccounts = uniqueMethods.filter(m => m.type === 'usdt');
 
     return (
         <div className="mt-8 space-y-6">
@@ -2041,3 +2043,4 @@ export default function AdminDashboardPage() {
     
 
     
+
