@@ -939,7 +939,7 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
     
         try {
             const { error: rpcError } = await supabase.rpc('approve_buy_order', {
-                order_id: Number(order.id)
+                p_order_id: Number(order.id)
             });
     
             if (rpcError) {
@@ -975,8 +975,8 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
     
         try {
             const rpcParams = {
-                order_id: Number(order.id),
-                rejection_reason: rejectionReason,
+                p_order_id: Number(order.id),
+                p_rejection_reason: rejectionReason,
             };
     
             console.log('[ADMIN REJECT] Calling reject_buy_order with params:', rpcParams);
