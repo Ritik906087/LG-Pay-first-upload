@@ -1747,7 +1747,7 @@ function AdminDashboard() {
     };
 
     const handleDeleteMethod = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this payment method? Note: Methods linked to existing orders cannot be deleted.')) return;
+        if (!confirm('Are you sure you want to delete this payment method? This might affect pending orders.')) return;
         const result = await deletePaymentMethodAdmin(id);
 
         if (result.error) {
