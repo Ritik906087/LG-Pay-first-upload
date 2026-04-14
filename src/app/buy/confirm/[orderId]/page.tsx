@@ -76,7 +76,7 @@ type Order = {
                     payment_provider: string;
                       admin_payment_method_id?: number;
                         seller_id?: string;
-                          seller_withdrawal_details?: WithdrawalMethod[];
+                          seller_withdrawal_details?: WithdrawalMethod;
                             matched_sell_order_id?: number;
                               matched_sell_order_path?: string;
                               };
@@ -371,14 +371,8 @@ function PaymentDetailsContent() {
         const isP2P = order.payment_type === 'p2p_upi' || order.payment_type === 'p2p_bank';
     
         if (isP2P) {
-            const withdrawalMethods = order.seller_withdrawal_details;
-            if (!withdrawalMethods || withdrawalMethods.length === 0) {
-                return null;
-            }
-            
-            const selectedMethod = withdrawalMethods.find(m => m.name === order.payment_provider);
-
-            return selectedMethod || withdrawalMethods[0];
+            // seller_withdrawal_details is now a single JSONB object, not an array
+            return order.seller_withdrawal_details;
         }
         
         if (detailsLoading) return null;

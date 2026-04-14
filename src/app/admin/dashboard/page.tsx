@@ -934,37 +934,13 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
     };
 
     const handleApprove = async () => {
-        if (!order || !order.user || !order.user.id) {
-            toast({ variant: "destructive", title: "Error", description: "User data is missing" });
-            return;
-        }
-    
         setIsApproving(true);
         console.log(`[ADMIN APPROVE] Initiating approval for buy order ID: ${order.id}`);
     
         try {
-            const rpcParams: {
-                p_order_id: number;
-                p_user_id: string;
-                p_amount_to_add: number;
-                p_matched_sell_order_id?: number;
-            } = {
-                p_order_id: Number(order.id),
-                p_user_id: order.user.id,
-                p_amount_to_add: Number(order.amount),
-            };
-    
-            if (order.payment_type?.startsWith('p2p_') && order.matched_sell_order_id) {
-                console.log(`[ADMIN APPROVE] P2P order detected. Matched sell order ID (text): ${order.matched_sell_order_id}`);
-                const sellOrderIdNum = Number(order.matched_sell_order_id);
-                if (isNaN(sellOrderIdNum)) {
-                    throw new Error("Invalid matched_sell_order_id format. Expected a number.");
-                }
-                rpcParams.p_matched_sell_order_id = sellOrderIdNum;
-            }
-    
-            console.log('[ADMIN APPROVE] Calling approve_buy_order with params:', rpcParams);
-            const { error: rpcError } = await supabase.rpc("approve_buy_order", rpcParams);
+            const { error: rpcError } = await supabase.rpc('approve_buy_order', {
+                p_order_id: Number(order.id)
+            });
     
             if (rpcError) {
                 console.error('[ADMIN APPROVE] RPC Error:', JSON.stringify(rpcError, null, 2));
@@ -2043,4 +2019,5 @@ export default function AdminDashboardPage() {
     
 
     
+
 
