@@ -283,6 +283,7 @@ export default function BuyPage() {
             const baseOptions = generateOptionsFromConfig(purchaseConfig);
             
             for (let i = 0; i < 30; i++) {
+                const addIndex = Math.floor(Math.random() * baseOptions.length);
                 const itemToAdd = { ...baseOptions[addIndex], id: Math.random() }; 
                 
                 const insertAtIndex = Math.floor(Math.random() * (currentOpts.length + 1));
