@@ -1077,7 +1077,7 @@ const handleConfirm = async () => {
                   <DialogTitle className="text-lg font-semibold text-center">Change Payment Method</DialogTitle>
                 </DialogHeader>
                 <div className="p-4 space-y-3">
-                  {userProfile?.payment_methods?.map((method) => {
+                  {userProfile?.payment_methods?.filter(m => ['MobiKwik', 'Freecharge'].includes(m.name)).map((method) => {
                       const details = paymentMethodDetails[method.name];
                       if (!details) return null;
                       return (
@@ -1103,7 +1103,7 @@ const handleConfirm = async () => {
                           </button>
                       )
                   })}
-                   {userProfile?.payment_methods?.length === 0 && (
+                   {userProfile?.payment_methods?.filter(m => ['MobiKwik', 'Freecharge'].includes(m.name)).length === 0 && (
                       <div className="text-center text-sm text-muted-foreground p-4">
                           <p>No MobiKwik or Freecharge accounts linked.</p>
                           <Button asChild variant="link" className="mt-2">

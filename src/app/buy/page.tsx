@@ -355,12 +355,7 @@ export default function BuyPage() {
         return;
     }
 
-    if (activeTab === 'bank') {
-        createOrder('bank', 'Bank Transfer', option.amount);
-        return;
-    }
-
-    if (activeTab === 'upi') {
+    if (activeTab === 'upi' || activeTab === 'bank') {
         const availableMethods = userProfile?.payment_methods?.filter((pm: any) => 
             ['MobiKwik', 'Freecharge'].includes(pm.name)
         ) || [];
@@ -383,7 +378,7 @@ export default function BuyPage() {
   const handleProviderSelect = async (method: {name: string, upiId: string}) => {
     setIsDialogOpen(false);
     if (!selectedAmount) return;
-    await createOrder('upi', method.name, selectedAmount);
+    await createOrder(activeTab, method.name, selectedAmount);
   };
   
   const handleGoToOrder = () => {
