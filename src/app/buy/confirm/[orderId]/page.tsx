@@ -76,7 +76,7 @@ type Order = {
                     payment_provider: string;
                       admin_payment_method_id?: number;
                         seller_id?: string;
-                          seller_withdrawal_details?: WithdrawalMethod;
+                          seller_withdrawal_details?: WithdrawalMethod[];
                             matched_sell_order_id?: number;
                               matched_sell_order_path?: string;
                               };
@@ -140,9 +140,6 @@ function PaymentDetailsContent() {
     const ocrTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     
-    const [sellerProfile, setSellerProfile] = useState<UserProfile | null>(null);
-    const [sellerLoading, setSellerLoading] = useState(true);
-
     const [adminPaymentDetails, setAdminPaymentDetails] = useState<AdminPaymentMethod | null>(null);
     const [detailsLoading, setDetailsLoading] = useState(true);
 
@@ -216,48 +213,7 @@ function PaymentDetailsContent() {
             supabase.removeChannel(channel);
         };
     }, [order, supabase]);
-
-    useEffect(() => {
-        const fetchSeller = async () => {
-            if (!order) {
-                setSellerLoading(false);
-                return;
-            }
-
-            const isP2P =
-              order.payment_type === 'p2p_upi' ||
-                order.payment_type === 'p2p_bank';
-
-            if (isP2P && order.seller_id) {
-              setSellerLoading(true);
-
-                const { data: sellerData, error } = await supabase
-                    .from('users')
-                        .select('payment_methods, display_name')
-                            .eq('id', order.seller_id)
-                                .single();
-
-                                  if (error) {
-                                      toast({
-                                            variant: 'destructive',
-                                                  title: 'Could not load seller details',
-                                                      });
-                                                          setSellerProfile(null);
-                                                            } else {
-                                                                setSellerProfile(sellerData as UserProfile);
-                                                                  }
-
-                                                                    setSellerLoading(false);
-            } else {
-              setSellerLoading(false);
-            }
-        };
-        
-        if (order) {
-            fetchSeller();
-        }
-    }, [order, supabase, toast]);
-
+    
     const handleCancelOrder = useCallback(
       async (reason: string, isAutoCancel = false) => {
           if (!order || !supabase) return;
@@ -410,30 +366,31 @@ function PaymentDetailsContent() {
     }, [order, orderLoading, supabase]);
     
     const paymentTargetDetails = useMemo(() => {
-        if (orderLoading) return null;
-        if (!order) return null;
+        if (orderLoading || !order) return null;
     
         const isP2P = order.payment_type === 'p2p_upi' || order.payment_type === 'p2p_bank';
     
         if (isP2P) {
-            if (sellerLoading) return null; 
-            if (!sellerProfile || !order.seller_withdrawal_details) return null;
-    
-            const sellerMethod = sellerProfile.payment_methods?.find(
-                (pm) => pm.name === order.seller_withdrawal_details?.name
-            );
+            const withdrawalMethods = order.seller_withdrawal_details;
+            if (!withdrawalMethods || withdrawalMethods.length === 0) {
+                return null;
+            }
             
-            return sellerMethod || null;
+            const selectedMethod = withdrawalMethods.find(m => m.name === order.payment_provider);
+
+            return selectedMethod || withdrawalMethods[0];
         }
         
+        if (detailsLoading) return null;
         return adminPaymentDetails;
-    }, [order, orderLoading, adminPaymentDetails, sellerProfile, sellerLoading]);
+    }, [order, orderLoading, adminPaymentDetails, detailsLoading]);
 
 
     const details = useMemo(() => {
         if (!paymentTargetDetails) return null;
-        const isP2P = type === 'p2p_upi' || type === 'p2p_bank';
 
+        const isP2P = type === 'p2p_upi' || type === 'p2p_bank';
+        
         const normalizedDetails: any = isP2P ? {
             type: (paymentTargetDetails as any).type,
             bank_name: (paymentTargetDetails as any).bankName,
@@ -647,7 +604,7 @@ const handleConfirm = async () => {
     }
 };
 
-    const loading = detailsLoading || orderLoading || userLoading || (order && (order.payment_type === 'p2p_upi' || order.payment_type === 'p2p_bank') && sellerLoading);
+    const loading = detailsLoading || orderLoading || userLoading;
     const currentProviderDetails = provider ? paymentMethodDetails[provider] : null;
     
     const usdtAmount = useMemo(() => {
