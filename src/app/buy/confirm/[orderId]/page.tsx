@@ -371,7 +371,6 @@ function PaymentDetailsContent() {
         const isP2P = order.payment_type === 'p2p_upi' || order.payment_type === 'p2p_bank';
     
         if (isP2P) {
-            // seller_withdrawal_details is now a single JSONB object, not an array
             return order.seller_withdrawal_details;
         }
         
@@ -381,9 +380,9 @@ function PaymentDetailsContent() {
 
 
     const details = useMemo(() => {
-        if (!paymentTargetDetails) return null;
+        if (!paymentTargetDetails || !order) return null;
 
-        const isP2P = type === 'p2p_upi' || type === 'p2p_bank';
+        const isP2P = order.payment_type === 'p2p_upi' || order.payment_type === 'p2p_bank';
         
         const normalizedDetails: any = isP2P ? {
             type: (paymentTargetDetails as any).type,
@@ -395,7 +394,7 @@ function PaymentDetailsContent() {
             upi_id: (paymentTargetDetails as any).upiId,
         } : paymentTargetDetails;
 
-        if (normalizedDetails.type === 'bank') {
+        if (normalizedDetails.type === 'bank' || order.payment_type === 'p2p_bank') {
             return {
                 'Bank Name': normalizedDetails.bank_name,
                 'Account Holder': normalizedDetails.account_holder_name,
@@ -403,7 +402,7 @@ function PaymentDetailsContent() {
                 'IFSC Code': normalizedDetails.ifsc_code,
             };
         }
-        if (normalizedDetails.type === 'upi') {
+        if (normalizedDetails.type === 'upi' || order.payment_type === 'p2p_upi') {
             const detailsObj: { [key: string]: string | undefined } = {
                 'UPI ID': normalizedDetails.upi_id,
             };
@@ -418,7 +417,7 @@ function PaymentDetailsContent() {
             }
         }
         return null;
-    }, [paymentTargetDetails, type]);
+    }, [paymentTargetDetails, order]);
 
     const copyToClipboard = (text: string) => {
         if (!text) return;
