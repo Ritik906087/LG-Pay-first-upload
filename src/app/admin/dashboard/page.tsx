@@ -102,7 +102,7 @@ type Order = {
     seller_id?: string;
     payment_type?: 'bank' | 'upi' | 'usdt' | 'p2p_upi' | 'p2p_bank';
     payment_provider?: string;
-    admin_payment_method_id?: string;
+    admin_payment_method_id?: number;
     seller_withdrawal_details?: WithdrawalMethod;
     matched_sell_order_id?: string;
     ocr_amount_match?: boolean;
@@ -906,7 +906,7 @@ function ProcessConfirmationDialog({ order, onProcessed, adminPaymentMethods }: 
             return null; // For P2P, details are handled separately now
         }
         if (!order.admin_payment_method_id || !adminPaymentMethods) return null;
-        return adminPaymentMethods.find(m => m.id.toString() === order.admin_payment_method_id);
+        return adminPaymentMethods.find(m => m.id === order.admin_payment_method_id);
     }, [order, adminPaymentMethods, isP2P]);
 
     const DetailItem = ({ icon: Icon, label, value, onCopy, children }: { icon: React.ElementType, label: string, value?: string | number, onCopy?: () => void, children?: React.ReactNode }) => {
@@ -2043,3 +2043,4 @@ export default function AdminDashboardPage() {
     
 
     
+
