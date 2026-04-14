@@ -283,7 +283,6 @@ export default function BuyPage() {
             const baseOptions = generateOptionsFromConfig(purchaseConfig);
             
             for (let i = 0; i < 30; i++) {
-                const addIndex = Math.floor(Math.random() * baseOptions.length);
                 const itemToAdd = { ...baseOptions[addIndex], id: Math.random() }; 
                 
                 const insertAtIndex = Math.floor(Math.random() * (currentOpts.length + 1));
@@ -299,7 +298,7 @@ export default function BuyPage() {
     };
   }, []); 
 
-  const createOrder = async (provider: string, amount: number) => {
+  const createOrder = async (paymentType: 'upi' | 'bank' | 'usdt', provider: string, amount: number) => {
     if (!user) return;
     if (isCreatingOrder) return;
 
@@ -308,6 +307,7 @@ export default function BuyPage() {
         const { data, error } = await supabase.rpc('create_buy_order', {
             p_user_id: user.id,
             p_amount: amount,
+            p_payment_type: paymentType,
             p_payment_provider: provider,
         });
 
@@ -350,12 +350,12 @@ export default function BuyPage() {
     setSelectedAmount(option.amount);
 
     if (activeTab === 'usdt') {
-        createOrder('TRC20', option.amount);
+        createOrder('usdt', 'TRC20', option.amount);
         return;
     }
 
     if (activeTab === 'bank') {
-        createOrder('Bank Transfer', option.amount);
+        createOrder('bank', 'Bank Transfer', option.amount);
         return;
     }
 
@@ -382,7 +382,7 @@ export default function BuyPage() {
   const handleProviderSelect = async (method: {name: string, upiId: string}) => {
     setIsDialogOpen(false);
     if (!selectedAmount) return;
-    await createOrder(method.name, selectedAmount);
+    await createOrder('upi', method.name, selectedAmount);
   };
   
   const handleGoToOrder = () => {
